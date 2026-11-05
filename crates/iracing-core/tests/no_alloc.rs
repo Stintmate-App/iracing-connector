@@ -1,9 +1,14 @@
-//! The hot path allocates nothing: filling a tick and feeding the lap pieces, row after row.
+//! The hot path allocates nothing: filling a tick, feeding the lap pieces and the flag
+//! detector (while nothing fires), row after row.
 
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 
+use iracing_core::announce::Calls;
+use iracing_core::announce::detector::Detector;
+use iracing_core::codes::SessionKind;
 use iracing_core::lap::{LapBuffer, LapPoint};
+use iracing_core::meta::SessionMeta;
 use iracing_core::sectors::SectorClock;
 use iracing_core::testing::{LapProfile, Scenario, YamlBuilder, table_of};
 use iracing_core::tick::Tick;
@@ -65,6 +70,11 @@ fn filling_a_tick_and_feeding_the_lap_pieces_allocates_nothing() {
     let mut sectors = SectorClock::new(&[0.0, 0.3, 0.7]);
     let mut incidents = IncidentTracker::new();
     let mut validity = Validity::new();
+    let mut detector = Detector::new(2.0);
+    let mut calls = Calls::new();
+    let mut meta = SessionMeta::empty(0);
+    meta.kind = SessionKind::Race;
+    meta.track.length_m = Some(4010.0);
     sectors.start_lap(0.0, false);
     let point = LapPoint {
         timed: true,
@@ -84,8 +94,10 @@ fn filling_a_tick_and_feeding_the_lap_pieces_allocates_nothing() {
         let rise = incidents.step(&tick);
         validity.step(&tick, tick.is_on_track, 1.0, rise.as_ref());
         buffer.push(&tick, &point, 0);
+        detector.step(&tick, Some(&meta), &mut calls);
     }
     let after = allocations();
     assert_eq!(after - before, 0, "allocations on the hot path");
     assert_eq!(buffer.len(), rows.len());
+    assert!(calls.is_empty());
 }

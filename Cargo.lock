@@ -1217,6 +1217,7 @@ dependencies = [
  "stintmate-connector-control",
  "stintmate-connector-platform",
  "stintmate-connector-resources",
+ "stintmate-connector-wire",
 ]
 
 [[package]]
