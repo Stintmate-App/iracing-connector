@@ -19,3 +19,10 @@ All notable changes to this project are written here.
 - `iracing-probe` (`tools/probe`): a read-only diagnostic that waits for the simulator's map and
   records the header, the variables, every session text (raw and decoded), a CSV of the scalar
   variables, raw rows, the layout bytes and the simulator's windows into one folder.
+- `irsdk`: the session text. `yaml::decode` (Windows-1252, or UTF-8 when the text carries the
+  UTF-8 marker; NUL cut, control characters dropped), `requote` for the free-text name keys,
+  `sections` and `SectionHashes`, `parse` with every top-level section parsed on its own (a broken
+  section loses only itself), number-with-unit helpers, and a line-based `fallback::extract` for
+  the key facts. `session` holds the partial typed model (track, event, sessions, results, sectors,
+  drivers, setup). A hand-made corpus of session texts and tests for decoding, parsing and the
+  fallback.

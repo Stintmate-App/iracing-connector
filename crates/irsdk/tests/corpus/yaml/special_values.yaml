@@ -1,0 +1,36 @@
+---
+WeekendInfo:
+ TrackName: oval test
+ TrackID: 5
+ TrackLength: 3.60 mi
+ TrackPitSpeedLimit: 45.00 mph
+ WeekendOptions:
+  IncidentLimit: unlimited
+SessionInfo:
+ CurrentSessionNum: 0
+ Sessions:
+ - SessionNum: 0
+   SessionLaps: 1e5
+   SessionTime: unlimited
+   SessionType: Race
+FutureSection:
+ NewKey: 1
+	Tabbed: yes
+DriverInfo:
+ DriverCarIdx: 0
+ DriverCarFuelMaxLtr: 80.0
+ DriverCarMaxFuelPct: 1.0
+ Drivers:
+ - CarIdx: 0
+   UserName: Pat Sample
+   CarNumber: "007"
+   CarPath: testcar\stock
+   CarClassID: 3
+CarSetup:
+ UpdateCount: 2
+ Chassis:
+  Front:
+   Rate: 1
+  Front:
+   Rate: 2
+...
