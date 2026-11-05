@@ -224,6 +224,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "iracing-replay"
+version = "0.1.0"
+dependencies = [
+ "irsdk",
+]
+
+[[package]]
 name = "irsdk"
 version = "0.1.0"
 dependencies = [

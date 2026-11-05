@@ -15,6 +15,7 @@
 
 pub mod defs;
 pub mod header;
+pub mod ibt;
 #[cfg(windows)]
 pub mod live;
 pub mod row;
