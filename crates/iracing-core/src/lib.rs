@@ -1,11 +1,19 @@
 //! Core types of the iRacing connector.
 //!
 //! This crate will hold the connector description, the texts of its control app and the
-//! interfaces between the recorder parts. Today it holds only the three interfaces, without
-//! methods.
+//! interfaces between the recorder parts. Today it holds the three interfaces, without
+//! methods, the SDK variable map ([`vars`], [`tick`], [`codes`]) and the session data types
+//! ([`meta`]).
 
 #![deny(missing_docs)]
 #![forbid(unsafe_code)]
+
+pub mod codes;
+pub mod meta;
+#[cfg(feature = "testing")]
+pub mod testing;
+pub mod tick;
+pub mod vars;
 
 /// The recorder frame source, live or replayed.
 pub trait Source {}

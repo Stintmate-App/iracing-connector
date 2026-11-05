@@ -302,6 +302,10 @@ dependencies = [
 [[package]]
 name = "iracing-core"
 version = "0.1.0"
+dependencies = [
+ "iracing-core",
+ "irsdk",
+]
 
 [[package]]
 name = "iracing-probe"
