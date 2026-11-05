@@ -25,4 +25,5 @@ serde_json.workspace = true
 # The tests use the `testing` module.
 iracing-core = { path = ".", features = ["testing"] }
 irsdk = { workspace = true, features = ["testing"] }
+jsonschema = { version = "0.60.2", default-features = false }
 stintmate-connector-control.workspace = true

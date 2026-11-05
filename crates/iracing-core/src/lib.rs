@@ -10,13 +10,16 @@
 pub mod announce;
 pub mod catalog;
 pub mod codes;
+pub mod guidance;
 pub mod ibt_source;
 pub mod io;
 pub mod lap;
+pub mod live;
 pub mod meta;
 pub mod resume;
 pub mod sectors;
 pub mod setup;
+pub mod telemetry;
 #[cfg(feature = "testing")]
 pub mod testing;
 pub mod tick;

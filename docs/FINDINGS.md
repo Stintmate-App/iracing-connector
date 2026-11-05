@@ -348,6 +348,12 @@ them. Nothing here was seen in a race session, online or with other cars (see
   middle, outer): the order mirrors the car.
 - **observed**: none of these exist among the variables: brake temperature, live hot pressure,
   ride height, damage.
+- Assumed: in the live frame the three live temperatures of a wheel are shown as the tread
+  temperatures (outer, middle, inner) and their mean as the carcass temperature, and a wheel's wear is
+  one minus the mean of its three wear values; whether the live temperatures are tread or carcass
+  readings is not observed. To confirm.
+- Assumed: another car's pit mode in the live frame is 1 (into the pits) whenever it is on the pit
+  road outside its stall, because the visit is not tracked per car. To confirm.
 
 ## Setup
 

@@ -4,6 +4,12 @@ All notable changes to this project are written here.
 
 ## 0.1.0 (2026-11-05)
 
+- `iracing-core`: `live` (`LiveSnapshot`, a fixed-size copy of the row, the lap view and the last
+  stall's tyre readings, and `frame_json`, which builds the live frame only when asked: menus,
+  garage, on track and paused phases, the splits, the conditions, the wheels of the last stall entry
+  and the participants), `telemetry` (`sample` fills the 32-byte telemetry sample without allocating;
+  `repeat` makes the keep-alive form) and `guidance` (the items for the engineer). `Tick` is `Copy`.
+  `tests/live_frame.rs` validates the frames against the live frame JSON schema.
 - `iracing-core`: `announce` with the announcement catalog `connector.iracing`
   (`data/catalog.json`, English, validated with the runtime's validator), the `Call` and `Calls`
   types, the shared gate (session open, no replay, player in the car, ten quiet seconds after a
