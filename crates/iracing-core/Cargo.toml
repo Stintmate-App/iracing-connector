@@ -15,8 +15,12 @@ testing = ["irsdk/testing"]
 
 [dependencies]
 irsdk.workspace = true
+stintmate-connector-platform.workspace = true
+stintmate-connector-resources.workspace = true
 
 [dev-dependencies]
 # The tests use the `testing` module.
 iracing-core = { path = ".", features = ["testing"] }
 irsdk = { workspace = true, features = ["testing"] }
+stintmate-connector-control.workspace = true
+serde_json.workspace = true

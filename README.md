@@ -9,12 +9,14 @@ License 2.0 ([LICENSE](LICENSE)).
 
 ## Status
 
-Under construction. Today the repository holds the `irsdk` crate (a reader of the SDK's data
-layouts: header, variable table, rows; with a synthetic writer for tests) and the empty traits of
-`iracing-core`. Nothing is read from the game yet.
+Under construction. The repository holds the `irsdk` crate (a reader of the SDK's data
+layouts, the session text and `.ibt` files), `iracing-core` (the connector description) and the three
+programs: the control app, the window and the recorder. The recorder reports whether iRacing runs;
+it reads nothing from the game yet and records no laps.
 
 ## Documentation
 
+- [docs/usage.md](docs/usage.md): the programs, options, data folder, logs and registration.
 - [docs/architecture.md](docs/architecture.md): how the `irsdk` reader works: the map, the event, the
   tick-checked copy, resets, the session text worker, `.ibt` files, and what is `unsafe`.
 - [docs/FINDINGS.md](docs/FINDINGS.md): what is known about the simulator's data, each fact marked

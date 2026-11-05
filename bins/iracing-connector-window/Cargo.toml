@@ -1,0 +1,19 @@
+[package]
+name = "iracing-connector-window"
+description = "The iRacing connector's window: services, options and logs, a short-lived process"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+iracing-core.workspace = true
+stintmate-connector-platform.workspace = true
+stintmate-connector-window.workspace = true
+
+[build-dependencies]
+stintmate-connector-resources.workspace = true
+embed-resource.workspace = true
