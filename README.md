@@ -13,6 +13,13 @@ Under construction. Today the repository holds the `irsdk` crate (a reader of th
 layouts: header, variable table, rows; with a synthetic writer for tests) and the empty traits of
 `iracing-core`. Nothing is read from the game yet.
 
+## Documentation
+
+- [docs/architecture.md](docs/architecture.md): how the `irsdk` reader works: the map, the event, the
+  tick-checked copy, resets, the session text worker, `.ibt` files, and what is `unsafe`.
+- [docs/FINDINGS.md](docs/FINDINGS.md): what is known about the simulator's data, each fact marked
+  documented or not observed yet.
+
 ## Building and testing
 
 The toolchain comes from `rust-toolchain.toml`.

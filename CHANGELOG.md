@@ -41,3 +41,11 @@ All notable changes to this project are written here.
   is an atomic store and an unpark; `latest` hands out the newest document without waiting.
   `Ibt::session` now returns a `SessionDoc`.
 - `irsdk`: the indentation of the synthetic session text in `testing` is kept (two lines had lost it).
+- `irsdk`: property tests (`proptest`) that the layout parsers, the session text path and the byte
+  views never panic on arbitrary or damaged input, and that what the builders write is what the
+  parsers read; a corpus of hand-made layout images (truncated at every field, impossible counts
+  and offsets, unusable variable headers); a session text of 1 MiB generated from the 64-car
+  corpus file; six ignored tests for recordings from a real machine, which print a `SKIP` line
+  naming the file they need.
+- Docs: `docs/architecture.md` (the reader, for an outside reader) and `docs/FINDINGS.md` (what is
+  known about the simulator's data, each fact marked documented or not observed yet).
