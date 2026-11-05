@@ -16,3 +16,6 @@ All notable changes to this project are written here.
   `sim_mapping_exists`), and `testing::map::TestMap`, a writer of a uniquely named test mapping that
   refuses the simulator's names. Tests for the sampler, the live reader and the per-tick path
   (no allocation), and a benchmark of one poll with thirty reads.
+- `iracing-probe` (`tools/probe`): a read-only diagnostic that waits for the simulator's map and
+  records the header, the variables, every session text (raw and decoded), a CSV of the scalar
+  variables, raw rows, the layout bytes and the simulator's windows into one folder.
