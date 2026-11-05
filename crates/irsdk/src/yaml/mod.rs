@@ -267,11 +267,23 @@ fn take<T: DeserializeOwned>(
     body: &str,
     errors: &mut Vec<(String, String)>,
 ) -> Option<T> {
-    match serde_yaml_ng::from_str::<HashMap<String, Option<T>>>(body) {
+    match serde_saphyr::from_str_with_options::<HashMap<String, Option<T>>>(body, options()) {
         Ok(mut m) => m.remove(name).flatten(),
         Err(e) => {
             errors.push((name.to_owned(), e.to_string()));
             None
         }
     }
+}
+
+/// The parser options: the defaults (duplicate keys are an error, plain scalars keep their text in
+/// `String` fields), with the budget sized for a session string of a few hundred KB (64 drivers).
+fn options() -> serde_saphyr::Options {
+    let mut budget = serde_saphyr::Budget::default();
+    budget.max_nodes = 1_000_000;
+    budget.max_events = 4_000_000;
+    budget.max_depth = 64;
+    let mut options = serde_saphyr::Options::default();
+    options.budget = Some(budget);
+    options
 }
