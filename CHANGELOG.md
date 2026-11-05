@@ -62,3 +62,8 @@ All notable changes to this project are written here.
   (scripted drives on a 60 Hz clock: garage, stall, laps, pit stops, off-track, cuts, incidents,
   tows, session changes, flags, cautions, rivals, disconnects), with `Scenario::ibt` and, on
   Windows, `Scenario::replay_into` for a test map.
+- `irsdk`: the YAML parser is now `serde-saphyr` (safe Rust) instead of `serde_yaml_ng`, which depends on the
+  unmaintained `unsafe-libyaml` (RUSTSEC-2024-0449, failing `cargo deny check advisories`). The parser's
+  budget is set for session texts of a few hundred KB. The minimum Rust version is now 1.89.
+- `irsdk`: breaking, `CarSetup` now wraps a `serde_json::Value` instead of the YAML parser's value type, so the
+  parser is not part of the public API.

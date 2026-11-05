@@ -405,3 +405,40 @@ fn derived_helpers_without_data() {
     assert_eq!(d.fuel_capacity_l(), None);
     assert!(!irsdk::session::Driver::default().is_real());
 }
+
+// parser behaviour that must not depend on the YAML crate
+
+#[test]
+fn plain_scalars_with_units_and_odd_words_stay_text() {
+    let p = yaml::parse("WeekendInfo:\n TrackName: 0.5\n TrackLength: 3.70 km\n Category: on\n");
+    assert!(p.errors.is_empty(), "{:?}", p.errors);
+    let w = p.info.weekend.unwrap();
+    assert_eq!(w.track_name.as_deref(), Some("0.5"));
+    assert_eq!(w.track_length_m(), Some(3700.0));
+    assert_eq!(w.category.as_deref(), Some("on"));
+}
+
+#[test]
+fn a_key_without_a_value_is_none_and_a_repeated_key_fails_only_its_section() {
+    let p = yaml::parse(
+        "WeekendInfo:\n TrackName:\n Category: Road\n\nDriverInfo:\n DriverCarIdx: 1\n DriverCarIdx: 2\n",
+    );
+    let w = p.info.weekend.unwrap();
+    assert_eq!(w.track_name, None);
+    assert_eq!(w.category.as_deref(), Some("Road"));
+    assert!(p.info.driver.is_none());
+    assert_eq!(p.errors.len(), 1);
+    assert_eq!(p.errors[0].0, "DriverInfo");
+}
+
+#[test]
+fn a_deeply_nested_car_setup_parses_and_gives_its_update_count() {
+    let mut text = String::from("CarSetup:\n UpdateCount: 7\n");
+    for depth in 0..40 {
+        text.push_str(&format!("{}L{depth}:\n", " ".repeat(depth + 1)));
+    }
+    text.push_str(&format!("{}Leaf: 1.5\n", " ".repeat(42)));
+    let p = yaml::parse(&text);
+    assert!(p.errors.is_empty(), "{:?}", p.errors);
+    assert_eq!(p.info.car_setup.unwrap().update_count(), Some(7));
+}

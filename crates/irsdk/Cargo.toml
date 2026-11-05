@@ -15,7 +15,8 @@ testing = []
 
 [dependencies]
 serde.workspace = true
-serde_yaml_ng.workspace = true
+serde-saphyr = "2.1.1"
+serde_json.workspace = true
 
 [dev-dependencies]
 # The integration tests use the `testing` module.

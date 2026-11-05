@@ -272,7 +272,7 @@ impl Driver {
 /// The `CarSetup` section, untyped: its keys depend on the car.
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 #[serde(transparent)]
-pub struct CarSetup(pub serde_yaml_ng::Value);
+pub struct CarSetup(pub serde_json::Value);
 
 impl CarSetup {
     /// The `UpdateCount` of the setup, which grows when the driver changes it.

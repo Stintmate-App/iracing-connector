@@ -132,7 +132,9 @@ YAML, so `yaml::requote` puts double quotes around the values of the name keys b
 Parsing (`yaml::parse`, `crates/irsdk/src/yaml/mod.rs:245`) splits the text into top-level
 sections and deserializes **each section on its own** into a partial typed model
 (`crates/irsdk/src/session.rs`). A broken section loses only itself and is reported in
-`errors`. A line scanner, `yaml::fallback::extract`, runs on the same text without a YAML
+`errors`. The YAML parser is `serde-saphyr` (safe Rust), with its default duplicate-key rule (a repeated key
+fails its section) and a budget sized for a session text of a few hundred KB
+(`crates/irsdk/src/yaml/mod.rs:281`). A line scanner, `yaml::fallback::extract`, runs on the same text without a YAML
 parser and gives the key facts (track, session ids, the player's car) even when the typed parse
 of a section failed. `SectionHashes` lets a consumer tell which section changed between two
 documents.
