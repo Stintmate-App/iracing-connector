@@ -265,3 +265,47 @@ fn a_lap_end_allocates_nothing_when_the_sink_refills_the_pool() {
     assert!(sink.laps >= 2, "laps in the window: {}", sink.laps);
     assert_eq!(after - before, 0, "allocations across lap ends");
 }
+
+#[test]
+fn the_rival_step_allocates_nothing_while_no_lap_is_counted() {
+    let mut s = Scenario::new(YamlBuilder::new().roster(63, 2));
+    s.field(62);
+    s.garage(1.0).to_stall().drive_out();
+    s.lap(LapProfile::new(8.0));
+    let table = table_of(s.layout());
+    let vars = Vars::resolve(&table).expect("vars");
+    let rows: Vec<Row> = s.rows().iter().map(|b| Row::from_slice(b)).collect();
+    let mut meta =
+        iracing_core::meta::build(&irsdk::worker::SessionDoc::from_raw(1, s.initial_yaml()), 0);
+    meta.sector_starts = vec![0.0, 0.3, 0.7];
+    let mut rivals = iracing_core::rivals::RivalTracker::new();
+    let mut tick = Tick::new();
+    tick.connected = true;
+    tick.fresh = true;
+    // The first rows set each car's baseline (and the sector clocks); the player's own
+    // crossings in the scenario would count a lap, so only rows before the first are timed.
+    let steady = rows.len() / 3;
+    for row in &rows[..steady] {
+        tick.fill(&vars, row);
+        rivals.step(&tick, &meta);
+    }
+    let mut idle = 0;
+    let mut counted = 0;
+    for row in &rows[steady..] {
+        tick.fill(&vars, row);
+        let before = allocations();
+        rivals.step(&tick, &meta);
+        let spent = allocations() - before;
+        // A step that counted a lap (the player's own crossing) builds its record.
+        if rivals.take_due(1e9, true).is_some() {
+            counted += 1;
+        } else {
+            idle += spent;
+        }
+    }
+    assert_eq!(
+        idle, 0,
+        "allocations in the rival step while no lap is counted"
+    );
+    assert!(counted >= 1);
+}

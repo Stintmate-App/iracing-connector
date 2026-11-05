@@ -10,6 +10,7 @@ All notable changes to this project are written here.
   and the participants), `telemetry` (`sample` fills the 32-byte telemetry sample without allocating;
   `repeat` makes the keep-alive form) and `guidance` (the items for the engineer). `Tick` is `Copy`.
   `tests/live_frame.rs` validates the frames against the live frame JSON schema.
+- `iracing-core`: `rivals` with `RivalTracker`, one `ParticipantLap` per real car per lap the simulator counts (the player included): the official time once `CarIdxLastLapTime` changes (waiting 3 s, else measured crossing to crossing), interpolated crossing times, sector times as the track has them, pit road visits and stops, the position (the session text's result while `CarIdxPosition` is 0), best lap and why a car is out. A car with no entry in the session text is held for 10 s, then sent as `Car <slot>`; a slot whose `UserID` changes starts over. `CatalogWatch` sends the catalog again, before the rivals see it, for a session description whose cars differ. `ParticipantLap` gains `sectors`. `tests/golden.rs` has the multiclass field, the late joiner and the reused slot (the first also through `IbtSource`), and `tests/no_alloc.rs` counts the rival step.
 - `iracing-core`: `announce` with the announcement catalog `connector.iracing`
   (`data/catalog.json`, English, validated with the runtime's validator), the `Call` and `Calls`
   types, the shared gate (session open, no replay, player in the car, ten quiet seconds after a

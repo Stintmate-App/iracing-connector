@@ -17,6 +17,7 @@ pub mod lap;
 pub mod live;
 pub mod meta;
 pub mod resume;
+pub mod rivals;
 pub mod sectors;
 pub mod setup;
 pub mod telemetry;
