@@ -9,10 +9,13 @@
 #![forbid(unsafe_code)]
 
 pub mod announce;
+pub mod catalog;
 pub mod codes;
 pub mod lap;
 pub mod meta;
+pub mod resume;
 pub mod sectors;
+pub mod setup;
 #[cfg(feature = "testing")]
 pub mod testing;
 pub mod tick;

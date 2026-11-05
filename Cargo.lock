@@ -1215,6 +1215,7 @@ dependencies = [
  "irsdk",
  "serde_json",
  "stintmate-connector-control",
+ "stintmate-connector-link",
  "stintmate-connector-platform",
  "stintmate-connector-resources",
  "stintmate-connector-wire",

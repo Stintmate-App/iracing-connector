@@ -140,6 +140,18 @@ them. Nothing here was seen in a race session, online or with other cars (see
 - **not observed yet**: what `DriverCarIdx` is while the player is a spectator or in a replay.
 - **not observed yet**: the identity of a session across a reconnection, or across two offline
   events (the offline ids above would be the same).
+## Session identity
+
+- **not observed yet**: how a session is told from another one in an offline event. Offline,
+  `SessionUniqueID` was 1 and `SubSessionID` 0 in the one event seen, probably in every event.
+  Assumed: while `SubSessionID` is 0 a restarted recorder continues the open session only when its
+  first frame comes within ten minutes of the last frame the stopped recorder saw
+  (`crates/iracing-core/src/resume.rs`), besides the same ids, session number, car, track,
+  layout and session type; to confirm with two offline events.
+- **not observed yet**: whether `TrackID` differs for two layouts of one track. Assumed: the
+  layout id is the `TrackID` as a decimal number (`crates/iracing-core/src/catalog.rs`); to
+  confirm with a second layout.
+
 ## Rates
 
 - **documented**: the header carries `tick_rate`, the ticks per second at which row buffers are
@@ -315,6 +327,8 @@ them. Nothing here was seen in a race session, online or with other cars (see
   `LastTemps*`, `TreadRemaining`, `CornerWeight`, `RideHeight`, `Camber`, `ToeIn`, springs and
   dampers) and `Suspension.Rear` (which holds `FuelLevel`). The car has no brake bias, ABS or
   traction control keys.
+- **not observed yet**: the order of the three `TreadRemaining` values. Assumed: the order the
+  text writes, not reversed for the right-hand wheels as `LastTempsIMO` is; to confirm.
 
 ## Signs and scales
 

@@ -9,7 +9,7 @@ are relative to the repository root. Facts about the simulator itself are in
 | Path | What it is |
 |---|---|
 | `crates/irsdk` | A reader of the iRacing SDK data: the live memory map, `.ibt` files and synthetic images, through one set of parsers. Library. |
-| `crates/iracing-core` | The empty `Source`, `Sink` and `Clock` traits the connector will be built on. |
+| `crates/iracing-core` | The connector's core: the variable map and tick, lap channels, sectors, validity, announcements, the session meta (`meta`, built on its own thread), the catalog ids (`catalog`), the car setup and tyre readings (`setup`) and the resume clock (`resume`). |
 | `tools/probe` | `iracing-probe`: a read-only diagnostic that records what the simulator publishes into a folder. |
 | `tools/replay` | `iracing-replay`: writes an `.ibt` file or a synthetic lap into a test mapping, to drive a reader without the simulator. |
 

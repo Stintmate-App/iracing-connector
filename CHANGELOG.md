@@ -17,6 +17,13 @@ All notable changes to this project are written here.
   the lap time) and `validity` (the lap validity inferred from incidents, time off the track,
   tows and the pit road, and the incident tracker; a lap iRacing did not time is invalid), with
   unit tests and `tests/no_alloc.rs`, which counts allocations on the per-row path.
+- `iracing-core`: `meta` builds a `SessionMeta` from the parsed session text (`build`) on the
+  thread `iracing-meta` (`MetaWorker`), using the line scan for what the typed parse lost; a
+  driver name with a line break no longer loses the whole `DriverInfo` section. `catalog` makes
+  the track, layout, car and class ids and the catalog (the whole roster at the start, the cars
+  only for later additions). `setup` turns `CarSetup` into the write API setup (typed fields,
+  `extra`, unit conversion) and keeps the tyre readings apart. `resume` holds the resume clock
+  and the session identity; an offline event resumes only within ten minutes.
 
 - Shared runtime moved from `v0.1.0` to `v0.1.2`: a refusal after the hello shows `refused`, and
   every process lowers its priority. No code change was needed.
