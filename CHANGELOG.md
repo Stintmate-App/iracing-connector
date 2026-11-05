@@ -49,3 +49,16 @@ All notable changes to this project are written here.
   naming the file they need.
 - Docs: `docs/architecture.md` (the reader, for an outside reader) and `docs/FINDINGS.md` (what is
   known about the simulator's data, each fact marked documented or not observed yet).
+- `iracing-core`: the variable map. `vars::Vars` resolves every SDK variable the recorder reads by
+  name (a missing or mistyped required one is an error that names it; an absent optional one is
+  listed once and reads as absent, never zero), `tick::Tick` holds one row as plain values in the
+  SDK's units and is refilled without allocation, and `codes` maps session type texts, surface
+  classes and pit states to the values the recorder writes.
+- `iracing-core`: the data types of a session (`meta::SessionMeta` with the track, roster, results,
+  setup snapshot and hashes).
+- `iracing-core`: the `testing` feature. `full_layout` (every variable of the map, 64-slot per-car
+  arrays), `YamlBuilder` (session texts with weekend, sessions, results, sectors, drivers in
+  classes, setup with tyre readings; Windows-1252 output; metric or imperial) and `Scenario`
+  (scripted drives on a 60 Hz clock: garage, stall, laps, pit stops, off-track, cuts, incidents,
+  tows, session changes, flags, cautions, rivals, disconnects), with `Scenario::ibt` and, on
+  Windows, `Scenario::replay_into` for a test map.
