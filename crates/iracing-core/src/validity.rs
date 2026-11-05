@@ -249,10 +249,22 @@ impl Validity {
         self.valid = false;
     }
 
-    /// iRacing did not time the lap (`LapLastLapTime` was -1). It is invalid; the cause stays
-    /// whatever the lap found.
+    /// iRacing did not time the lap (`LapLastLapTime` was -1, or the lap ended before the
+    /// line). It is invalid. The cause stays whatever the lap found (a tow or reset sets it);
+    /// with none, it is `unknown`, not certain.
     pub fn mark_not_timed(&mut self) {
         self.valid = false;
+        if self.cause.is_none() {
+            self.cause = Some(InvalidCause::Unknown);
+            self.certain = false;
+        }
+    }
+
+    /// The lap did not start at the line (the recorder joined mid-lap, or the car jumped on the
+    /// track): its trace covers part of the lap and the simulator's time is not its time. It is
+    /// invalid with cause `unknown`.
+    pub fn mark_mid_lap_start(&mut self, at_m: f32) {
+        self.set(InvalidCause::Unknown, false, at_m, 0.0);
     }
 
     /// The first cause makes the lap invalid; a later one of the same cause only raises
@@ -488,6 +500,19 @@ mod tests {
         let mut v = Validity::new();
         v.mark_not_timed();
         assert!(!v.valid);
+        assert_eq!((v.cause, v.certain), (Some(InvalidCause::Unknown), false));
+        // A cause found earlier (a reset, a tow) stays.
+        let mut v = Validity::new();
+        v.mark_tow(10.0, 1.0);
+        v.mark_not_timed();
+        assert_eq!(v.cause, Some(InvalidCause::Unknown));
+        assert_eq!(v.at_m, Some(10.0));
+        let mut v = Validity::new();
+        v.mark_mid_lap_start(250.0);
+        assert_eq!(
+            (v.valid, v.cause, v.at_m),
+            (false, Some(InvalidCause::Unknown), Some(250.0))
+        );
         v.reset();
         assert!(v.valid);
     }

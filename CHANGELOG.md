@@ -34,6 +34,23 @@ All notable changes to this project are written here.
   `extra`, unit conversion) and keeps the tyre readings apart. `resume` holds the resume clock
   and the session identity; an offline event resumes only within ten minutes.
 
+- `iracing-core`: `tracker` turns rows into sessions, laps and pit visits (`Tracker::step`, no
+  allocation while no lap ends and no session changes) and keeps the live `LapView`. The counters
+  `Lap` and `LapCompleted` are taken again whenever driving starts and when one falls (they drop
+  to 0 when the player leaves the car and `Lap` rises in the stall on re-entry), a car that
+  reappears in the stall in one row is a reset (tested before the wrap of the lap fraction),
+  `LapLastLapTime` of -1 makes the lap not timed and invalid, a lap that touched the pit road is
+  invalid, and out of the car with a session loaded is the garage. Fuel is read only while
+  driving and the tyre temperatures and wear are taken at every stall entry (`StallTyres`). New
+  variables: `IsGarageVisible`, `ReplayFrameNumEnd`, `PitstopActive`, `PlayerCarPitSvStatus`.
+  A lap time equal to the previous lap's is not seen as new and the lap takes its measured time.
+- `iracing-core`: the `Sink`, `Source` and `Clock` traits and the records they carry (`io`),
+  `IbtSource` (rows of an `.ibt` file), and, with the `testing` feature, `RecordingSink`,
+  `FixedClock` and the scenario steps `session_state` and `drive_through`.
+  `tests/golden.rs` replays scenarios through the tracker and compares every call to the sink
+  with `tests/golden/<name>.json` (`UPDATE_GOLDEN=1` rewrites them), including one that follows a
+  recorded session's order of events; `tests/no_alloc.rs` counts the tracker step.
+
 - Shared runtime moved from `v0.1.0` to `v0.1.2`: a refusal after the hello shows `refused`, and
   every process lowers its priority. No code change was needed.
 - `iracing-core`: the game window is found by class `SimWinClass`, with the title
@@ -115,3 +132,14 @@ All notable changes to this project are written here.
   budget is set for session texts of a few hundred KB. The minimum Rust version is now 1.89.
 - `irsdk`: breaking, `CarSetup` now wraps a `serde_json::Value` instead of the YAML parser's value type, so the
   parser is not part of the public API.
+- `iracing-core`: fixes in the tracker. A lap that did not start at the line (joined mid-lap, or
+  after a jump of the car) is sent invalid with cause `unknown` and no time, whatever iRacing
+  timed; a disconnect ends the session after five seconds of wall time (`Clock::mono_s`), not of
+  session time, which stands still while the simulator is gone; a lap counter that rises in the
+  stall, nearly stopped or within a second of driving starting, without the lap fraction
+  wrapping, is not a crossing; the wrap of the lap fraction alone ends a lap that started at the
+  line only after half of it was driven; a lap iRacing did not time (-1) or that ended early is
+  `unknown` instead of having no cause; the lap open when a session closes or the recorder stops
+  is `in` only if the car was on the pit road. The tracker no longer allocates a lap buffer on
+  the tick thread when the sink offers one (`Sink::spare_buffer`). The golden scenarios also run
+  through `IbtSource` and compare equal, and a golden scenario feeds rows with `connected` false.

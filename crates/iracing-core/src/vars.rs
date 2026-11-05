@@ -85,6 +85,15 @@ macro_rules! variables {
                 yaw: f32 = "Yaw",
                 abs_active: bool = "BrakeABSactive",
                 in_pit_stall: bool = "PlayerCarInPitStall",
+                // Observed: true with the garage screen open, also when `IsInGarage` is false.
+                is_garage_visible: bool = "IsGarageVisible",
+                // Observed: 1 while the player is out of the car (the live replay), more in a
+                // real replay.
+                replay_frame_end: i32 = "ReplayFrameNumEnd",
+                // Observed: starts on the row the car enters its stall.
+                pit_service_active: bool = "PitstopActive",
+                // Observed: 1 while the service runs, 2 when it is complete, then 0.
+                pit_sv_status: i32 = "PlayerCarPitSvStatus",
                 // Which material shows for a wheel on a kerb or on grass is not observed yet.
                 surface: i32 = "PlayerTrackSurfaceMaterial",
                 incidents: i32 = "PlayerCarMyIncidentCount",

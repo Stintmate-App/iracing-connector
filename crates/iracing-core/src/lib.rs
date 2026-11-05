@@ -2,8 +2,7 @@
 //!
 //! This crate holds the connector description ([`SPEC`]), the texts of its control app
 //! (`locales/en.json`), the SDK variable map ([`vars`], [`tick`], [`codes`]), the session data
-//! types ([`meta`]) and the interfaces between the recorder parts, today three traits without
-//! methods.
+//! types ([`meta`]) and the interfaces between the recorder parts ([`io`]), and the [`tracker`] that turns rows into laps.
 
 #![deny(missing_docs)]
 #![forbid(unsafe_code)]
@@ -11,6 +10,8 @@
 pub mod announce;
 pub mod catalog;
 pub mod codes;
+pub mod ibt_source;
+pub mod io;
 pub mod lap;
 pub mod meta;
 pub mod resume;
@@ -19,6 +20,7 @@ pub mod setup;
 #[cfg(feature = "testing")]
 pub mod testing;
 pub mod tick;
+pub mod tracker;
 pub mod validity;
 pub mod vars;
 
@@ -56,29 +58,14 @@ pub static SPEC: ConnectorSpec = ConnectorSpec {
     dev_env_aliases: &[],
 };
 
-/// The recorder frame source, live or replayed.
-pub trait Source {}
-
-/// Where the tracker records go.
-pub trait Sink {}
-
-/// The tracker time source.
-pub trait Clock {}
+pub use io::{
+    Clock, Conditions, FinishedLap, LapType, ParticipantLap, SessionKey, SessionOpenInfo,
+    SetupReason, Sink, Source, SourceEvent, StallTyres, TimeSource,
+};
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    struct Nothing;
-    impl Source for Nothing {}
-    impl Sink for Nothing {}
-    impl Clock for Nothing {}
-
-    #[test]
-    fn traits_can_be_implemented() {
-        fn takes<T: Source + Sink + Clock>(_: &T) {}
-        takes(&Nothing);
-    }
 
     #[test]
     fn spec_is_valid() {

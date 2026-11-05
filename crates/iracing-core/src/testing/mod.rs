@@ -3,9 +3,11 @@
 //!
 //! The builders panic on misuse: they are test tools.
 
+mod recording;
 mod scenario;
 mod yaml;
 
+pub use recording::{FixedClock, RecordingSink};
 pub use scenario::{LapProfile, Scenario, Side, YamlUpdate};
 pub use yaml::{ResultSpec, SessionSpec, TyreReadings, YamlBuilder};
 
@@ -64,6 +66,10 @@ const SCALARS: &[(&str, VarType, &str)] = &[
     ("BrakeABSactive", Bool, ""),
     ("OnPitRoad", Bool, ""),
     ("PlayerCarInPitStall", Bool, ""),
+    ("IsGarageVisible", Bool, ""),
+    ("ReplayFrameNumEnd", Int, ""),
+    ("PitstopActive", Bool, ""),
+    ("PlayerCarPitSvStatus", Int, "irsdk_PitSvStatus"),
     ("PlayerTrackSurface", Int, "irsdk_TrkLoc"),
     ("PlayerTrackSurfaceMaterial", Int, "irsdk_TrkSurf"),
     ("PlayerCarMyIncidentCount", Int, ""),
