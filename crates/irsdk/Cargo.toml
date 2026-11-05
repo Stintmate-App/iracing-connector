@@ -18,3 +18,8 @@ testing = []
 [dev-dependencies]
 # The integration tests use the `testing` module.
 irsdk = { path = ".", features = ["testing"] }
+criterion.workspace = true
+
+[[bench]]
+name = "poll"
+harness = false

@@ -58,3 +58,31 @@ impl View for SliceView<'_> {
         }
     }
 }
+
+impl<V: View + ?Sized> View for &V {
+    fn len(&self) -> usize {
+        (**self).len()
+    }
+
+    fn load_i32(&self, off: usize) -> Option<i32> {
+        (**self).load_i32(off)
+    }
+
+    fn copy_out(&self, off: usize, dst: &mut [u8]) -> bool {
+        (**self).copy_out(off, dst)
+    }
+}
+
+impl<V: View + ?Sized> View for std::sync::Arc<V> {
+    fn len(&self) -> usize {
+        (**self).len()
+    }
+
+    fn load_i32(&self, off: usize) -> Option<i32> {
+        (**self).load_i32(off)
+    }
+
+    fn copy_out(&self, off: usize, dst: &mut [u8]) -> bool {
+        (**self).copy_out(off, dst)
+    }
+}

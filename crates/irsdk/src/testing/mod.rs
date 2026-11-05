@@ -2,6 +2,9 @@
 //!
 //! The builders panic on misuse (an unknown variable name, a wrong type): they are test tools.
 
+#[cfg(windows)]
+pub mod map;
+
 use crate::defs::{MAX_BUFS, MAX_DESC, MAX_STRING, STATUS_CONNECTED, VER, VarType};
 use crate::header::{HEADER_LEN, VAR_HEADER_LEN};
 use crate::vars::VarValue;

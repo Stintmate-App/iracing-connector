@@ -15,7 +15,10 @@
 
 pub mod defs;
 pub mod header;
+#[cfg(windows)]
+pub mod live;
 pub mod row;
+pub mod sampler;
 pub mod vars;
 pub mod view;
 
