@@ -34,3 +34,10 @@ All notable changes to this project are written here.
 - `iracing-replay` (`tools/replay`): replays an `.ibt` file or a number of synthetic laps into a
   test mapping with a name given on the command line; the simulator's names are refused. It can
   loop and stop after a time.
+- `irsdk`: `worker`: `YamlSource` (the session text and its update counter; implemented for the live
+  map, which re-checks the counter around the copy, and for `Ibt`), `SessionDoc` (decoded text,
+  typed sections, errors, fallback, section hashes) and `YamlWorker`, a thread that re-reads and
+  parses the text only when the counter moved and discards a parse the counter overtook. `notify`
+  is an atomic store and an unpark; `latest` hands out the newest document without waiting.
+  `Ibt::session` now returns a `SessionDoc`.
+- `irsdk`: the indentation of the synthetic session text in `testing` is kept (two lines had lost it).

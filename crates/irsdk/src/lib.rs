@@ -23,6 +23,7 @@ pub mod sampler;
 pub mod session;
 pub mod vars;
 pub mod view;
+pub mod worker;
 pub mod yaml;
 
 #[cfg(any(test, feature = "testing"))]

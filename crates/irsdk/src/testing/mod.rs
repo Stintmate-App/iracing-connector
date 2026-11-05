@@ -414,8 +414,8 @@ pub fn synthetic_layout() -> Layout {
 
 /// The session text of [`synthetic_ibt`].
 pub const SYNTHETIC_YAML: &str = "---\nWeekendInfo:\n TrackName: synthetic\n TrackLength: 2.00 km\n\
- TrackDisplayName: Synthetic Track\nSessionInfo:\n Sessions:\n - SessionNum: 0\n   SessionType: Race\n\
-   SessionLaps: unlimited\nDriverInfo:\n DriverCarIdx: 0\n Drivers:\n - CarIdx: 0\n   UserName: Test Driver\n...\n";
+\x20TrackDisplayName: Synthetic Track\nSessionInfo:\n Sessions:\n - SessionNum: 0\n   SessionType: Race\n\
+\x20  SessionLaps: unlimited\nDriverInfo:\n DriverCarIdx: 0\n Drivers:\n - CarIdx: 0\n   UserName: Test Driver\n...\n";
 
 /// An in-memory `.ibt` of `laps` laps of a 2 km track, `rows_per_lap` rows each, with the
 /// variables of [`synthetic_layout`]. The speed is a smooth function of the distance.
