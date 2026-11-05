@@ -1,11 +1,12 @@
-//! The hot path allocates nothing: filling a tick, feeding the lap pieces and the flag
-//! detector (while nothing fires), row after row.
+//! The hot path allocates nothing: filling a tick, feeding the lap pieces, the announcement
+//! detector and the spotter (while nothing fires), row after row.
 
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 
 use iracing_core::announce::Calls;
 use iracing_core::announce::detector::Detector;
+use iracing_core::announce::spotter::Spotter;
 use iracing_core::codes::SessionKind;
 use iracing_core::lap::{LapBuffer, LapPoint};
 use iracing_core::meta::SessionMeta;
@@ -71,6 +72,7 @@ fn filling_a_tick_and_feeding_the_lap_pieces_allocates_nothing() {
     let mut incidents = IncidentTracker::new();
     let mut validity = Validity::new();
     let mut detector = Detector::new(2.0);
+    let mut spotter = Spotter::new();
     let mut calls = Calls::new();
     let mut meta = SessionMeta::empty(0);
     meta.kind = SessionKind::Race;
@@ -95,6 +97,7 @@ fn filling_a_tick_and_feeding_the_lap_pieces_allocates_nothing() {
         validity.step(&tick, tick.is_on_track, 1.0, rise.as_ref());
         buffer.push(&tick, &point, 0);
         detector.step(&tick, Some(&meta), &mut calls);
+        spotter.step(&tick, Some(&meta), Some(0.0), &mut calls);
     }
     let after = allocations();
     assert_eq!(after - before, 0, "allocations on the hot path");

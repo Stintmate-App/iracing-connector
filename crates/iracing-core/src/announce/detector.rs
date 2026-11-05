@@ -1,5 +1,6 @@
-//! The flag announcements: the yellow family, the clear, the blue train, red, the meatball and
-//! the full-course caution.
+//! The race announcements: the flags (the yellow family, the clear, the blue train, red, the
+//! meatball), the full-course caution, the penalty flags, the finish, disqualifications and
+//! retirements, and the player's incident count.
 //!
 //! [`Detector`] is fed every row (60 Hz) and writes the calls that fired into a [`Calls`]; on
 //! most rows it compares a few integers and returns. It reads no clock (time is the row's
@@ -14,6 +15,10 @@
 //! 4. **Cooldowns** per code ([`cooldown`]); the blue flag per lapping car.
 //! 5. **Rivals** are read from the per-car arrays at the rival rate only; another car's speed is
 //!    its movement along the lap between two reads.
+//! 6. **Once per session:** the final lap, the chequered flag, the player's disqualification and
+//!    retirement, the incident limit warning, and each rival's disqualification and retirement.
+//!    The session text ([`Detector::on_meta`]) tells who is out; its first reading of a session is
+//!    the baseline and announces nothing.
 
 use std::borrow::Cow;
 
@@ -23,6 +28,7 @@ use super::{Call, Calls, Gate, GateState};
 use crate::codes::SessionKind;
 use crate::meta::SessionMeta;
 use crate::tick::Tick;
+use crate::validity::IncidentTracker;
 use crate::vars::CARS;
 
 pub use super::QUIET_S;
@@ -55,6 +61,9 @@ pub const BLUE_NEXT_GAP_S: f64 = 4.0;
 pub const BLUE_CAR_COOLDOWN_S: f64 = 20.0;
 /// Blue flags for the same lapping car per session.
 pub const BLUE_MAX_PER_CAR: u8 = 3;
+/// The incident limit warning comes when the points left are at most the larger of this and a
+/// quarter of the limit.
+pub const LIMIT_WARNING_MIN_LEFT: i64 = 4;
 
 /// The track surface value of a car on the track.
 const ON_TRACK: i32 = 3;
@@ -72,12 +81,13 @@ pub fn cooldown(code: &str) -> f64 {
         | "flag_yellow_cause"
         | "flag_red"
         | "flag_black_orange" => 30.0,
+        "penalty_black_flag" => 30.0,
         "flag_clear" => 20.0,
         _ => 0.0,
     }
 }
 
-const COOLED: [&str; 9] = [
+const COOLED: [&str; 10] = [
     "flag_yellow",
     "flag_double_yellow",
     "flag_yellow_ahead",
@@ -86,8 +96,24 @@ const COOLED: [&str; 9] = [
     "flag_yellow_cause",
     "flag_red",
     "flag_black_orange",
+    "penalty_black_flag",
     "flag_clear",
 ];
+
+/// Calls made once per session.
+#[derive(Clone, Copy)]
+enum Once {
+    FinalLap,
+    Chequered,
+    Disqualified,
+    Retired,
+    LimitWarning,
+}
+
+const ONCE: usize = 5;
+
+/// No identity announced for a car slot.
+const NO_ID: i64 = i64::MIN;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Edge {
@@ -146,6 +172,10 @@ pub struct Detector {
     caution: Held,
     green: Held,
     one_lap: Held,
+    black: Held,
+    disq: Held,
+    white: Held,
+    checkered: Held,
     pits_open: Option<bool>,
     // the player's own state
     self_slow_at: f64,
@@ -165,6 +195,21 @@ pub struct Detector {
     last_blue_car: Option<usize>,
     car_last_blue: [f64; CARS],
     car_blue_count: [u8; CARS],
+    // penalties and the finish
+    black_pit: bool,
+    prev_lap: Option<i32>,
+    // the incident count
+    incidents: IncidentTracker,
+    // once per session
+    once: [bool; ONCE],
+    ident_session: i32,
+    rival_dq_id: [i64; CARS],
+    rival_out_id: [i64; CARS],
+    // who is out, from the session text
+    out_seeded: bool,
+    out_base: [i32; CARS],
+    on_air: bool,
+    last_now: f64,
     // cooldowns
     cooled_at: [f64; COOLED.len()],
     // other cars' speeds
@@ -192,6 +237,10 @@ impl Detector {
             caution: Held::default(),
             green: Held::default(),
             one_lap: Held::default(),
+            black: Held::default(),
+            disq: Held::default(),
+            white: Held::default(),
+            checkered: Held::default(),
             pits_open: None,
             self_slow_at: f64::NEG_INFINITY,
             self_off_at: f64::NEG_INFINITY,
@@ -207,6 +256,17 @@ impl Detector {
             last_blue_car: None,
             car_last_blue: [f64::NEG_INFINITY; CARS],
             car_blue_count: [0; CARS],
+            black_pit: false,
+            prev_lap: None,
+            incidents: IncidentTracker::new(),
+            once: [false; ONCE],
+            ident_session: i32::MIN,
+            rival_dq_id: [NO_ID; CARS],
+            rival_out_id: [NO_ID; CARS],
+            out_seeded: false,
+            out_base: [0; CARS],
+            on_air: false,
+            last_now: 0.0,
             cooled_at: [f64::NEG_INFINITY; COOLED.len()],
             next_scan_at: f64::NEG_INFINITY,
             next_blue_scan_at: f64::NEG_INFINITY,
@@ -223,6 +283,22 @@ impl Detector {
     pub fn reset(&mut self) {
         self.gate.reset();
         self.clear_state();
+        self.new_session(i32::MIN);
+        self.on_air = false;
+    }
+
+    /// The once-per-session state, for session `num`.
+    fn new_session(&mut self, num: i32) {
+        self.ident_session = num;
+        self.once = [false; ONCE];
+        self.rival_dq_id = [NO_ID; CARS];
+        self.rival_out_id = [NO_ID; CARS];
+        self.out_seeded = false;
+        self.prev_lap = None;
+    }
+
+    fn done(&mut self, which: Once) -> bool {
+        std::mem::replace(&mut self.once[which as usize], true)
     }
 
     /// The per-session state, silently.
@@ -248,6 +324,8 @@ impl Detector {
         self.prev_on = [false; CARS];
         self.car_speed = [f32::NAN; CARS];
         self.pits_open = None;
+        self.black_pit = false;
+        self.incidents.reset();
     }
 
     /// Reads one row and adds the calls that fired to `out`. Hot: no allocation while nothing
@@ -255,6 +333,7 @@ impl Detector {
     pub fn step(&mut self, t: &Tick, meta: Option<&SessionMeta>, out: &mut Calls) {
         let g = self.gate.step(t, meta);
         let (Some(kind), Some(meta)) = (g.kind, meta) else {
+            self.on_air = false;
             return;
         };
         let now = t.session_time;
@@ -262,7 +341,12 @@ impl Detector {
         if g.restarted {
             self.clear_state();
         }
+        if meta.session_num != self.ident_session {
+            self.new_session(meta.session_num);
+        }
         let live = !g.quiet;
+        self.on_air = live && g.in_car;
+        self.last_now = now;
         let race = kind == SessionKind::Race;
 
         // The player's own state, for a yellow that is about the player.
@@ -276,6 +360,7 @@ impl Detector {
         }
         if now >= self.next_scan_at {
             self.scan_speeds(t, meta, now);
+            self.rival_dq_scan(t, meta, race && self.on_air, now, out);
         }
 
         let e_yellow = feed(&mut self.yellow, f & flag::YELLOW != 0, now, live);
@@ -297,6 +382,20 @@ impl Detector {
             now,
             live,
         );
+
+        let e_black = feed(&mut self.black, f & flag::BLACK != 0, now, live);
+        let e_dq = feed(&mut self.disq, f & flag::DISQUALIFY != 0, now, live);
+        let e_white = feed(&mut self.white, f & flag::WHITE != 0, now, live);
+        let e_check = feed(&mut self.checkered, f & flag::CHECKERED != 0, now, live);
+        self.race_step(
+            t,
+            meta,
+            race && self.on_air,
+            [e_black, e_dq, e_white, e_check],
+            now,
+            out,
+        );
+        self.incident_step(t, meta, self.on_air, now, out);
 
         if live {
             if e_red == Edge::Rise && g.in_car {
@@ -323,6 +422,169 @@ impl Detector {
             self.clear_step(now, out);
         }
         self.blue_step(t, meta, &g, race, e_blue, now, out);
+    }
+
+    /// The penalty flags, the finish and the player's disqualification.
+    fn race_step(
+        &mut self,
+        t: &Tick,
+        meta: &SessionMeta,
+        on_air: bool,
+        edges: [Edge; 4],
+        now: f64,
+        out: &mut Calls,
+    ) {
+        let [e_black, e_dq, e_white, e_check] = edges;
+        let crossed = self.prev_lap.is_some_and(|p| t.lap > p);
+        self.prev_lap = Some(t.lap);
+        if e_black == Edge::Rise {
+            self.black_pit = t.on_pit_road;
+        } else if self.black.stable && t.on_pit_road {
+            self.black_pit = true;
+        }
+        if !on_air {
+            if e_black == Edge::Fall {
+                self.black_pit = false;
+            }
+            return;
+        }
+        if e_dq == Edge::Rise && !self.done(Once::Disqualified) {
+            self.fire(now, out, Call::new("disqualified"));
+        }
+        // The black flag of a disqualification is not a penalty to serve.
+        if e_black == Edge::Rise && !self.disq.stable {
+            self.fire(now, out, Call::new("penalty_black_flag"));
+        }
+        if e_black == Edge::Fall && std::mem::take(&mut self.black_pit) {
+            self.fire(now, out, Call::new("penalty_served"));
+        }
+        // Not observed on the simulator yet: see docs/FINDINGS.md, Race end and rivals.
+        let leader_last_lap = crossed && t.laps_remain == Some(1) && t.position == Some(1);
+        if (e_white == Edge::Rise || leader_last_lap) && !self.done(Once::FinalLap) {
+            self.fire(now, out, Call::new("final_lap"));
+        }
+        if e_check == Edge::Rise && !self.done(Once::Chequered) {
+            let place = if meta.multiclass {
+                t.class_position
+            } else {
+                t.position
+            };
+            let call = match place.filter(|p| *p > 0) {
+                Some(p) => Call::new("chequered").int("position", i64::from(p)),
+                None => Call::new("chequered_no_position"),
+            };
+            self.fire(now, out, call);
+        }
+    }
+
+    /// The player's incident count: told once the rises of two seconds are merged.
+    fn incident_step(
+        &mut self,
+        t: &Tick,
+        meta: &SessionMeta,
+        on_air: bool,
+        now: f64,
+        out: &mut Calls,
+    ) {
+        // The cause of a rise is `IncidentTracker`'s; the announcement does not name it.
+        let _ = self.incidents.step(t);
+        let Some(points) = self.incidents.take_settled(now) else {
+            return;
+        };
+        if !on_air {
+            return;
+        }
+        let total = i64::from(self.incidents.points_session);
+        self.fire(
+            now,
+            out,
+            Call::new("incident")
+                .int("points", i64::from(points))
+                .int("total", total),
+        );
+        if let Some(limit) = meta.incident_limit.filter(|l| *l > 0) {
+            let limit = i64::from(limit);
+            if limit - total <= LIMIT_WARNING_MIN_LEFT.max(limit / 4)
+                && !self.done(Once::LimitWarning)
+            {
+                self.fire(
+                    now,
+                    out,
+                    Call::new("incident_limit_warning")
+                        .int("total", total)
+                        .int("limit", limit),
+                );
+            }
+        }
+    }
+
+    /// Rivals shown the disqualification flag, by identity, at the rival rate. While nothing
+    /// may be announced the flag is only noted.
+    fn rival_dq_scan(
+        &mut self,
+        t: &Tick,
+        meta: &SessionMeta,
+        on_air: bool,
+        now: f64,
+        out: &mut Calls,
+    ) {
+        let Some(flags) = t.car_flags.as_ref() else {
+            return;
+        };
+        let me = usize::try_from(t.player_idx).ok();
+        for (i, car_flags) in flags.iter().enumerate() {
+            if Some(i) == me || *car_flags & flag::DISQUALIFY == 0 {
+                continue;
+            }
+            let Some(entry) = meta.roster[i].as_ref().filter(|d| d.is_real) else {
+                continue;
+            };
+            if self.rival_dq_id[i] == entry.user_id {
+                continue;
+            }
+            self.rival_dq_id[i] = entry.user_id;
+            if on_air {
+                let call = Call::new("rival_disqualified").text("driver", name_of(meta, i));
+                self.fire(now, out, call);
+            }
+        }
+    }
+
+    /// A new session text: who is out of the race. The first text of a session is the baseline
+    /// and says nothing; later ones announce the player's retirement and a rival's, once per
+    /// identity, unless the rival was disqualified.
+    ///
+    /// Not observed on the simulator yet: see docs/FINDINGS.md, Race end and rivals.
+    pub fn on_meta(&mut self, meta: &SessionMeta, out: &mut Calls) {
+        if meta.session_num != self.ident_session {
+            self.new_session(meta.session_num);
+        }
+        let announce = self.out_seeded && self.on_air && meta.kind == SessionKind::Race;
+        let me = usize::try_from(meta.player_idx).ok();
+        let now = self.last_now;
+        for i in 0..CARS {
+            let reason = meta.results[i].reason_out_id;
+            let was = std::mem::replace(&mut self.out_base[i], reason);
+            if !(announce && reason != 0 && was == 0) {
+                continue;
+            }
+            if Some(i) == me {
+                if !self.once[Once::Disqualified as usize] && !self.done(Once::Retired) {
+                    self.fire(now, out, Call::new("retired"));
+                }
+                continue;
+            }
+            let Some(entry) = meta.roster[i].as_ref().filter(|d| d.is_real) else {
+                continue;
+            };
+            if self.rival_dq_id[i] == entry.user_id || self.rival_out_id[i] == entry.user_id {
+                continue;
+            }
+            self.rival_out_id[i] = entry.user_id;
+            let call = Call::new("rival_out").text("driver", name_of(meta, i));
+            self.fire(now, out, call);
+        }
+        self.out_seeded = true;
     }
 
     fn fire(&mut self, now: f64, out: &mut Calls, call: Call) -> bool {

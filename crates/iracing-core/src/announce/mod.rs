@@ -12,6 +12,7 @@ use crate::meta::SessionMeta;
 use crate::tick::Tick;
 
 pub mod detector;
+pub mod spotter;
 
 /// The announcement catalog `connector.iracing`, English.
 pub const CATALOG: &str = include_str!("../../data/catalog.json");
@@ -222,18 +223,18 @@ impl Gate {
                 green_state,
             };
         };
+        // The chequered state (5) follows green without a quiet time: the finish is announced.
+        let running = t.session_state == 4 || t.session_state == 5;
         let jumped = now < self.last_time - 1.0;
-        let restarted = !self.primed
-            || jumped
-            || t.session_num != self.last_num
-            || green_state != self.last_racing;
+        let restarted =
+            !self.primed || jumped || t.session_num != self.last_num || running != self.last_racing;
         if restarted {
             self.primed = true;
             self.quiet_until = now + QUIET_S;
         }
         self.last_time = now;
         self.last_num = t.session_num;
-        self.last_racing = green_state;
+        self.last_racing = running;
         let driving = t.is_on_track;
         GateState {
             kind: Some(meta.kind),
