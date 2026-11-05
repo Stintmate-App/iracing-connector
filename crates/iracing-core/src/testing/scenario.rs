@@ -442,6 +442,23 @@ impl Scenario {
         self.hold(0.5)
     }
 
+    /// Drives from where the car is along the pit road, past the stall without stopping, over
+    /// the line and out of the pit road.
+    pub fn drive_through(&mut self) -> &mut Self {
+        while self.sim.pct < PIT_ENTRY_PCT {
+            self.advance(40.0, 0.0);
+        }
+        self.sim.on_pit_road = true;
+        self.sim.loc = ON_PIT_ROAD;
+        let mut crossed = false;
+        while !(crossed && self.sim.pct > PIT_EXIT_PCT) {
+            crossed |= self.advance(PIT_SPEED, 0.0);
+        }
+        self.sim.on_pit_road = false;
+        self.sim.loc = ON_TRACK;
+        self
+    }
+
     /// Stands `s` seconds in the stall taking `refuel_l` litres. With `readings` the setup's
     /// `UpdateCount` rises and its tyre readings change.
     pub fn stop(&mut self, s: f64, refuel_l: f64, readings: Option<TyreReadings>) -> &mut Self {
@@ -535,6 +552,12 @@ impl Scenario {
         self.sim.car_lr = if side == Side::Left { 2 } else { 3 };
         self.run(s);
         self.sim.car_lr = 1;
+        self
+    }
+
+    /// Sets `SessionState` (3 is the parade laps, 4 racing) from the next row on.
+    pub fn session_state(&mut self, state: i32) -> &mut Self {
+        self.sim.state = state;
         self
     }
 
@@ -762,6 +785,8 @@ impl Scenario {
             .set_f32("FuelLevel", s.fuel as f32)
             .set_bool("OnPitRoad", s.on_pit_road)
             .set_bool("PlayerCarInPitStall", s.in_stall)
+            .set_bool("IsGarageVisible", s.in_garage)
+            .set_i32("ReplayFrameNumEnd", 1)
             .set_i32("PlayerTrackSurface", loc)
             .set_i32("PlayerTrackSurfaceMaterial", material)
             .set_i32("PlayerCarMyIncidentCount", s.incidents)

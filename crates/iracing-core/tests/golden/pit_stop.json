@@ -1,0 +1,1064 @@
+[
+  {
+    "call": "start_session",
+    "car": "porsche992rgt3",
+    "catalog": {
+      "cars": [
+        {
+          "car_id": "porsche992rgt3",
+          "class_id": "74",
+          "fuel_capacity_l": 100.0,
+          "name": "Porsche 911 GT3 R (992)"
+        }
+      ],
+      "classes": [
+        {
+          "class_id": "74",
+          "name": "GT3"
+        }
+      ],
+      "layouts": [
+        {
+          "layout_id": "261",
+          "length_m": 4010.0,
+          "name": "Grand Prix Pits",
+          "track_id": "circuit-de-spa-francorchamps"
+        }
+      ],
+      "tracks": [
+        {
+          "name": "Circuit de Spa-Francorchamps",
+          "track_id": "circuit-de-spa-francorchamps"
+        }
+      ]
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "kind": "practice",
+    "layout": "261",
+    "local": 1,
+    "parse_errors": 0,
+    "player_name": "Test Driver",
+    "roster": [
+      "Test Driver"
+    ],
+    "session_num": 0,
+    "started_at": "2026-01-01T00:00:00Z",
+    "track": "circuit-de-spa-francorchamps",
+    "unique_id": 1
+  },
+  {
+    "at": "2026-01-01T00:00:00Z",
+    "call": "setup",
+    "fuel_l": 0.0,
+    "local": 1,
+    "reason": "session_start",
+    "session_num": 0,
+    "setup_update": 1
+  },
+  {
+    "at_s": 1.017,
+    "call": "stall_tyres",
+    "local": 1,
+    "temp_c": [
+      [
+        75.0,
+        75.0,
+        75.0
+      ],
+      [
+        75.0,
+        75.0,
+        75.0
+      ],
+      [
+        75.0,
+        75.0,
+        75.0
+      ],
+      [
+        75.0,
+        75.0,
+        75.0
+      ]
+    ],
+    "wear": [
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ]
+    ]
+  },
+  {
+    "at": "2026-01-01T00:00:00Z",
+    "call": "pit_exit",
+    "fuel_l": 79.999,
+    "local": 1
+  },
+  {
+    "at": "2026-01-01T00:00:00Z",
+    "call": "setup",
+    "fuel_l": 79.999,
+    "local": 1,
+    "reason": "pit_exit",
+    "session_num": 0,
+    "setup_update": 1
+  },
+  {
+    "call": "lap",
+    "cause": null,
+    "cause_certain": false,
+    "channels": {
+      "abs": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2080,
+        "sum": 0.0
+      },
+      "brake": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2080,
+        "sum": 0.0
+      },
+      "clutch": {
+        "first": 1.0,
+        "last": 1.0,
+        "len": 2080,
+        "sum": 2080.0
+      },
+      "dist": {
+        "first": 0.1,
+        "last": 4008.246,
+        "len": 2080,
+        "sum": 3636361.059
+      },
+      "ext_incidents": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2080,
+        "sum": 0.0
+      },
+      "ext_surface": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2080,
+        "sum": 0.0
+      },
+      "fuel": {
+        "first": 80.0,
+        "last": 77.576,
+        "len": 2080,
+        "sum": 164276.694
+      },
+      "g_lat": {
+        "first": -0.0,
+        "last": 0.008,
+        "len": 2080,
+        "sum": -73.373
+      },
+      "g_long": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2080,
+        "sum": 0.0
+      },
+      "g_vert": {
+        "first": 0.999,
+        "last": 0.999,
+        "len": 2080,
+        "sum": 2078.59
+      },
+      "gear": {
+        "first": 2.0,
+        "last": 6.0,
+        "len": 2080,
+        "sum": 11164.0
+      },
+      "invalid": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2080,
+        "sum": 0.0
+      },
+      "pit_mode": {
+        "first": 3.0,
+        "last": 0.0,
+        "len": 2080,
+        "sum": 987.0
+      },
+      "rpm": {
+        "first": 2320.0,
+        "last": 8993.355,
+        "len": 2080,
+        "sum": 16510645.426
+      },
+      "speed": {
+        "first": 79.2,
+        "last": 479.601,
+        "len": 2080,
+        "sum": 865838.707
+      },
+      "steer": {
+        "first": -0.0,
+        "last": 0.001,
+        "len": 2080,
+        "sum": -10.279
+      },
+      "t": {
+        "first": 0.005,
+        "last": 34.655,
+        "len": 2080,
+        "sum": 36045.453
+      },
+      "throttle": {
+        "first": 0.7,
+        "last": 0.7,
+        "len": 2080,
+        "sum": 1456.0
+      }
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "ended_at_s": 39.813,
+    "fuel_start_l": 80.0,
+    "fuel_used_l": 2.424,
+    "invalid_at_m": null,
+    "invalid_at_s": null,
+    "local": 1,
+    "max_speed_kmh": 479.601,
+    "measured_time_s": 34.668,
+    "on_track": true,
+    "partial": false,
+    "sectors": [
+      null,
+      null,
+      null
+    ],
+    "sim_lap": 1,
+    "started_at_s": 5.145,
+    "time_s": 30.1,
+    "time_source": "official",
+    "touched_pit": true,
+    "type": "out",
+    "valid": false
+  },
+  {
+    "call": "lap",
+    "cause": null,
+    "cause_certain": false,
+    "channels": {
+      "abs": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "brake": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "clutch": {
+        "first": 1.0,
+        "last": 1.0,
+        "len": 1812,
+        "sum": 1812.0
+      },
+      "dist": {
+        "first": 0.466,
+        "last": 4008.253,
+        "len": 1812,
+        "sum": 3631899.998
+      },
+      "ext_incidents": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "ext_surface": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "fuel": {
+        "first": 77.575,
+        "last": 74.576,
+        "len": 1812,
+        "sum": 137848.949
+      },
+      "g_lat": {
+        "first": -0.002,
+        "last": 0.008,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "g_long": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "g_vert": {
+        "first": 0.999,
+        "last": 0.999,
+        "len": 1812,
+        "sum": 1810.771
+      },
+      "gear": {
+        "first": 6.0,
+        "last": 6.0,
+        "len": 1812,
+        "sum": 10872.0
+      },
+      "invalid": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "pit_mode": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "rpm": {
+        "first": 8993.355,
+        "last": 8966.888,
+        "len": 1812,
+        "sum": 16248026.972
+      },
+      "speed": {
+        "first": 479.601,
+        "last": 478.013,
+        "len": 1812,
+        "sum": 866161.587
+      },
+      "steer": {
+        "first": -0.0,
+        "last": 0.001,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "t": {
+        "first": 0.004,
+        "last": 30.187,
+        "len": 1812,
+        "sum": 27352.442
+      },
+      "throttle": {
+        "first": 0.7,
+        "last": 0.7,
+        "len": 1812,
+        "sum": 1268.4
+      }
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "ended_at_s": 70.013,
+    "fuel_start_l": 77.575,
+    "fuel_used_l": 2.998,
+    "invalid_at_m": null,
+    "invalid_at_s": null,
+    "local": 1,
+    "max_speed_kmh": 479.601,
+    "measured_time_s": 30.2,
+    "on_track": true,
+    "partial": false,
+    "sectors": [
+      10.067,
+      10.067,
+      10.067
+    ],
+    "sim_lap": 2,
+    "started_at_s": 39.813,
+    "time_s": 30.2,
+    "time_source": "official",
+    "touched_pit": false,
+    "type": "flying",
+    "valid": true
+  },
+  {
+    "at_s": 174.833,
+    "call": "stall_tyres",
+    "local": 1,
+    "temp_c": [
+      [
+        75.0,
+        75.0,
+        75.0
+      ],
+      [
+        75.0,
+        75.0,
+        75.0
+      ],
+      [
+        75.0,
+        75.0,
+        75.0
+      ],
+      [
+        75.0,
+        75.0,
+        75.0
+      ]
+    ],
+    "wear": [
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ]
+    ]
+  },
+  {
+    "call": "lap",
+    "cause": null,
+    "cause_certain": false,
+    "channels": {
+      "abs": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6897,
+        "sum": 0.0
+      },
+      "brake": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6897,
+        "sum": 0.0
+      },
+      "clutch": {
+        "first": 1.0,
+        "last": 1.0,
+        "len": 6897,
+        "sum": 6897.0
+      },
+      "dist": {
+        "first": 0.466,
+        "last": 4009.9,
+        "len": 6897,
+        "sum": 15467873.966
+      },
+      "ext_incidents": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6897,
+        "sum": 0.0
+      },
+      "ext_surface": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6897,
+        "sum": 0.0
+      },
+      "fuel": {
+        "first": 74.575,
+        "last": 99.575,
+        "len": 6897,
+        "sum": 524304.57
+      },
+      "g_lat": {
+        "first": -0.002,
+        "last": 0.0,
+        "len": 6897,
+        "sum": 331.69
+      },
+      "g_long": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6897,
+        "sum": 0.0
+      },
+      "g_vert": {
+        "first": 0.999,
+        "last": 0.999,
+        "len": 6897,
+        "sum": 6892.323
+      },
+      "gear": {
+        "first": 6.0,
+        "last": 2.0,
+        "len": 6897,
+        "sum": 23844.0
+      },
+      "invalid": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6897,
+        "sum": 0.0
+      },
+      "pit_mode": {
+        "first": 0.0,
+        "last": 3.0,
+        "len": 6897,
+        "sum": 2309.0
+      },
+      "rpm": {
+        "first": 8966.888,
+        "last": 2320.0,
+        "len": 6897,
+        "sum": 21338926.888
+      },
+      "speed": {
+        "first": 478.013,
+        "last": 79.2,
+        "len": 6897,
+        "sum": 866515.61
+      },
+      "steer": {
+        "first": -0.0,
+        "last": 0.0,
+        "len": 6897,
+        "sum": 46.468
+      },
+      "t": {
+        "first": 0.004,
+        "last": 114.937,
+        "len": 6897,
+        "sum": 396371.823
+      },
+      "throttle": {
+        "first": 0.7,
+        "last": 0.7,
+        "len": 6897,
+        "sum": 4554.9
+      }
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "ended_at_s": 184.955,
+    "fuel_start_l": 74.575,
+    "fuel_used_l": 0.0,
+    "invalid_at_m": null,
+    "invalid_at_s": null,
+    "local": 1,
+    "max_speed_kmh": 478.013,
+    "measured_time_s": 114.941,
+    "on_track": true,
+    "partial": false,
+    "sectors": [
+      33.408,
+      33.417,
+      48.116
+    ],
+    "sim_lap": 3,
+    "started_at_s": 70.013,
+    "time_s": 114.941,
+    "time_source": "measured",
+    "touched_pit": true,
+    "type": "in",
+    "valid": false
+  },
+  {
+    "at": "2026-01-01T00:00:00Z",
+    "call": "pit_exit",
+    "fuel_l": 99.573,
+    "local": 1
+  },
+  {
+    "at": "2026-01-01T00:00:00Z",
+    "call": "setup",
+    "fuel_l": 99.573,
+    "local": 1,
+    "reason": "pit_exit",
+    "session_num": 0,
+    "setup_update": 2
+  },
+  {
+    "call": "lap",
+    "cause": null,
+    "cause_certain": false,
+    "channels": {
+      "abs": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2092,
+        "sum": 0.0
+      },
+      "brake": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2092,
+        "sum": 0.0
+      },
+      "clutch": {
+        "first": 1.0,
+        "last": 1.0,
+        "len": 2092,
+        "sum": 2092.0
+      },
+      "dist": {
+        "first": 0.266,
+        "last": 4009.218,
+        "len": 2092,
+        "sum": 3662191.667
+      },
+      "ext_incidents": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2092,
+        "sum": 0.0
+      },
+      "ext_surface": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2092,
+        "sum": 0.0
+      },
+      "fuel": {
+        "first": 99.575,
+        "last": 97.15,
+        "len": 2092,
+        "sum": 206172.087
+      },
+      "g_lat": {
+        "first": -0.001,
+        "last": 0.004,
+        "len": 2092,
+        "sum": -73.463
+      },
+      "g_long": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2092,
+        "sum": 0.0
+      },
+      "g_vert": {
+        "first": 0.999,
+        "last": 0.999,
+        "len": 2092,
+        "sum": 2090.581
+      },
+      "gear": {
+        "first": 2.0,
+        "last": 6.0,
+        "len": 2092,
+        "sum": 11236.0
+      },
+      "invalid": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2092,
+        "sum": 0.0
+      },
+      "pit_mode": {
+        "first": 3.0,
+        "last": 0.0,
+        "len": 2092,
+        "sum": 987.0
+      },
+      "rpm": {
+        "first": 2320.0,
+        "last": 8940.594,
+        "len": 2092,
+        "sum": 16525546.781
+      },
+      "speed": {
+        "first": 79.2,
+        "last": 476.436,
+        "len": 2092,
+        "sum": 866012.776
+      },
+      "steer": {
+        "first": -0.0,
+        "last": 0.001,
+        "len": 2092,
+        "sum": -10.292
+      },
+      "t": {
+        "first": 0.012,
+        "last": 34.862,
+        "len": 2092,
+        "sum": 36478.422
+      },
+      "throttle": {
+        "first": 0.7,
+        "last": 0.7,
+        "len": 2092,
+        "sum": 1464.4
+      }
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "ended_at_s": 219.823,
+    "fuel_start_l": 99.575,
+    "fuel_used_l": 2.424,
+    "invalid_at_m": null,
+    "invalid_at_s": null,
+    "local": 1,
+    "max_speed_kmh": 476.436,
+    "measured_time_s": 34.868,
+    "on_track": true,
+    "partial": false,
+    "sectors": [
+      null,
+      null,
+      null
+    ],
+    "sim_lap": 4,
+    "started_at_s": 184.955,
+    "time_s": 30.3,
+    "time_source": "official",
+    "touched_pit": true,
+    "type": "out",
+    "valid": false
+  },
+  {
+    "call": "lap",
+    "cause": null,
+    "cause_certain": false,
+    "channels": {
+      "abs": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6505,
+        "sum": 0.0
+      },
+      "brake": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6505,
+        "sum": 0.0
+      },
+      "clutch": {
+        "first": 1.0,
+        "last": 1.0,
+        "len": 6505,
+        "sum": 6505.0
+      },
+      "dist": {
+        "first": 1.424,
+        "last": 4009.824,
+        "len": 6505,
+        "sum": 13933070.239
+      },
+      "ext_incidents": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6505,
+        "sum": 0.0
+      },
+      "ext_surface": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6505,
+        "sum": 0.0
+      },
+      "fuel": {
+        "first": 97.149,
+        "last": 97.149,
+        "len": 6505,
+        "sum": 631954.308
+      },
+      "g_lat": {
+        "first": -0.007,
+        "last": 0.001,
+        "len": 6505,
+        "sum": 191.692
+      },
+      "g_long": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6505,
+        "sum": 0.0
+      },
+      "g_vert": {
+        "first": 0.999,
+        "last": 0.999,
+        "len": 6505,
+        "sum": 6500.589
+      },
+      "gear": {
+        "first": 6.0,
+        "last": 2.0,
+        "len": 6505,
+        "sum": 23838.0
+      },
+      "invalid": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 6505,
+        "sum": 0.0
+      },
+      "pit_mode": {
+        "first": 0.0,
+        "last": 1.0,
+        "len": 6505,
+        "sum": 1092.0
+      },
+      "rpm": {
+        "first": 8940.594,
+        "last": 2320.0,
+        "len": 6505,
+        "sum": 20943180.594
+      },
+      "speed": {
+        "first": 476.436,
+        "last": 79.2,
+        "len": 6505,
+        "sum": 866290.832
+      },
+      "steer": {
+        "first": -0.001,
+        "last": 0.0,
+        "len": 6505,
+        "sum": 26.855
+      },
+      "t": {
+        "first": 0.011,
+        "last": 108.411,
+        "len": 6505,
+        "sum": 352641.0
+      },
+      "throttle": {
+        "first": 0.7,
+        "last": 0.7,
+        "len": 6505,
+        "sum": 4553.5
+      }
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "ended_at_s": 328.241,
+    "fuel_start_l": 97.149,
+    "fuel_used_l": 0.0,
+    "invalid_at_m": null,
+    "invalid_at_s": null,
+    "local": 1,
+    "max_speed_kmh": 476.436,
+    "measured_time_s": 108.419,
+    "on_track": true,
+    "partial": false,
+    "sectors": [
+      33.392,
+      33.417,
+      41.61
+    ],
+    "sim_lap": 5,
+    "started_at_s": 219.823,
+    "time_s": 108.419,
+    "time_source": "measured",
+    "touched_pit": true,
+    "type": "in",
+    "valid": false
+  },
+  {
+    "at": "2026-01-01T00:00:00Z",
+    "call": "pit_exit",
+    "fuel_l": 97.148,
+    "local": 1
+  },
+  {
+    "at": "2026-01-01T00:00:00Z",
+    "call": "setup",
+    "fuel_l": 97.148,
+    "local": 1,
+    "reason": "pit_exit",
+    "session_num": 0,
+    "setup_update": 2
+  },
+  {
+    "call": "lap",
+    "cause": null,
+    "cause_certain": false,
+    "channels": {
+      "abs": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2098,
+        "sum": 0.0
+      },
+      "brake": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2098,
+        "sum": 0.0
+      },
+      "clutch": {
+        "first": 1.0,
+        "last": 1.0,
+        "len": 2098,
+        "sum": 2098.0
+      },
+      "dist": {
+        "first": 0.191,
+        "last": 4009.542,
+        "len": 2098,
+        "sum": 3674775.53
+      },
+      "ext_incidents": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2098,
+        "sum": 0.0
+      },
+      "ext_surface": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2098,
+        "sum": 0.0
+      },
+      "fuel": {
+        "first": 97.149,
+        "last": 94.724,
+        "len": 2098,
+        "sum": 201672.834
+      },
+      "g_lat": {
+        "first": -0.001,
+        "last": 0.002,
+        "len": 2098,
+        "sum": -73.33
+      },
+      "g_long": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2098,
+        "sum": 0.0
+      },
+      "g_vert": {
+        "first": 0.999,
+        "last": 0.999,
+        "len": 2098,
+        "sum": 2096.577
+      },
+      "gear": {
+        "first": 2.0,
+        "last": 6.0,
+        "len": 2098,
+        "sum": 11272.0
+      },
+      "invalid": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2098,
+        "sum": 0.0
+      },
+      "pit_mode": {
+        "first": 1.0,
+        "last": 0.0,
+        "len": 2098,
+        "sum": 329.0
+      },
+      "rpm": {
+        "first": 2320.0,
+        "last": 8914.474,
+        "len": 2098,
+        "sum": 16532983.856
+      },
+      "speed": {
+        "first": 79.2,
+        "last": 474.868,
+        "len": 2098,
+        "sum": 866099.013
+      },
+      "steer": {
+        "first": -0.0,
+        "last": 0.0,
+        "len": 2098,
+        "sum": -10.273
+      },
+      "t": {
+        "first": 0.009,
+        "last": 34.959,
+        "len": 2098,
+        "sum": 36680.741
+      },
+      "throttle": {
+        "first": 0.7,
+        "last": 0.7,
+        "len": 2098,
+        "sum": 1468.6
+      }
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "ended_at_s": 363.203,
+    "fuel_start_l": 97.149,
+    "fuel_used_l": 2.425,
+    "invalid_at_m": null,
+    "invalid_at_s": null,
+    "local": 1,
+    "max_speed_kmh": 474.868,
+    "measured_time_s": 34.962,
+    "on_track": true,
+    "partial": false,
+    "sectors": [
+      14.695,
+      10.133,
+      10.133
+    ],
+    "sim_lap": 6,
+    "started_at_s": 328.241,
+    "time_s": 34.962,
+    "time_source": "measured",
+    "touched_pit": true,
+    "type": "out",
+    "valid": false
+  }
+]

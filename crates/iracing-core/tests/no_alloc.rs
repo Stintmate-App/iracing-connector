@@ -104,3 +104,88 @@ fn filling_a_tick_and_feeding_the_lap_pieces_allocates_nothing() {
     assert_eq!(buffer.len(), rows.len());
     assert!(calls.is_empty());
 }
+
+/// A sink that counts and keeps nothing.
+struct Count(usize);
+
+impl iracing_core::Sink for Count {
+    fn start_session(&mut self, _: &iracing_core::SessionOpenInfo) -> u64 {
+        self.0 += 1;
+        1
+    }
+    fn end_session(&mut self, _: u64, _: &str) {
+        self.0 += 1;
+    }
+    fn lap(&mut self, _: u64, _: iracing_core::FinishedLap) {
+        self.0 += 1;
+    }
+    fn setup(
+        &mut self,
+        _: u64,
+        _: iracing_core::SetupReason,
+        _: &str,
+        _: std::sync::Arc<SessionMeta>,
+        _: f32,
+    ) {
+        self.0 += 1;
+    }
+    fn pit_exit(&mut self, _: u64, _: &str, _: Option<f64>) {
+        self.0 += 1;
+    }
+    fn participants(&mut self, _: u64, _: Vec<iracing_core::ParticipantLap>) {
+        self.0 += 1;
+    }
+    fn catalog(&mut self, _: std::sync::Arc<SessionMeta>) {
+        self.0 += 1;
+    }
+}
+
+struct Wall;
+
+impl iracing_core::Clock for Wall {
+    fn iso(&self) -> String {
+        "2026-01-01T00:00:00Z".to_owned()
+    }
+}
+
+#[test]
+fn the_tracker_step_allocates_nothing_while_no_lap_ends() {
+    let mut s = Scenario::new(YamlBuilder::new());
+    s.garage(1.0).to_stall().drive_out();
+    let warm = s.rows().len() + 30;
+    s.lap(LapProfile::new(12.0));
+    s.lap(LapProfile::new(12.2));
+    let table = table_of(s.layout());
+    let vars = Vars::resolve(&table).expect("vars");
+    let rows: Vec<Row> = s.rows().iter().map(|b| Row::from_slice(b)).collect();
+    let text = s.initial_yaml().to_vec();
+    let meta = std::sync::Arc::new(iracing_core::meta::build(
+        &irsdk::worker::SessionDoc::from_raw(1, &text),
+        0,
+    ));
+
+    let mut tick = Tick::new();
+    let mut tracker = iracing_core::tracker::Tracker::new(2048);
+    let (mut sink, clock) = (Count(0), Wall);
+    // The session opens and the first lap starts: those allocate.
+    for row in &rows[..warm] {
+        tick.fill(&vars, row);
+        tick.connected = true;
+        tick.fresh = true;
+        tracker.step(&tick, Some(&meta), &mut sink, &clock);
+    }
+    let laps = sink.0;
+
+    // About four seconds of a twelve second lap.
+    let before = allocations();
+    for row in &rows[warm..warm + 240] {
+        tick.fill(&vars, row);
+        tick.connected = true;
+        tick.fresh = true;
+        tracker.step(&tick, Some(&meta), &mut sink, &clock);
+    }
+    let after = allocations();
+    assert_eq!(sink.0, laps, "no call to the sink in the window");
+    assert_eq!(after - before, 0, "allocations in the tracker step");
+    assert_eq!(tracker.view().state, iracing_core::tracker::State::Track);
+}
