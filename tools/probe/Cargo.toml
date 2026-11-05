@@ -1,0 +1,21 @@
+[package]
+name = "iracing-probe"
+description = "Read-only diagnostic that records what the simulator exposes"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[[bin]]
+name = "iracing-probe"
+path = "src/main.rs"
+
+[dependencies]
+irsdk.workspace = true
+
+[dev-dependencies]
+irsdk = { workspace = true, features = ["testing"] }
+tempfile.workspace = true
