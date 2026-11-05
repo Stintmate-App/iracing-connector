@@ -1,0 +1,2166 @@
+[
+  {
+    "call": "start_session",
+    "car": "porsche992rgt3",
+    "catalog": {
+      "cars": [
+        {
+          "car_id": "porsche992rgt3",
+          "class_id": "74",
+          "fuel_capacity_l": 100.0,
+          "name": "Porsche 911 GT3 R (992)"
+        },
+        {
+          "car_id": "dallarap217",
+          "class_id": "75",
+          "name": "Dallara P217"
+        }
+      ],
+      "classes": [
+        {
+          "class_id": "74",
+          "name": "GT3"
+        },
+        {
+          "class_id": "75",
+          "name": "LMP2"
+        }
+      ],
+      "layouts": [
+        {
+          "layout_id": "261",
+          "length_m": 4010.0,
+          "name": "Grand Prix Pits",
+          "track_id": "circuit-de-spa-francorchamps"
+        }
+      ],
+      "tracks": [
+        {
+          "name": "Circuit de Spa-Francorchamps",
+          "track_id": "circuit-de-spa-francorchamps"
+        }
+      ]
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "kind": "practice",
+    "layout": "261",
+    "local": 1,
+    "parse_errors": 0,
+    "player_name": "Test Driver",
+    "roster": [
+      "Test Driver",
+      "Zoë Müller",
+      "Renée Dubois",
+      "Sam Okafor",
+      "Nuno Araújo",
+      "Alex Kramer",
+      "José García",
+      "Zoë Müller",
+      "Renée Dubois",
+      "Sam Okafor",
+      "Nuno Araújo",
+      "Alex Kramer",
+      "José García",
+      "Zoë Müller",
+      "Renée Dubois",
+      "Sam Okafor",
+      "Nuno Araújo",
+      "Alex Kramer",
+      "José García",
+      "Zoë Müller"
+    ],
+    "session_num": 0,
+    "started_at": "2026-01-01T00:00:00Z",
+    "track": "circuit-de-spa-francorchamps",
+    "unique_id": 1
+  },
+  {
+    "at": "2026-01-01T00:00:00Z",
+    "call": "setup",
+    "fuel_l": 0.0,
+    "local": 1,
+    "reason": "session_start",
+    "session_num": 0,
+    "setup_update": 1
+  },
+  {
+    "at_s": 1.017,
+    "call": "stall_tyres",
+    "local": 1,
+    "temp_c": [
+      [
+        75.0,
+        75.0,
+        75.0
+      ],
+      [
+        75.0,
+        75.0,
+        75.0
+      ],
+      [
+        75.0,
+        75.0,
+        75.0
+      ],
+      [
+        75.0,
+        75.0,
+        75.0
+      ]
+    ],
+    "wear": [
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ]
+    ]
+  },
+  {
+    "at": "2026-01-01T00:00:00Z",
+    "call": "pit_exit",
+    "fuel_l": 79.999,
+    "local": 1
+  },
+  {
+    "at": "2026-01-01T00:00:00Z",
+    "call": "setup",
+    "fuel_l": 79.999,
+    "local": 1,
+    "reason": "pit_exit",
+    "session_num": 0,
+    "setup_update": 1
+  },
+  {
+    "call": "participants",
+    "local": 1,
+    "rows": [
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 5.145,
+        "from_line": false,
+        "is_player": true,
+        "lap": 1,
+        "name": "Test Driver",
+        "participant": 1,
+        "pit": true,
+        "pit_stops": 1,
+        "position": 1,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": null,
+        "state": null,
+        "time_s": null,
+        "time_source": null,
+        "valid": false
+      }
+    ]
+  },
+  {
+    "call": "lap",
+    "cause": null,
+    "cause_certain": false,
+    "channels": {
+      "abs": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2074,
+        "sum": 0.0
+      },
+      "brake": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2074,
+        "sum": 0.0
+      },
+      "clutch": {
+        "first": 1.0,
+        "last": 1.0,
+        "len": 2074,
+        "sum": 2074.0
+      },
+      "dist": {
+        "first": 0.1,
+        "last": 4007.839,
+        "len": 2074,
+        "sum": 3623619.849
+      },
+      "ext_incidents": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2074,
+        "sum": 0.0
+      },
+      "ext_surface": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2074,
+        "sum": 0.0
+      },
+      "fuel": {
+        "first": 80.0,
+        "last": 77.576,
+        "len": 2074,
+        "sum": 163804.188
+      },
+      "g_lat": {
+        "first": -0.0,
+        "last": 0.01,
+        "len": 2074,
+        "sum": -73.422
+      },
+      "g_long": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2074,
+        "sum": 0.0
+      },
+      "g_vert": {
+        "first": 0.999,
+        "last": 0.999,
+        "len": 2074,
+        "sum": 2072.594
+      },
+      "gear": {
+        "first": 2.0,
+        "last": 6.0,
+        "len": 2074,
+        "sum": 11128.0
+      },
+      "invalid": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 2074,
+        "sum": 0.0
+      },
+      "pit_mode": {
+        "first": 3.0,
+        "last": 0.0,
+        "len": 2074,
+        "sum": 987.0
+      },
+      "rpm": {
+        "first": 2320.0,
+        "last": 9020.0,
+        "len": 2074,
+        "sum": 16503180.0
+      },
+      "speed": {
+        "first": 79.2,
+        "last": 481.2,
+        "len": 2074,
+        "sum": 865750.82
+      },
+      "steer": {
+        "first": -0.0,
+        "last": 0.001,
+        "len": 2074,
+        "sum": -10.286
+      },
+      "t": {
+        "first": 0.005,
+        "last": 34.555,
+        "len": 2074,
+        "sum": 35837.775
+      },
+      "throttle": {
+        "first": 0.7,
+        "last": 0.7,
+        "len": 2074,
+        "sum": 1451.8
+      }
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "ended_at_s": 39.716,
+    "fuel_start_l": 80.0,
+    "fuel_used_l": 2.424,
+    "invalid_at_m": null,
+    "invalid_at_s": null,
+    "local": 1,
+    "max_speed_kmh": 481.2,
+    "measured_time_s": 34.571,
+    "on_track": true,
+    "partial": false,
+    "sectors": [
+      null,
+      null,
+      null
+    ],
+    "sim_lap": 1,
+    "started_at_s": 5.145,
+    "time_s": 30.0,
+    "time_source": "official",
+    "touched_pit": true,
+    "type": "out",
+    "valid": false
+  },
+  {
+    "call": "participants",
+    "local": 1,
+    "rows": [
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Zoë Müller",
+        "participant": 2,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 2,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.21,
+        "state": null,
+        "time_s": 80.21,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Renée Dubois",
+        "participant": 3,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 3,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.31,
+        "state": null,
+        "time_s": 86.31,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Sam Okafor",
+        "participant": 4,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 4,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.41,
+        "state": null,
+        "time_s": 80.41,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Nuno Araújo",
+        "participant": 5,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 5,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.51,
+        "state": null,
+        "time_s": 86.51,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Alex Kramer",
+        "participant": 6,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 6,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.61,
+        "state": null,
+        "time_s": 80.61,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "José García",
+        "participant": 7,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 7,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.71,
+        "state": null,
+        "time_s": 86.71,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Zoë Müller",
+        "participant": 8,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 8,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.81,
+        "state": null,
+        "time_s": 80.81,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Renée Dubois",
+        "participant": 9,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 9,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.91,
+        "state": null,
+        "time_s": 86.91,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Sam Okafor",
+        "participant": 10,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 10,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.01,
+        "state": null,
+        "time_s": 81.01,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Nuno Araújo",
+        "participant": 11,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 11,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.11,
+        "state": null,
+        "time_s": 87.11,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Alex Kramer",
+        "participant": 12,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 12,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.21,
+        "state": null,
+        "time_s": 81.21,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "José García",
+        "participant": 13,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 13,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.31,
+        "state": null,
+        "time_s": 87.31,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Zoë Müller",
+        "participant": 14,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 14,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.41,
+        "state": null,
+        "time_s": 81.41,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Renée Dubois",
+        "participant": 15,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 15,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.51,
+        "state": null,
+        "time_s": 87.51,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Sam Okafor",
+        "participant": 16,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 16,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.61,
+        "state": null,
+        "time_s": 81.61,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Nuno Araújo",
+        "participant": 17,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 17,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.71,
+        "state": null,
+        "time_s": 87.71,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Alex Kramer",
+        "participant": 18,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 18,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.81,
+        "state": null,
+        "time_s": 81.81,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "José García",
+        "participant": 19,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 19,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.91,
+        "state": null,
+        "time_s": 87.91,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 39.733,
+        "from_line": false,
+        "is_player": false,
+        "lap": 1,
+        "name": "Zoë Müller",
+        "participant": 20,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 20,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 82.01,
+        "state": null,
+        "time_s": 82.01,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 39.716,
+        "from_line": true,
+        "is_player": true,
+        "lap": 2,
+        "name": "Test Driver",
+        "participant": 1,
+        "pit": true,
+        "pit_stops": 1,
+        "position": 1,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 30.0,
+        "state": null,
+        "time_s": 30.0,
+        "time_source": "official",
+        "valid": false
+      }
+    ]
+  },
+  {
+    "call": "participants",
+    "local": 1,
+    "rows": [
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Zoë Müller",
+        "participant": 2,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 2,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.21,
+        "state": null,
+        "time_s": 80.22,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Renée Dubois",
+        "participant": 3,
+        "pit": true,
+        "pit_stops": 1,
+        "position": 3,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.31,
+        "state": null,
+        "time_s": 86.32,
+        "time_source": "official",
+        "valid": false
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Sam Okafor",
+        "participant": 4,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 4,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.41,
+        "state": null,
+        "time_s": 80.42,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Nuno Araújo",
+        "participant": 5,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 5,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.51,
+        "state": null,
+        "time_s": 86.52,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Alex Kramer",
+        "participant": 6,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 6,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.61,
+        "state": null,
+        "time_s": 80.62,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "José García",
+        "participant": 7,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 7,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.71,
+        "state": null,
+        "time_s": 86.72,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Zoë Müller",
+        "participant": 8,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 8,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.81,
+        "state": null,
+        "time_s": 80.82,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Renée Dubois",
+        "participant": 9,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 9,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.91,
+        "state": null,
+        "time_s": 86.92,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Sam Okafor",
+        "participant": 10,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 10,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.01,
+        "state": null,
+        "time_s": 81.02,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Nuno Araújo",
+        "participant": 11,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 11,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.11,
+        "state": null,
+        "time_s": 87.12,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Alex Kramer",
+        "participant": 12,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 12,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.21,
+        "state": null,
+        "time_s": 81.22,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "José García",
+        "participant": 13,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 13,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.31,
+        "state": null,
+        "time_s": 87.32,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Zoë Müller",
+        "participant": 14,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 14,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.41,
+        "state": null,
+        "time_s": 81.42,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Renée Dubois",
+        "participant": 15,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 15,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.51,
+        "state": null,
+        "time_s": 87.52,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Sam Okafor",
+        "participant": 16,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 16,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.61,
+        "state": null,
+        "time_s": 81.62,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Nuno Araújo",
+        "participant": 17,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 17,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.71,
+        "state": null,
+        "time_s": 87.72,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Alex Kramer",
+        "participant": 18,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 18,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.81,
+        "state": null,
+        "time_s": 81.82,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "José García",
+        "participant": 19,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 19,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.91,
+        "state": null,
+        "time_s": 87.92,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 69.833,
+        "from_line": true,
+        "is_player": false,
+        "lap": 2,
+        "name": "Zoë Müller",
+        "participant": 20,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 20,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 82.01,
+        "state": null,
+        "time_s": 82.02,
+        "time_source": "official",
+        "valid": true
+      }
+    ]
+  },
+  {
+    "call": "lap",
+    "cause": null,
+    "cause_certain": false,
+    "channels": {
+      "abs": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1806,
+        "sum": 0.0
+      },
+      "brake": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1806,
+        "sum": 0.0
+      },
+      "clutch": {
+        "first": 1.0,
+        "last": 1.0,
+        "len": 1806,
+        "sum": 1806.0
+      },
+      "dist": {
+        "first": 0.067,
+        "last": 4007.846,
+        "len": 1806,
+        "sum": 3619145.4
+      },
+      "ext_incidents": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1806,
+        "sum": 0.0
+      },
+      "ext_surface": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1806,
+        "sum": 0.0
+      },
+      "fuel": {
+        "first": 77.575,
+        "last": 75.076,
+        "len": 1806,
+        "sum": 137844.2
+      },
+      "g_lat": {
+        "first": -0.0,
+        "last": 0.01,
+        "len": 1806,
+        "sum": 0.0
+      },
+      "g_long": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1806,
+        "sum": 0.0
+      },
+      "g_vert": {
+        "first": 0.999,
+        "last": 0.999,
+        "len": 1806,
+        "sum": 1804.775
+      },
+      "gear": {
+        "first": 6.0,
+        "last": 6.0,
+        "len": 1806,
+        "sum": 10836.0
+      },
+      "invalid": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1806,
+        "sum": 0.0
+      },
+      "pit_mode": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1806,
+        "sum": 0.0
+      },
+      "rpm": {
+        "first": 9020.0,
+        "last": 8993.355,
+        "len": 1806,
+        "sum": 16242026.621
+      },
+      "speed": {
+        "first": 481.2,
+        "last": 479.601,
+        "len": 1806,
+        "sum": 866161.58
+      },
+      "steer": {
+        "first": -0.0,
+        "last": 0.001,
+        "len": 1806,
+        "sum": 0.0
+      },
+      "t": {
+        "first": 0.0,
+        "last": 30.084,
+        "len": 1806,
+        "sum": 27166.151
+      },
+      "throttle": {
+        "first": 0.7,
+        "last": 0.7,
+        "len": 1806,
+        "sum": 1264.2
+      }
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "ended_at_s": 69.816,
+    "fuel_start_l": 77.575,
+    "fuel_used_l": 2.499,
+    "invalid_at_m": null,
+    "invalid_at_s": null,
+    "local": 1,
+    "max_speed_kmh": 481.2,
+    "measured_time_s": 30.1,
+    "on_track": true,
+    "partial": false,
+    "sectors": [
+      10.033,
+      10.033,
+      10.033
+    ],
+    "sim_lap": 2,
+    "started_at_s": 39.716,
+    "time_s": 30.1,
+    "time_source": "official",
+    "touched_pit": false,
+    "type": "flying",
+    "valid": true
+  },
+  {
+    "call": "participants",
+    "local": 1,
+    "rows": [
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 69.816,
+        "from_line": true,
+        "is_player": true,
+        "lap": 3,
+        "name": "Test Driver",
+        "participant": 1,
+        "pit": false,
+        "pit_stops": 1,
+        "position": 1,
+        "sectors": [
+          10.033,
+          10.033,
+          10.033
+        ],
+        "sim_best_lap_s": 30.0,
+        "state": null,
+        "time_s": 30.1,
+        "time_source": "official",
+        "valid": true
+      }
+    ]
+  },
+  {
+    "call": "participants",
+    "local": 1,
+    "rows": [
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Zoë Müller",
+        "participant": 2,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 2,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.21,
+        "state": null,
+        "time_s": 80.23,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Renée Dubois",
+        "participant": 3,
+        "pit": true,
+        "pit_stops": 1,
+        "position": 3,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.31,
+        "state": null,
+        "time_s": 86.33,
+        "time_source": "official",
+        "valid": false
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Sam Okafor",
+        "participant": 4,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 4,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.41,
+        "state": null,
+        "time_s": 80.43,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Nuno Araújo",
+        "participant": 5,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 5,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.51,
+        "state": null,
+        "time_s": 86.53,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Alex Kramer",
+        "participant": 6,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 6,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.61,
+        "state": null,
+        "time_s": 80.63,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "José García",
+        "participant": 7,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 7,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.71,
+        "state": null,
+        "time_s": 86.73,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Zoë Müller",
+        "participant": 8,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 8,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 80.81,
+        "state": null,
+        "time_s": 80.83,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Renée Dubois",
+        "participant": 9,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 9,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 86.91,
+        "state": null,
+        "time_s": 86.93,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Sam Okafor",
+        "participant": 10,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 10,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.01,
+        "state": null,
+        "time_s": 81.03,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Nuno Araújo",
+        "participant": 11,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 11,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.11,
+        "state": null,
+        "time_s": 87.13,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Alex Kramer",
+        "participant": 12,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 12,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.21,
+        "state": null,
+        "time_s": 81.23,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "José García",
+        "participant": 13,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 13,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.31,
+        "state": null,
+        "time_s": 87.33,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Zoë Müller",
+        "participant": 14,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 14,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.41,
+        "state": null,
+        "time_s": 81.43,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Renée Dubois",
+        "participant": 15,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 15,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.51,
+        "state": null,
+        "time_s": 87.53,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Sam Okafor",
+        "participant": 16,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 16,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.61,
+        "state": null,
+        "time_s": 81.63,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Nuno Araújo",
+        "participant": 17,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 17,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.71,
+        "state": null,
+        "time_s": 87.73,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Alex Kramer",
+        "participant": 18,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 18,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 81.81,
+        "state": null,
+        "time_s": 81.83,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "José García",
+        "participant": 19,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 19,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 87.91,
+        "state": null,
+        "time_s": 87.93,
+        "time_source": "official",
+        "valid": true
+      },
+      {
+        "car_id": "dallarap217",
+        "class_id": "75",
+        "crossed_at_s": 100.033,
+        "from_line": true,
+        "is_player": false,
+        "lap": 3,
+        "name": "Zoë Müller",
+        "participant": 20,
+        "pit": false,
+        "pit_stops": 0,
+        "position": 20,
+        "sectors": [
+          null,
+          null,
+          null
+        ],
+        "sim_best_lap_s": 82.01,
+        "state": null,
+        "time_s": 82.03,
+        "time_source": "official",
+        "valid": true
+      }
+    ]
+  },
+  {
+    "call": "lap",
+    "cause": null,
+    "cause_certain": false,
+    "channels": {
+      "abs": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "brake": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "clutch": {
+        "first": 1.0,
+        "last": 1.0,
+        "len": 1812,
+        "sum": 1812.0
+      },
+      "dist": {
+        "first": 0.067,
+        "last": 4007.854,
+        "len": 1812,
+        "sum": 3631175.8
+      },
+      "ext_incidents": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "ext_surface": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "fuel": {
+        "first": 75.075,
+        "last": 72.576,
+        "len": 1812,
+        "sum": 133772.15
+      },
+      "g_lat": {
+        "first": -0.0,
+        "last": 0.01,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "g_long": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "g_vert": {
+        "first": 0.999,
+        "last": 0.999,
+        "len": 1812,
+        "sum": 1810.771
+      },
+      "gear": {
+        "first": 6.0,
+        "last": 6.0,
+        "len": 1812,
+        "sum": 10872.0
+      },
+      "invalid": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "pit_mode": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "rpm": {
+        "first": 8993.355,
+        "last": 8966.888,
+        "len": 1812,
+        "sum": 16248026.972
+      },
+      "speed": {
+        "first": 479.601,
+        "last": 478.013,
+        "len": 1812,
+        "sum": 866161.587
+      },
+      "steer": {
+        "first": -0.0,
+        "last": 0.001,
+        "len": 1812,
+        "sum": 0.0
+      },
+      "t": {
+        "first": 0.001,
+        "last": 30.184,
+        "len": 1812,
+        "sum": 27347.007
+      },
+      "throttle": {
+        "first": 0.7,
+        "last": 0.7,
+        "len": 1812,
+        "sum": 1268.4
+      }
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "ended_at_s": 100.016,
+    "fuel_start_l": 75.075,
+    "fuel_used_l": 2.499,
+    "invalid_at_m": null,
+    "invalid_at_s": null,
+    "local": 1,
+    "max_speed_kmh": 479.601,
+    "measured_time_s": 30.2,
+    "on_track": true,
+    "partial": false,
+    "sectors": [
+      10.067,
+      10.067,
+      10.067
+    ],
+    "sim_lap": 3,
+    "started_at_s": 69.816,
+    "time_s": 30.2,
+    "time_source": "official",
+    "touched_pit": false,
+    "type": "flying",
+    "valid": true
+  },
+  {
+    "call": "participants",
+    "local": 1,
+    "rows": [
+      {
+        "car_id": "porsche992rgt3",
+        "class_id": "74",
+        "crossed_at_s": 100.016,
+        "from_line": true,
+        "is_player": true,
+        "lap": 4,
+        "name": "Test Driver",
+        "participant": 1,
+        "pit": false,
+        "pit_stops": 1,
+        "position": 1,
+        "sectors": [
+          10.067,
+          10.067,
+          10.067
+        ],
+        "sim_best_lap_s": 30.0,
+        "state": null,
+        "time_s": 30.2,
+        "time_source": "official",
+        "valid": true
+      }
+    ]
+  },
+  {
+    "call": "lap",
+    "cause": null,
+    "cause_certain": false,
+    "channels": {
+      "abs": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1818,
+        "sum": 0.0
+      },
+      "brake": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1818,
+        "sum": 0.0
+      },
+      "clutch": {
+        "first": 1.0,
+        "last": 1.0,
+        "len": 1818,
+        "sum": 1818.0
+      },
+      "dist": {
+        "first": 0.067,
+        "last": 4007.861,
+        "len": 1818,
+        "sum": 3643206.2
+      },
+      "ext_incidents": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1818,
+        "sum": 0.0
+      },
+      "ext_surface": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1818,
+        "sum": 0.0
+      },
+      "fuel": {
+        "first": 72.575,
+        "last": 70.076,
+        "len": 1818,
+        "sum": 129670.1
+      },
+      "g_lat": {
+        "first": -0.0,
+        "last": 0.01,
+        "len": 1818,
+        "sum": 0.0
+      },
+      "g_long": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1818,
+        "sum": 0.0
+      },
+      "g_vert": {
+        "first": 0.999,
+        "last": 0.999,
+        "len": 1818,
+        "sum": 1816.767
+      },
+      "gear": {
+        "first": 6.0,
+        "last": 6.0,
+        "len": 1818,
+        "sum": 10908.0
+      },
+      "invalid": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1818,
+        "sum": 0.0
+      },
+      "pit_mode": {
+        "first": 0.0,
+        "last": 0.0,
+        "len": 1818,
+        "sum": 0.0
+      },
+      "rpm": {
+        "first": 8966.888,
+        "last": 8940.594,
+        "len": 1818,
+        "sum": 16254025.731
+      },
+      "speed": {
+        "first": 478.013,
+        "last": 476.436,
+        "len": 1818,
+        "sum": 866161.513
+      },
+      "steer": {
+        "first": -0.0,
+        "last": 0.001,
+        "len": 1818,
+        "sum": 0.0
+      },
+      "t": {
+        "first": 0.001,
+        "last": 30.284,
+        "len": 1818,
+        "sum": 27528.463
+      },
+      "throttle": {
+        "first": 0.7,
+        "last": 0.7,
+        "len": 1818,
+        "sum": 1272.6
+      }
+    },
+    "conditions": {
+      "ambient_c": 21.0,
+      "rain": 0.0,
+      "track_c": 30.0,
+      "wind_speed_ms": 2.0
+    },
+    "ended_at_s": 130.316,
+    "fuel_start_l": 72.575,
+    "fuel_used_l": 2.499,
+    "invalid_at_m": null,
+    "invalid_at_s": null,
+    "local": 1,
+    "max_speed_kmh": 478.013,
+    "measured_time_s": 30.3,
+    "on_track": true,
+    "partial": false,
+    "sectors": [
+      10.1,
+      10.1,
+      10.1
+    ],
+    "sim_lap": 4,
+    "started_at_s": 100.016,
+    "time_s": 30.3,
+    "time_source": "measured",
+    "touched_pit": false,
+    "type": "flying",
+    "valid": true
+  }
+]

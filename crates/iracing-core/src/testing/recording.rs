@@ -230,6 +230,11 @@ impl Sink for RecordingSink {
                 json!({
                     "participant": r.participant, "lap": r.lap, "name": r.name,
                     "is_player": r.is_player, "time_s": opt(r.time_s),
+                    "time_source": r.time_source.map(|s| s.as_str()),
+                    "sectors": r.sectors.iter().map(|s| opt(*s)).collect::<Vec<_>>(),
+                    "car_id": r.car_id, "class_id": r.class_id,
+                    "from_line": r.from_line, "crossed_at_s": r.crossed_at_s.map(r3),
+                    "sim_best_lap_s": opt(r.sim_best_lap_s), "state": r.state,
                     "valid": r.valid, "pit": r.pit, "pit_stops": r.pit_stops,
                     "position": r.position,
                 })

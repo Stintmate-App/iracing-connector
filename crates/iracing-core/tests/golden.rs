@@ -5,8 +5,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use iracing_core::ibt_source::IbtSource;
+use iracing_core::io::Sink;
 use iracing_core::io::{Source, SourceEvent};
 use iracing_core::meta::{self, SessionMeta};
+use iracing_core::rivals::{CatalogWatch, RivalTracker};
 use iracing_core::testing::{
     FixedClock, LapProfile, RecordingSink, Scenario, Side, TyreReadings, YamlBuilder, full_layout,
     table_of,
@@ -31,6 +33,10 @@ fn meta_of(text: &[u8], update: i32, session_num: i32) -> Arc<SessionMeta> {
 /// A scenario with no text changes and no gaps goes through [`IbtSource`] as well, and both
 /// runs must give the same calls to the sink.
 fn run(s: &Scenario) -> (RecordingSink, Tracker, State) {
+    run_with(s, false)
+}
+
+fn run_with(s: &Scenario, rivals: bool) -> (RecordingSink, Tracker, State) {
     let direct = run_rows(
         s.layout(),
         s.rows(),
@@ -40,9 +46,10 @@ fn run(s: &Scenario) -> (RecordingSink, Tracker, State) {
             .map(|u| (u.at_row, u.text.as_slice()))
             .collect(),
         s.disconnects(),
+        rivals,
     );
     if s.yaml_updates().is_empty() && s.disconnects().is_empty() {
-        let via = run_ibt(s);
+        let via = run_ibt(s, rivals);
         assert_eq!(
             via.to_json(),
             direct.0.to_json(),
@@ -52,15 +59,19 @@ fn run(s: &Scenario) -> (RecordingSink, Tracker, State) {
     direct
 }
 
-fn run_ibt(s: &Scenario) -> RecordingSink {
+fn run_ibt(s: &Scenario, rivals: bool) -> RecordingSink {
     let mut src = IbtSource::new(s.ibt()).expect("source");
     let meta = Arc::clone(src.meta().expect("meta"));
     let mut tracker = Tracker::new(1024);
     let mut sink = RecordingSink::new();
     let clock = FixedClock::default();
     let mut tick = Tick::new();
+    let mut glue = rivals.then(Glue::new);
     while src.next(&mut tick) == SourceEvent::Row {
-        tracker.step(&tick, Some(&meta), &mut sink, &clock);
+        step_all(&mut tracker, glue.as_mut(), &tick, &meta, &mut sink, &clock);
+    }
+    if let Some(g) = glue.as_mut() {
+        g.finish(&tick, &mut sink);
     }
     tracker.stop(true, &mut sink, &clock);
     sink
@@ -74,6 +85,7 @@ fn run_rows(
     initial: &[u8],
     updates: Vec<(usize, &[u8])>,
     gaps: &[(usize, f64)],
+    rivals: bool,
 ) -> (RecordingSink, Tracker, State) {
     let table = table_of(layout);
     let vars = Vars::resolve(&table).expect("vars");
@@ -86,6 +98,7 @@ fn run_rows(
     tick.fill(&vars, &first);
     let mut meta = meta_of(initial, 1, tick.session_num);
     let mut update = 1;
+    let mut glue = rivals.then(Glue::new);
     for (i, bytes) in rows.iter().enumerate() {
         for (_, text) in updates.iter().filter(|(at, _)| *at == i) {
             update += 1;
@@ -98,7 +111,7 @@ fn run_rows(
             tick.connected = false;
             for _ in 0..(secs * 60.0).ceil() as usize {
                 clock.advance(1.0 / 60.0);
-                tracker.step(&tick, Some(&meta), &mut sink, &clock);
+                step_all(&mut tracker, glue.as_mut(), &tick, &meta, &mut sink, &clock);
             }
         }
         let mut row = Row::from_slice(bytes);
@@ -106,12 +119,71 @@ fn run_rows(
         tick.fill(&vars, &row);
         tick.connected = true;
         tick.fresh = true;
-        tracker.step(&tick, Some(&meta), &mut sink, &clock);
+        step_all(&mut tracker, glue.as_mut(), &tick, &meta, &mut sink, &clock);
+    }
+    if let Some(g) = glue.as_mut() {
+        g.finish(&tick, &mut sink);
     }
     // Send what is still waiting, without ending the session.
     let state = tracker.state();
     tracker.stop(true, &mut sink, &clock);
     (sink, tracker, state)
+}
+
+/// The recorder's part for the field: the catalog rule, then the rivals, then the hand-over.
+struct Glue {
+    rivals: RivalTracker,
+    watch: CatalogWatch,
+    local: Option<u64>,
+}
+
+impl Glue {
+    fn new() -> Glue {
+        Glue {
+            rivals: RivalTracker::new(),
+            watch: CatalogWatch::new(),
+            local: None,
+        }
+    }
+
+    fn finish(&mut self, tick: &Tick, sink: &mut RecordingSink) {
+        if let (Some(local), Some(rows)) =
+            (self.local, self.rivals.take_due(tick.session_time, true))
+        {
+            sink.participants(local, rows);
+        }
+    }
+}
+
+/// One row through the tracker and, when there is a glue, the rivals.
+fn step_all(
+    tracker: &mut Tracker,
+    glue: Option<&mut Glue>,
+    tick: &Tick,
+    meta: &Arc<SessionMeta>,
+    sink: &mut RecordingSink,
+    clock: &FixedClock,
+) {
+    let laps_before = sink.laps().len();
+    tracker.step(tick, Some(meta), sink, clock);
+    let Some(g) = glue else { return };
+    let local = tracker.session_local();
+    if local != g.local {
+        g.finish(tick, sink);
+        g.rivals.reset();
+        match local {
+            Some(_) => g.watch.opened(meta),
+            None => g.watch.closed(),
+        }
+        g.local = local;
+    }
+    let Some(local) = local else { return };
+    g.watch.offer(meta, sink);
+    g.rivals.step(tick, meta);
+    let ended = sink.laps().len() > laps_before;
+    if let Some(rows) = g.rivals.take_due(tick.session_time, ended) {
+        sink.participants(local, rows);
+    }
 }
 
 fn check(name: &str, sink: &RecordingSink) {
@@ -186,7 +258,7 @@ fn tracker_replays_an_ibt_through_ibt_source() {
     s.lap(LapProfile::new(20.3));
     let (want, _, _) = run(&s);
 
-    let sink = run_ibt(&s);
+    let sink = run_ibt(&s, false);
     assert_eq!(types(&sink), types(&want));
     assert_eq!(sink.kinds(), want.kinds());
 }
@@ -331,6 +403,125 @@ fn golden_sessions() {
     let last = sink.calls("lap").last().copied().expect("lap");
     assert_eq!(last["local"], 5, "the three second gap kept the session");
     assert_eq!(last["type"], "flying");
+}
+
+// ---- 5. multiclass_rivals ---------------------------------------------------------------
+
+/// Twenty cars in two classes; every rival crosses the line at the start of each player lap.
+fn field_laps(s: &mut Scenario, lap: u32, slots: std::ops::RangeInclusive<usize>) {
+    for idx in slots.filter(|i| *i != 1) {
+        let class_gap = if idx % 2 == 0 { 0.0 } else { 6.0 };
+        s.rival(idx)
+            .lap(80.0 + class_gap + idx as f32 * 0.1 + lap as f32 * 0.01);
+    }
+}
+
+#[test]
+fn golden_multiclass_rivals() {
+    let mut s = Scenario::new(YamlBuilder::new().roster(20, 2));
+    s.field(19);
+    s.garage(1.0).to_stall().drive_out();
+    s.lap(LapProfile::new(30.0)); // the out lap: every rival's first counter is a baseline
+    field_laps(&mut s, 1, 2..=20);
+    s.lap(LapProfile::new(30.1));
+    // A car in the pits for a lap: not valid, one stop.
+    s.rival(3).pit();
+    field_laps(&mut s, 2, 2..=20);
+    s.lap(LapProfile::new(30.2));
+    s.rival(3).leave_pits();
+    field_laps(&mut s, 3, 2..=20);
+    s.lap(LapProfile::new(30.3));
+    let (sink, _, _) = run_with(&s, true);
+    check("multiclass_rivals", &sink);
+
+    let rows: Vec<&serde_json::Value> = sink
+        .calls("participants")
+        .iter()
+        .flat_map(|c| c["rows"].as_array().expect("rows").iter())
+        .collect();
+    let of = |idx: u64| -> Vec<&&serde_json::Value> {
+        rows.iter().filter(|r| r["participant"] == idx).collect()
+    };
+    assert_eq!(of(2).len(), 3, "three counted laps after the baseline");
+    assert_eq!(of(2)[0]["time_source"], "official");
+    assert_eq!(of(2)[0]["valid"], true);
+    assert_eq!(of(2)[0]["position"], 2, "the position from the telemetry");
+    let pit = of(3);
+    assert_eq!(pit[1]["pit"], true);
+    assert_eq!(pit[1]["valid"], false);
+    assert_eq!(pit[1]["pit_stops"], 1);
+    assert_eq!(pit[0]["pit_stops"], 0);
+    // The player is a row too, and the classes differ by car.
+    assert!(rows.iter().any(|r| r["is_player"] == true));
+    assert_ne!(of(2)[0]["car_id"], of(3)[0]["car_id"]);
+    // No catalog was sent: the roster did not change.
+    assert!(sink.calls("catalog").is_empty());
+}
+
+#[test]
+fn golden_late_joiner_and_reused_slot() {
+    let mut s = Scenario::new(YamlBuilder::new().roster(20, 2));
+    s.field(19);
+    s.garage(1.0).to_stall().drive_out();
+    s.lap(LapProfile::new(30.0));
+    // Slot 21 is in the telemetry but not in the session text yet.
+    s.rival(21).lap(85.0);
+    s.lap(LapProfile::new(30.1));
+    s.rival(21).lap(85.5);
+    s.rival(5).lap(81.0);
+    s.flags(0, 3.0);
+    // The text catches up: the catalog goes first, then the held row with the name.
+    s.update_yaml(|y| y.roster(21, 3));
+    s.lap(LapProfile::new(30.2));
+    // Slot 5 now holds another driver: its counters start over.
+    s.update_yaml(|y| y.new_driver(5, "Replacement"));
+    s.rival(5).lap(82.0);
+    s.lap(LapProfile::new(30.3));
+    s.rival(5).lap(82.5);
+    s.lap(LapProfile::new(30.4));
+    // A slot that never gets a name: sent after the wait with the slot in the name.
+    s.rival(40).lap(90.0);
+    s.lap(LapProfile::new(30.5));
+    s.rival(40).lap(90.5);
+    s.lap(LapProfile::new(30.6));
+    let (sink, _, _) = run_with(&s, true);
+    check("late_joiner", &sink);
+
+    let kinds = sink.kinds();
+    let cat = kinds.iter().position(|k| *k == "catalog").expect("catalog");
+    assert_eq!(
+        sink.calls("catalog").len(),
+        1,
+        "the joiner brings a new class; a reused slot none"
+    );
+    let rows: Vec<&serde_json::Value> = sink
+        .calls("participants")
+        .iter()
+        .flat_map(|c| c["rows"].as_array().expect("rows").iter())
+        .collect();
+    let joiner = rows
+        .iter()
+        .filter(|r| r["participant"] == 21)
+        .collect::<Vec<_>>();
+    assert_eq!(joiner.len(), 1);
+    assert_ne!(joiner[0]["name"], "Car 21", "named after the text arrived");
+    let first_row = kinds
+        .iter()
+        .enumerate()
+        .position(|(i, k)| i > cat && *k == "participants")
+        .expect("rows after the catalog");
+    assert!(cat < first_row);
+    let reused: Vec<_> = rows.iter().filter(|r| r["participant"] == 5).collect();
+    assert_eq!(
+        reused.len(),
+        2,
+        "one before, one after the new driver's baseline"
+    );
+    assert_eq!(reused[1]["name"], "Replacement");
+    assert!(
+        rows.iter()
+            .any(|r| r["participant"] == 40 && r["name"] == "Car 40")
+    );
 }
 
 // ---- 6. encoding -------------------------------------------------------------------------
@@ -671,7 +862,7 @@ fn golden_recorded_session() {
     r.leave_car();
 
     let y = YamlBuilder::new().build_cp1252();
-    let (sink, tracker, state) = run_rows(&r.layout, &r.rows, &y, Vec::new(), &[]);
+    let (sink, tracker, state) = run_rows(&r.layout, &r.rows, &y, Vec::new(), &[], false);
     check("recorded_session", &sink);
 
     // The session opened out of the car, before the first drive.

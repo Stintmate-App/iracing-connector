@@ -500,6 +500,14 @@ impl Scenario {
         self.hold(0.5)
     }
 
+    /// Changes the session text during the drive (cars join, a slot is reused): `edit` gets
+    /// the current builder and the new text is published at the next row.
+    pub fn update_yaml(&mut self, edit: impl FnOnce(YamlBuilder) -> YamlBuilder) -> &mut Self {
+        self.yaml = edit(self.yaml.clone());
+        self.push_update(false);
+        self
+    }
+
     /// Starts a new event: the layout and the text restart, as when the simulator loads
     /// another session.
     pub fn new_event(&mut self, yaml: YamlBuilder) -> &mut Self {

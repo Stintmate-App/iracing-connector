@@ -225,6 +225,9 @@ pub struct ParticipantLap {
     pub time_s: Option<f32>,
     /// Where `time_s` comes from.
     pub time_source: Option<TimeSource>,
+    /// The sector times in seconds, as many as the track has (empty when it has none); `None`
+    /// for a sector that was not timed.
+    pub sectors: Vec<Option<f32>>,
     /// Whether the lap counts as valid.
     pub valid: bool,
     /// Whether the car touched the pit road during the lap.

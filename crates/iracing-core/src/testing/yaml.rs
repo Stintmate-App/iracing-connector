@@ -84,6 +84,7 @@ pub struct YamlBuilder {
     drivers: usize,
     classes: usize,
     names: Vec<(i32, String)>,
+    renewed: Vec<i32>,
     setup: Option<(i64, Option<TyreReadings>)>,
 }
 
@@ -136,6 +137,7 @@ impl YamlBuilder {
             drivers: 1,
             classes: 1,
             names: Vec::new(),
+            renewed: Vec::new(),
             setup: Some((1, None)),
         }
     }
@@ -266,6 +268,13 @@ impl YamlBuilder {
         self.names.retain(|(i, _)| *i != idx);
         self.names.push((idx, name.to_owned()));
         self
+    }
+
+    /// Puts another driver in slot `idx`: a new name and a new `UserID`, as when a slot is
+    /// reused during a session.
+    pub fn new_driver(mut self, idx: i32, name: &str) -> Self {
+        self.renewed.push(idx);
+        self.driver_name(idx, name)
     }
 
     /// Sets the setup: its `UpdateCount` and the tyre readings of the last stop. `None` for the
@@ -400,7 +409,8 @@ impl YamlBuilder {
                  CarClassID: {}\n   CarClassShortName: {class_short}\n   \
                  CarClassEstLapTime: {est:.4}\n   CarIsPaceCar: 0\n   IsSpectator: 0",
                 self.name_of(idx),
-                1000 + idx,
+                1000 + i64::from(idx)
+                    + 1000 * self.renewed.iter().filter(|r| **r == idx).count() as i64,
                 self.name_of(idx),
                 idx + 10,
                 74 + (k % self.classes),
