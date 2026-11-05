@@ -17,7 +17,7 @@ macro_rules! define_tick {
         /// Optional variables are `None` when the layout lacks them, never zero. The per-car
         /// arrays have one element per car slot. Allocate it once (`Tick::new`) and refill it
         /// with [`Tick::fill`]: filling allocates nothing.
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
         pub struct Tick {
             $(#[doc = concat!("The `", $rn, "` variable.")] pub $rf: $rt,)*
             $(#[doc = concat!("The `", $on, "` variable, when the layout has it.")] pub $of: Option<$ot>,)*

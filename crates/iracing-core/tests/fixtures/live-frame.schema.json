@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pitwall.local/connector-kit/live-frame.schema.json",
+  "title": "The live frame a connector answers to connector.live_frame",
+  "description": "What happens on track now, in the data model's vocabulary and units, built by the connector only when asked (connector-protocol.md section 7). 'null' means the game does not give the value now. While phase is garage, on_track or paused, the groups session, track, car, lap and participants are required, and participants holds at least one car with is_player true. Unknown fields are allowed and ignored by Pitwall.",
+  "type": "object",
+  "properties": {
+    "sim": {"$ref": "#/$defs/slug"},
+    "phase": {"$ref": "#/$defs/phase"},
+    "taken_at": {"$ref": "#/$defs/time"},
+    "data_age_s": {"description": "Seconds since the game last updated what the frame was built from.", "type": "number", "minimum": 0},
+    "session": {
+      "type": "object",
+      "properties": {
+        "type": {"description": "Session type (data-model.md).", "type": "string", "enum": ["practice", "qualifying", "race", "warmup", "other"]},
+        "time_remaining_s": {"description": "Session time left, s; null in a lap race or when not given.", "type": ["number", "null"], "minimum": 0},
+        "laps_in_event": {"description": "Laps of a lap race; null in a timed session.", "type": ["integer", "null"], "minimum": 1},
+        "duration_s": {"description": "Length of a timed session, s; null in a lap race.", "type": ["number", "null"], "exclusiveMinimum": 0},
+        "additional_laps": {"description": "Laps to drive after the time runs out in a timed race (0 = none).", "type": ["integer", "null"], "minimum": 0},
+        "started": {"description": "Optional: false before the start of a race (grid, formation lap), true once started; null or absent when not known or not a race.", "type": ["boolean", "null"]}
+      },
+      "required": ["type"]
+    },
+    "track": {
+      "type": "object",
+      "properties": {
+        "track_id": {"$ref": "#/$defs/id"},
+        "layout_id": {"$ref": "#/$defs/id"},
+        "track_name": {"type": "string"},
+        "layout_name": {"type": "string"},
+        "length_m": {"description": "Layout length, m.", "type": ["number", "null"], "exclusiveMinimum": 0}
+      },
+      "required": ["track_id", "layout_id", "length_m"]
+    },
+    "car": {
+      "description": "The player's car.",
+      "type": "object",
+      "properties": {
+        "car_id": {"$ref": "#/$defs/id"},
+        "class_id": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+        "car_name": {"type": "string"},
+        "class_name": {"type": "string"},
+        "pit_mode": {"$ref": "#/$defs/pit_mode"},
+        "speed_kmh": {"type": "number", "minimum": 0},
+        "gear": {"description": "-1 reverse, 0 neutral, 1..n.", "type": ["integer", "null"], "minimum": -1},
+        "rpm": {"type": ["number", "null"], "minimum": 0},
+        "fuel_l": {"description": "Fuel in the tank, L.", "type": ["number", "null"], "minimum": 0},
+        "fuel_capacity_l": {"description": "Tank capacity, L.", "type": ["number", "null"], "exclusiveMinimum": 0},
+        "penalty": {"description": "Optional: a penalty the game has pending for the player; null = none or not known.", "enum": ["drive_through", "stop_go", "other", null]},
+        "wheels": {
+          "type": "object",
+          "properties": {
+            "fl": {"$ref": "#/$defs/wheel"},
+            "fr": {"$ref": "#/$defs/wheel"},
+            "rl": {"$ref": "#/$defs/wheel"},
+            "rr": {"$ref": "#/$defs/wheel"}
+          }
+        }
+      },
+      "required": ["car_id", "pit_mode", "speed_kmh"]
+    },
+    "lap": {
+      "description": "The player's lap now. Required in a session: without it Pitwall answers its live tools with not_on_track.",
+      "type": "object",
+      "properties": {
+        "current_lap": {"description": "The game's number of the lap being driven.", "type": "integer", "minimum": 0},
+        "laps_completed": {"type": "integer", "minimum": 0},
+        "distance_m": {"description": "Lap distance from the start/finish line, m (may be slightly negative or above the length around the line).", "type": "number"},
+        "time_s": {"description": "Lap clock of the lap being driven, s; null while not timed (out lap, pits, before the start).", "type": ["number", "null"], "minimum": 0},
+        "valid": {"description": "False once the game invalidated the lap.", "type": "boolean"},
+        "sector": {"description": "Current sector, 1-based.", "type": ["integer", "null"], "minimum": 1},
+        "last_lap_s": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "best_lap_s": {"description": "The player's best lap of this session, by the game.", "type": ["number", "null"], "exclusiveMinimum": 0},
+        "lap_type": {"description": "Optional: the data model's lap type of the lap being driven, as far as the connector knows it now; null = not known.", "enum": ["formation", "out", "in", "flying", null]},
+        "invalid_cause": {"description": "Optional: why valid is false; null or absent when valid or not given.", "enum": ["off_track", "track_limits", "cut", "penalty", "unknown", null]},
+        "invalid_cause_certain": {"description": "Optional: false when invalid_cause is only the probable cause.", "type": "boolean"},
+        "invalid_at_m": {"description": "Optional: lap distance where the game flagged the lap invalid, m.", "type": ["number", "null"]}
+      },
+      "required": ["current_lap", "laps_completed", "distance_m", "time_s", "valid", "last_lap_s", "best_lap_s"]
+    },
+    "splits": {
+      "description": "The game's own time gaps of the player to the car ahead and behind, s; null when not given. Pitwall uses them in races only.",
+      "type": "object",
+      "properties": {
+        "ahead_s": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "behind_s": {"type": ["number", "null"], "exclusiveMinimum": 0}
+      }
+    },
+    "conditions": {
+      "description": "Weather; every field optional (the write API's conditions).",
+      "type": "object",
+      "properties": {
+        "ambient_c": {"type": ["number", "null"]},
+        "track_c": {"type": ["number", "null"]},
+        "rain": {"description": "Rain density, 0..1.", "type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "wind_speed_ms": {"type": ["number", "null"], "minimum": 0},
+        "cloud": {"description": "Cloud cover, 0..1; leave out a value on another scale.", "type": ["number", "null"], "minimum": 0, "maximum": 1}
+      }
+    },
+    "participants": {
+      "description": "Every car in the session, the player's included. At least one participant with is_player true is required in a session, even for a game with one car; Pitwall takes the first such participant as the player.",
+      "type": "array",
+      "items": {"$ref": "#/$defs/participant"}
+    }
+  },
+  "required": ["sim", "phase"],
+  "if": {"properties": {"phase": {"enum": ["garage", "on_track", "paused"]}}, "required": ["phase"]},
+  "then": {
+    "required": ["session", "track", "car", "lap", "participants"],
+    "properties": {
+      "participants": {
+        "minItems": 1,
+        "contains": {"type": "object", "properties": {"is_player": {"const": true}}, "required": ["is_player"]}
+      }
+    }
+  },
+  "$defs": {
+    "slug": {"description": "Lowercase id: letters, digits, '_' and '-', 1..32 characters, starting with a letter or digit.", "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,31}$"},
+    "id": {"description": "Opaque catalogue id (the write API's ids).", "type": "string", "minLength": 1, "maxLength": 200},
+    "time": {"description": "ISO 8601 date and time with a UTC offset, for example 2026-01-02T18:00:00.123+02:00.", "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)$"},
+    "phase": {
+      "description": "'menus' (not in a session: main menus, loading, replays, restarting), 'garage' (in a session, the player's car in the garage), 'on_track' (driving, the pit lane included), 'paused' (in a session out of the garage, the game paused or an in-session menu over the car on track).",
+      "type": "string",
+      "enum": ["menus", "garage", "on_track", "paused"]
+    },
+    "pit_mode": {
+      "description": "Pit mode code (data-model.md): 0 on track, 1 driving into the pits, 2 in the pit box, 3 driving out of the pits or the garage, 4 in the garage.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4
+    },
+    "wheel": {
+      "type": "object",
+      "properties": {
+        "tread_in_c": {"description": "Tread temperature, inner edge (towards the centreline), C.", "type": ["number", "null"]},
+        "tread_mid_c": {"type": ["number", "null"]},
+        "tread_out_c": {"type": ["number", "null"]},
+        "pressure_kpa": {"description": "Live (hot) pressure, kPa.", "type": ["number", "null"], "minimum": 0},
+        "carcass_c": {"type": ["number", "null"]},
+        "wear": {"description": "0..1 as the game gives it.", "type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "compound": {"type": ["string", "null"], "minLength": 1},
+        "brake_c": {"description": "Brake temperature, C.", "type": ["number", "null"]}
+      }
+    },
+    "participant": {
+      "type": "object",
+      "properties": {
+        "index": {"description": "The game's participant index (may be reused by another driver in a session).", "type": "integer", "minimum": 0},
+        "name": {"type": "string"},
+        "is_player": {"type": "boolean"},
+        "is_safety_car": {"type": "boolean", "default": false},
+        "active": {"description": "False for a slot the game lists but that is not in the session now. Required: Pitwall drops an inactive slot from the rivals, gaps and neighbours.", "type": "boolean"},
+        "position": {"type": ["integer", "null"], "minimum": 1},
+        "laps_completed": {"type": "integer", "minimum": 0},
+        "current_lap": {"type": ["integer", "null"], "minimum": 0},
+        "distance_m": {"description": "Lap distance, m.", "type": "number"},
+        "sector": {"type": ["integer", "null"], "minimum": 1},
+        "pit_mode": {"$ref": "#/$defs/pit_mode"},
+        "car_id": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+        "class_id": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+        "last_lap_s": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "best_lap_s": {"type": ["number", "null"], "exclusiveMinimum": 0}
+      },
+      "required": ["index", "name", "is_player", "position", "active", "laps_completed", "distance_m", "pit_mode"]
+    }
+  }
+}
