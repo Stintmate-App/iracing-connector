@@ -4,6 +4,13 @@ All notable changes to this project are written here.
 
 ## 0.1.0 (2026-11-05)
 
+- `iracing-core`: `announce` with the announcement catalog `connector.iracing`
+  (`data/catalog.json`, English, validated with the runtime's validator), the `Call` and `Calls`
+  types, the shared gate (session open, no replay, player in the car, ten quiet seconds after a
+  change) and the flag `Detector`: the yellow family with the sector of a slow car, debris, the
+  player's own yellow, clear, the blue flag train, red, the meatball flag and the full-course
+  caution (start, pits open, last lap, restart). `tests/detector_replay.rs` replays these cases
+  from scenarios, and `tests/no_alloc.rs` counts the detector's allocations.
 - `iracing-core`: `lap` (the per-lap channel columns in Pitwall's units, reserved once, no allocation per
   row; steering is the angle over half the reported lock to lock angle, the clutch is 1 pressed),
   `sectors` (sector times interpolated at the sector starts, dropped when they do not add up to

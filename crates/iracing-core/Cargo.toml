@@ -23,4 +23,5 @@ stintmate-connector-resources.workspace = true
 iracing-core = { path = ".", features = ["testing"] }
 irsdk = { workspace = true, features = ["testing"] }
 stintmate-connector-control.workspace = true
+stintmate-connector-wire.workspace = true
 serde_json.workspace = true

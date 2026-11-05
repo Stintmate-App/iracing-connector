@@ -1,0 +1,431 @@
+{
+ "schema": "stintmate-catalog/1",
+ "catalog": "connector.iracing",
+ "language": "en",
+ "language_name": "English",
+ "messages": {
+  "flag_yellow": {
+   "text": "Yellow flag, sector {sector}.",
+   "params": {
+    "sector": "int"
+   },
+   "audience": "driver",
+   "priority": "critical",
+   "max_wait_s": 8,
+   "kind": "announcement",
+   "note": "A yellow flag with another car as the likely cause. sector: where that car is (1-based, in the sessions' own sector count), not where the player is.",
+   "group": "flags"
+  },
+  "flag_double_yellow": {
+   "text": "Waving yellow, sector {sector}. Be ready to slow down.",
+   "params": {
+    "sector": "int"
+   },
+   "audience": "driver",
+   "priority": "critical",
+   "max_wait_s": 8,
+   "kind": "announcement",
+   "note": "A waving yellow flag (danger ahead). sector: where the slow car causing it is, 1-based.",
+   "group": "flags"
+  },
+  "flag_yellow_cause": {
+   "text": "Yellow for {cause}.",
+   "params": {
+    "cause": {
+     "kind": "enum",
+     "values": [
+      "debris"
+     ]
+    }
+   },
+   "values": {
+    "cause": {
+     "debris": "debris"
+    }
+   },
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 8,
+   "kind": "announcement",
+   "note": "Said when the simulator shows the debris flag. cause: debris.",
+   "group": "flags"
+  },
+  "flag_yellow_ahead": {
+   "text": "Yellow flag ahead.",
+   "audience": "driver",
+   "priority": "critical",
+   "max_wait_s": 5,
+   "slot": "local_flag",
+   "kind": "announcement",
+   "note": "A yellow flag when no slow car could be identified near the player (no sector is made up).",
+   "group": "flags"
+  },
+  "flag_double_yellow_ahead": {
+   "text": "Waving yellow ahead.",
+   "audience": "driver",
+   "priority": "critical",
+   "max_wait_s": 5,
+   "slot": "local_flag",
+   "kind": "announcement",
+   "note": "A waving yellow flag when no slow car could be identified near the player.",
+   "group": "flags"
+  },
+  "flag_yellow_self": {
+   "text": "You're {situation}.",
+   "params": {
+    "situation": {
+     "kind": "enum",
+     "values": [
+      "off_track",
+      "stopped"
+     ]
+    }
+   },
+   "values": {
+    "situation": {
+     "off_track": "off. Rejoin carefully, cars are coming",
+     "stopped": "stopped on track. Get going carefully"
+    }
+   },
+   "audience": "driver",
+   "priority": "high",
+   "max_wait_s": 5,
+   "kind": "announcement",
+   "note": "The yellow flag is about the player's own car (stopped or off the track), so a short note instead of a flag call. situation: off_track or stopped. Said once per incident; the clear call is not said for it.",
+   "group": "flags"
+  },
+  "flag_clear": {
+   "text": "Track clear, green flag.",
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 6,
+   "slot": "local_flag",
+   "kind": "announcement",
+   "note": "The yellow flag is gone for a few seconds after one was called.",
+   "group": "flags"
+  },
+  "flag_blue": {
+   "text": "Blue flag, let {driver} through.",
+   "params": {
+    "driver": "text"
+   },
+   "audience": "driver",
+   "priority": "high",
+   "max_wait_s": 6,
+   "slot": "blue_flag",
+   "kind": "announcement",
+   "note": "A faster car a lap or more ahead is close behind. driver: its name.",
+   "group": "flags"
+  },
+  "flag_blue_next": {
+   "text": "Let {driver} through.",
+   "params": {
+    "driver": "text"
+   },
+   "audience": "driver",
+   "priority": "high",
+   "max_wait_s": 6,
+   "slot": "blue_flag",
+   "kind": "announcement",
+   "note": "The blue flag still holds and another faster car a lap or more ahead is now behind the player (a train of lapping cars); said only after flag_blue, for each new car. driver: its name.",
+   "group": "flags"
+  },
+  "flag_blue_unknown": {
+   "text": "Blue flag, let the faster car through.",
+   "audience": "driver",
+   "priority": "high",
+   "max_wait_s": 6,
+   "slot": "blue_flag",
+   "kind": "announcement",
+   "note": "Blue flag when the lapping car could not be identified.",
+   "group": "flags"
+  },
+  "final_lap": {
+   "text": "Final lap.",
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 20,
+   "kind": "announcement",
+   "note": "The race's last lap has begun.",
+   "group": "race"
+  },
+  "flag_red": {
+   "text": "Red flag. Slow down and come back to the pits.",
+   "audience": "driver",
+   "priority": "critical",
+   "kind": "announcement",
+   "note": "The red flag: the session is stopped.",
+   "group": "flags"
+  },
+  "flag_black_orange": {
+   "text": "Meatball flag: damage, box now.",
+   "audience": "driver",
+   "priority": "critical",
+   "kind": "announcement",
+   "note": "The meatball flag: the car is damaged and has to go to the pits.",
+   "group": "flags"
+  },
+  "disqualified": {
+   "text": "Black flag. You are disqualified.",
+   "audience": "driver",
+   "priority": "high",
+   "kind": "announcement",
+   "note": "The player is disqualified.",
+   "group": "race"
+  },
+  "retired": {
+   "text": "You are out of the race.",
+   "audience": "driver",
+   "priority": "high",
+   "kind": "announcement",
+   "note": "The player's car is out of the race.",
+   "group": "race"
+  },
+  "chequered": {
+   "text": "Chequered flag. You finish {position}.",
+   "params": {
+    "position": "ordinal"
+   },
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 60,
+   "kind": "announcement",
+   "note": "The player took the chequered flag. position: the finishing position.",
+   "group": "race"
+  },
+  "chequered_no_position": {
+   "text": "Chequered flag.",
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 60,
+   "kind": "announcement",
+   "note": "The player took the chequered flag; the position is not known.",
+   "group": "race"
+  },
+  "fcy_start": {
+   "text": "Caution. Pace car on track.",
+   "audience": "driver",
+   "priority": "critical",
+   "kind": "announcement",
+   "note": "A full-course caution begins: the pace car is on track.",
+   "group": "safety_car"
+  },
+  "fcy_pits_open": {
+   "text": "Pits are open.",
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 20,
+   "kind": "announcement",
+   "note": "During the caution the pit lane opens.",
+   "group": "safety_car"
+  },
+  "fcy_last_lap": {
+   "text": "Safety car in this lap.",
+   "audience": "driver",
+   "priority": "high",
+   "max_wait_s": 30,
+   "kind": "announcement",
+   "note": "The one-lap-to-green flag during a caution: the green comes at the end of this lap.",
+   "group": "safety_car"
+  },
+  "fcy_restart": {
+   "text": "Green flag, go.",
+   "audience": "driver",
+   "priority": "critical",
+   "max_wait_s": 10,
+   "kind": "announcement",
+   "note": "The race restarts under green after a caution; the simulator shows the green flag itself, with no warning before it.",
+   "group": "safety_car"
+  },
+  "penalty_served": {
+   "text": "Penalty served.",
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 30,
+   "kind": "announcement",
+   "note": "The drive-through or stop-and-go penalty was served.",
+   "group": "penalties"
+  },
+  "rival_disqualified": {
+   "text": "{driver} is disqualified.",
+   "params": {
+    "driver": "text"
+   },
+   "audience": "driver",
+   "priority": "low",
+   "max_wait_s": 60,
+   "kind": "announcement",
+   "note": "Another driver was disqualified. driver: the name.",
+   "group": "rivals"
+  },
+  "rival_out": {
+   "text": "{driver} is out of the race.",
+   "params": {
+    "driver": "text"
+   },
+   "audience": "driver",
+   "priority": "low",
+   "max_wait_s": 60,
+   "kind": "announcement",
+   "note": "Another driver retired. driver: the name.",
+   "group": "rivals"
+  },
+  "spotter_car_left": {
+   "text": "Car left.",
+   "audience": "driver",
+   "priority": "spotter",
+   "max_wait_s": 1,
+   "slot": "spotter",
+   "kind": "announcement",
+   "note": "A car is alongside on the player's left and the right is empty (also when a three-wide drops to the left only).",
+   "group": "spotter"
+  },
+  "spotter_car_right": {
+   "text": "Car right.",
+   "audience": "driver",
+   "priority": "spotter",
+   "max_wait_s": 1,
+   "slot": "spotter",
+   "kind": "announcement",
+   "note": "A car is alongside on the player's right and the left is empty (also when a three-wide drops to the right only).",
+   "group": "spotter"
+  },
+  "spotter_in_the_middle": {
+   "text": "In the middle.",
+   "audience": "driver",
+   "priority": "spotter",
+   "max_wait_s": 1,
+   "slot": "spotter",
+   "kind": "announcement",
+   "note": "Cars on both sides of the player (three wide).",
+   "group": "spotter"
+  },
+  "spotter_still_right": {
+   "text": "Still on your right.",
+   "variants": [
+    "Still right.",
+    "Still there."
+   ],
+   "audience": "driver",
+   "priority": "spotter",
+   "max_wait_s": 1,
+   "slot": "spotter",
+   "kind": "announcement",
+   "note": "The car called alongside on the right is still there, repeated every 3 seconds while it holds.",
+   "group": "spotter"
+  },
+  "spotter_still_left": {
+   "text": "Still on your left.",
+   "variants": [
+    "Still left.",
+    "Still there."
+   ],
+   "audience": "driver",
+   "priority": "spotter",
+   "max_wait_s": 1,
+   "slot": "spotter",
+   "kind": "announcement",
+   "note": "The car called alongside on the left is still there, repeated every 3 seconds while it holds.",
+   "group": "spotter"
+  },
+  "spotter_still_middle": {
+   "text": "Still in the middle.",
+   "variants": [
+    "Still there."
+   ],
+   "audience": "driver",
+   "priority": "spotter",
+   "max_wait_s": 1,
+   "slot": "spotter",
+   "kind": "announcement",
+   "note": "The cars called on both sides are still there, repeated every 3 seconds while it holds.",
+   "group": "spotter"
+  },
+  "spotter_clear_left": {
+   "text": "Clear left.",
+   "audience": "driver",
+   "priority": "spotter",
+   "max_wait_s": 2,
+   "slot": "spotter",
+   "kind": "announcement",
+   "note": "The car alongside on the left has gone.",
+   "group": "spotter"
+  },
+  "spotter_clear_right": {
+   "text": "Clear right.",
+   "audience": "driver",
+   "priority": "spotter",
+   "max_wait_s": 2,
+   "slot": "spotter",
+   "kind": "announcement",
+   "note": "The car alongside on the right has gone.",
+   "group": "spotter"
+  },
+  "spotter_all_clear": {
+   "text": "All clear.",
+   "audience": "driver",
+   "priority": "spotter",
+   "max_wait_s": 2,
+   "slot": "spotter",
+   "kind": "announcement",
+   "note": "Both sides are empty again after \"In the middle\".",
+   "group": "spotter"
+  },
+  "radio_check": {
+   "text": "Radio check from the iRacing connector.",
+   "audience": "driver",
+   "priority": "low",
+   "max_wait_s": 30,
+   "kind": "message",
+   "note": "A test of the announcement path, sent by hand.",
+   "group": "test"
+  },
+  "engineer_test": {
+   "text": "Test message for the engineer: {text}",
+   "params": {
+    "text": "text"
+   },
+   "audience": "agent",
+   "priority": "low",
+   "max_wait_s": 300,
+   "kind": "message",
+   "note": "A test message for the race engineer, sent by hand. text: a free sentence.",
+   "group": "test"
+  },
+  "penalty_black_flag": {
+   "text": "Black flag: you have a penalty. Box to serve it.",
+   "audience": "driver",
+   "priority": "high",
+   "max_wait_s": 10,
+   "kind": "announcement",
+   "note": "The black flag is shown to the player: a penalty to serve at the pits.",
+   "group": "penalties"
+  },
+  "incident": {
+   "text": "{points}x incident. {total} points now.",
+   "params": {
+    "points": "int",
+    "total": "int"
+   },
+   "audience": "driver",
+   "priority": "high",
+   "max_wait_s": 10,
+   "kind": "announcement",
+   "note": "The player's incident count rose. points: the rise (merged within two seconds); total: the count now.",
+   "group": "penalties"
+  },
+  "incident_limit_warning": {
+   "text": "Careful: {total} of {limit} incident points.",
+   "params": {
+    "total": "int",
+    "limit": "int"
+   },
+   "audience": "driver",
+   "priority": "high",
+   "max_wait_s": 10,
+   "kind": "announcement",
+   "note": "The incident count is near the event's limit. total: the count; limit: the event's limit.",
+   "group": "penalties"
+  }
+ }
+}

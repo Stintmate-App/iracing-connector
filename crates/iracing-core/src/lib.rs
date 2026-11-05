@@ -8,6 +8,7 @@
 #![deny(missing_docs)]
 #![forbid(unsafe_code)]
 
+pub mod announce;
 pub mod codes;
 pub mod lap;
 pub mod meta;

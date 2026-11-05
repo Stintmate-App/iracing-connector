@@ -258,6 +258,15 @@ them. Nothing here was seen in a race session, online or with other cars (see
   `DCLapStatus` was 2. `PlayerCarWeightPenalty` and `PlayerCarPowerAdjust` are balance of
   performance (0 here), not penalties.
 
+- **assumed** (not observed on a race yet): the flag announcements follow the flag bits as the
+  SDK header documents them. A full-course caution is `cautionWaving` or `caution` rising in a
+  race; the pits open when `PitsOpen` goes from false to true during it; `oneLapToGreen` counts
+  only while a caution has been seen, in a race; the restart is the `green` flag after the
+  caution bits clear. A yellow's cause is a car that moves slower than 6 m/s on the track
+  within 350 m behind to 1500 m ahead of the player, its speed taken from its lap fraction
+  between two reads; the lapping car of a blue flag is the nearest real car up to 500 m behind
+  that is more than half a lap ahead in race distance. To confirm in a race with cautions.
+
 ## Pit stops
 
 - **observed**: a stop for four tyres and fuel, in order:
