@@ -4,6 +4,13 @@ All notable changes to this project are written here.
 
 ## 0.1.0 (2026-11-05)
 
+- `iracing-core`: `lap` (the per-lap channel columns in Pitwall's units, reserved once, no allocation per
+  row; steering is the angle over half the reported lock to lock angle, the clutch is 1 pressed),
+  `sectors` (sector times interpolated at the sector starts, dropped when they do not add up to
+  the lap time) and `validity` (the lap validity inferred from incidents, time off the track,
+  tows and the pit road, and the incident tracker; a lap iRacing did not time is invalid), with
+  unit tests and `tests/no_alloc.rs`, which counts allocations on the per-row path.
+
 - Shared runtime moved from `v0.1.0` to `v0.1.2`: a refusal after the hello shows `refused`, and
   every process lowers its priority. No code change was needed.
 - `iracing-core`: the game window is found by class `SimWinClass`, with the title
