@@ -26,3 +26,11 @@ All notable changes to this project are written here.
   the key facts. `session` holds the partial typed model (track, event, sessions, results, sectors,
   drivers, setup). A hand-made corpus of session texts and tests for decoding, parsing and the
   fallback.
+- `irsdk`: `ibt::Ibt`, an `.ibt` file read whole and read-only over the same parsers as the live
+  map (header, disk sub-header, variables, session text, rows from the first buffer offset; the
+  record count is cut to the rows that fit, and a count of zero uses what fits). The synthetic
+  `.ibt` builder (`testing::ibt_bytes`), a synthetic lap generator, and `testing::replay`, which
+  writes the session text and pushes rows into a test mapping at a chosen rate.
+- `iracing-replay` (`tools/replay`): replays an `.ibt` file or a number of synthetic laps into a
+  test mapping with a name given on the command line; the simulator's names are refused. It can
+  loop and stop after a time.

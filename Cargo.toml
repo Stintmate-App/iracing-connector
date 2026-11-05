@@ -4,6 +4,7 @@ members = [
     "crates/irsdk",
     "crates/iracing-core",
     "tools/probe",
+    "tools/replay",
 ]
 
 [workspace.package]

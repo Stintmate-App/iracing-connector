@@ -309,3 +309,10 @@ impl Drop for TestMap {
         }
     }
 }
+
+impl TestMap {
+    /// The mapping size, in bytes, that holds `layout` and a session text of `yaml_len` bytes.
+    pub fn required_size(layout: &Layout, yaml_len: usize) -> usize {
+        plan(layout, yaml_len).total
+    }
+}

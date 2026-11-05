@@ -1,0 +1,17 @@
+[package]
+name = "iracing-replay"
+description = "Replays an .ibt file or a synthetic session into a test memory mapping"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[[bin]]
+name = "iracing-replay"
+path = "src/main.rs"
+
+[dependencies]
+irsdk = { workspace = true, features = ["testing"] }

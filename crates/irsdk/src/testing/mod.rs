@@ -4,9 +4,13 @@
 
 #[cfg(windows)]
 pub mod map;
+#[cfg(windows)]
+pub mod replay;
 
 use crate::defs::{MAX_BUFS, MAX_DESC, MAX_STRING, STATUS_CONNECTED, VER, VarType};
-use crate::header::{HEADER_LEN, VAR_HEADER_LEN};
+use crate::header::{DISK_HEADER_END, DiskHeader, HEADER_LEN, VAR_HEADER_LEN};
+use crate::ibt::Ibt;
+use crate::vars::VarTable;
 use crate::vars::VarValue;
 
 /// One variable of a [`Layout`].
@@ -305,4 +309,144 @@ pub fn live_image(layout: &Layout, yaml: impl AsRef<[u8]>, rows: &[(i32, Vec<u8>
     image[var_off..yaml_off].copy_from_slice(&layout.var_header_bytes());
     image[yaml_off..yaml_off + yaml.len()].copy_from_slice(yaml);
     image
+}
+
+impl Layout {
+    /// A layout with the variables of `table` at the offsets they have there, for replaying the
+    /// rows of a file. Variables the table skipped are absent.
+    pub fn from_table(table: &VarTable, tick_rate: i32, num_buf: usize, buf_len: usize) -> Layout {
+        assert!((1..=MAX_BUFS).contains(&num_buf), "num_buf must be 1 to 4");
+        Layout {
+            tick_rate,
+            num_buf,
+            buf_len,
+            vars: table
+                .iter()
+                .map(|v| LayoutVar {
+                    name: v.name.clone(),
+                    ty: v.ty,
+                    count: v.count,
+                    unit: v.unit.clone(),
+                    desc: v.desc.clone(),
+                    offset: v.offset,
+                })
+                .collect(),
+        }
+    }
+}
+
+/// A whole `.ibt` file image: header, disk sub-header, variable headers, session text, then the
+/// rows (16-aligned). The header says one buffer; `disk` is written as given, so a test can
+/// set a record count that differs from the rows. Every row must be `layout.buf_len()` bytes.
+pub fn ibt_bytes(
+    layout: &Layout,
+    yaml: impl AsRef<[u8]>,
+    rows: &[Vec<u8>],
+    disk: DiskHeader,
+) -> Vec<u8> {
+    let yaml = yaml.as_ref();
+    let var_off = DISK_HEADER_END;
+    let yaml_off = var_off + layout.vars().len() * VAR_HEADER_LEN;
+    let rows_at = (yaml_off + yaml.len()).next_multiple_of(16);
+    let mut image = vec![0u8; rows_at + rows.len() * layout.buf_len()];
+    let mut header = layout.header_bytes(0, (yaml_off, yaml.len()), var_off, &[(0, rows_at)]);
+    put_i32(&mut header, 32, 1);
+    image[..HEADER_LEN].copy_from_slice(&header);
+    image[HEADER_LEN..HEADER_LEN + 8].copy_from_slice(&disk.session_start_date.to_le_bytes());
+    image[120..128].copy_from_slice(&disk.session_start_time.to_le_bytes());
+    image[128..136].copy_from_slice(&disk.session_end_time.to_le_bytes());
+    put_i32(&mut image, 136, disk.session_lap_count);
+    put_i32(&mut image, 140, disk.session_record_count);
+    image[var_off..yaml_off].copy_from_slice(&layout.var_header_bytes());
+    image[yaml_off..yaml_off + yaml.len()].copy_from_slice(yaml);
+    for (k, row) in rows.iter().enumerate() {
+        assert_eq!(row.len(), layout.buf_len(), "row {k} has the wrong length");
+        let at = rows_at + k * layout.buf_len();
+        image[at..at + row.len()].copy_from_slice(row);
+    }
+    image
+}
+
+/// The layout of [`synthetic_ibt`]: speed, lap distance, lap, session time and track state.
+pub fn synthetic_layout() -> Layout {
+    LayoutBuilder::new()
+        .tick_rate(60)
+        .num_buf(3)
+        .var(
+            "SessionTime",
+            VarType::Double,
+            1,
+            "s",
+            "Seconds since session start",
+        )
+        .var("Speed", VarType::Float, 1, "m/s", "GPS vehicle speed")
+        .var(
+            "LapDist",
+            VarType::Float,
+            1,
+            "m",
+            "Meters traveled from S/F this lap",
+        )
+        .var(
+            "LapDistPct",
+            VarType::Float,
+            1,
+            "%",
+            "Percentage distance around lap",
+        )
+        .var("Lap", VarType::Int, 1, "", "Laps started by car")
+        .var(
+            "IsOnTrack",
+            VarType::Bool,
+            1,
+            "",
+            "1 if the car is on track",
+        )
+        .var(
+            "PlayerTrackSurface",
+            VarType::Int,
+            1,
+            "irsdk_TrkLoc",
+            "Player car track location",
+        )
+        .build()
+}
+
+/// The session text of [`synthetic_ibt`].
+pub const SYNTHETIC_YAML: &str = "---\nWeekendInfo:\n TrackName: synthetic\n TrackLength: 2.00 km\n\
+ TrackDisplayName: Synthetic Track\nSessionInfo:\n Sessions:\n - SessionNum: 0\n   SessionType: Race\n\
+   SessionLaps: unlimited\nDriverInfo:\n DriverCarIdx: 0\n Drivers:\n - CarIdx: 0\n   UserName: Test Driver\n...\n";
+
+/// An in-memory `.ibt` of `laps` laps of a 2 km track, `rows_per_lap` rows each, with the
+/// variables of [`synthetic_layout`]. The speed is a smooth function of the distance.
+pub fn synthetic_ibt(laps: u32, rows_per_lap: u32) -> Ibt {
+    const TRACK_M: f32 = 2000.0;
+    let layout = synthetic_layout();
+    let per_lap = rows_per_lap.max(2);
+    let mut rows = Vec::with_capacity((laps * per_lap) as usize);
+    for lap in 0..laps {
+        for k in 0..per_lap {
+            let pct = k as f32 / per_lap as f32;
+            let mut b = RowBuilder::new(&layout);
+            b.set_f64(
+                "SessionTime",
+                f64::from(lap * per_lap + k) / f64::from(layout.tick_rate()),
+            )
+            .set_f32("Speed", 40.0 + 20.0 * (pct * std::f32::consts::TAU).sin())
+            .set_f32("LapDist", pct * TRACK_M)
+            .set_f32("LapDistPct", pct)
+            .set_i32("Lap", lap as i32 + 1)
+            .set_bool("IsOnTrack", true)
+            .set_i32("PlayerTrackSurface", 3);
+            rows.push(b.into_bytes());
+        }
+    }
+    let disk = DiskHeader {
+        session_start_date: 1_700_000_000,
+        session_start_time: 0.0,
+        session_end_time: rows.len() as f64 / f64::from(layout.tick_rate()),
+        session_lap_count: laps as i32,
+        session_record_count: rows.len() as i32,
+    };
+    Ibt::from_bytes(ibt_bytes(&layout, SYNTHETIC_YAML, &rows, disk)).expect("synthetic file")
 }
