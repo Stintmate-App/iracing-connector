@@ -1,13 +1,16 @@
-//! Polling and reading variables allocate nothing.
+//! Polling, reading variables and notifying the session worker allocate nothing.
 
 mod common;
 
 use std::alloc::{GlobalAlloc, Layout, System};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::{Duration, Instant};
 
 use common::{Script, layout, row};
 use irsdk::sampler::{Poll, Sampler};
 use irsdk::vars::Var;
+use irsdk::worker::{YamlSource, YamlWorker};
 
 struct Counting;
 
@@ -40,8 +43,7 @@ unsafe impl GlobalAlloc for Counting {
 #[global_allocator]
 static GLOBAL: Counting = Counting;
 
-#[test]
-fn ten_thousand_polls_and_reads_allocate_nothing() {
+fn polls_and_reads_allocate_nothing() {
     let l = layout(60, 3);
     let script = Script::from_rows(&l, &[(1, row(&l, 1.0, 1))]);
     let mut s = Sampler::attach(&script).unwrap();
@@ -66,4 +68,48 @@ fn ten_thousand_polls_and_reads_allocate_nothing() {
     assert_eq!(after - before, 0, "the per-tick path allocated");
     assert!(rows > 4000, "rows seen: {rows}");
     assert!(sum > 0.0);
+}
+
+/// A source whose counter never moves.
+struct Still;
+
+impl YamlSource for Still {
+    fn update(&self) -> i32 {
+        1
+    }
+    fn copy_yaml(&self, dst: &mut Vec<u8>) -> bool {
+        dst.clear();
+        dst.extend_from_slice(b"---\nWeekendInfo:\n TrackID: 7\n");
+        true
+    }
+}
+
+fn notifying_the_worker_allocates_nothing() {
+    let w = YamlWorker::spawn(Arc::new(Still)).unwrap();
+    w.notify(1);
+    let end = Instant::now() + Duration::from_secs(10);
+    while w.latest().is_none() {
+        assert!(Instant::now() < end, "no document");
+        std::thread::sleep(Duration::from_millis(2));
+    }
+    // Let the worker settle back to waiting.
+    std::thread::sleep(Duration::from_millis(100));
+    let before = ALLOCS.load(Ordering::SeqCst);
+    for _ in 0..10_000 {
+        w.notify(1);
+    }
+    let after = ALLOCS.load(Ordering::SeqCst);
+    assert_eq!(after - before, 0, "notify allocated");
+    // The same counter again costs the worker nothing either: no second document.
+    std::thread::sleep(Duration::from_millis(50));
+    assert_eq!(w.generation(), 1);
+    w.close();
+}
+
+/// One test, because the counter is global: a second test running at the same time would
+/// count its own allocations.
+#[test]
+fn the_per_tick_paths_allocate_nothing() {
+    polls_and_reads_allocate_nothing();
+    notifying_the_worker_allocates_nothing();
 }

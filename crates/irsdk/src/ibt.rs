@@ -9,7 +9,8 @@ use std::path::Path;
 
 use crate::header::{DISK_HEADER_END, DiskHeader, Header, LayoutError};
 use crate::vars::VarTable;
-use crate::yaml::{self, Decoded, Parsed};
+use crate::worker::SessionDoc;
+use crate::yaml::{self, Decoded};
 
 /// Why an `.ibt` file could not be read.
 #[derive(Debug)]
@@ -126,8 +127,8 @@ impl Ibt {
     }
 
     /// The session text, decoded and parsed now.
-    pub fn session(&self) -> Parsed {
-        yaml::parse(&self.session_text().text)
+    pub fn session(&self) -> SessionDoc {
+        SessionDoc::from_raw(self.header.session_info_update, self.yaml_raw())
     }
 
     /// The number of rows.
