@@ -1,0 +1,28 @@
+[package]
+name = "iracing-recorder"
+description = "The iRacing recorder: reports whether iRacing runs and says hello to Pitwall"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+iracing-core.workspace = true
+irsdk.workspace = true
+stintmate-connector-platform.workspace = true
+stintmate-connector-link.workspace = true
+tracing.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+stintmate-connector-resources.workspace = true
+embed-resource.workspace = true
+
+[dev-dependencies]
+stintmate-connector-testing.workspace = true
+stintmate-ipc.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true

@@ -2,10 +2,20 @@
 
 All notable changes to this project are written here.
 
-## Unreleased
+## 0.1.0 (2026-11-05)
 
 - Repository created.
 - Workspace skeleton: toolchain, cargo configuration, licence checks, notices, manual CI file.
+- `iracing-core`: `SPEC`, the connector description on the shared connector runtime (id `iracing`,
+  simulator iRacing, the process `iRacingSim64DX11.exe`, the product key, 60 Hz), the English UI
+  catalog `locales/en.json`, and tests that the spec is valid and the catalog complete.
+- The three programs on the runtime, pinned to its release tag `v0.1.0`: `iracing-connector-ui`
+  (control app), `iracing-connector-window` and `iracing-recorder`, each with its icon and
+  version resource. The recorder connects to Pitwall and reports whether iRacing runs; it reads no
+  simulator data and writes no laps.
+- Tests for `--version` of the three programs, the recorder against a fake Pitwall (hello, status,
+  stop event), `--register` and `--unregister`, and unknown options.
+- Docs: `docs/usage.md`.
 - `iracing-core`: the empty `Source`, `Sink` and `Clock` traits.
 - `irsdk`: the SDK constants (`defs`), the header and variable header layouts with bounds-checked
   parsing (`header`, `vars`), the copy of one row (`row`), the byte source trait (`view`), and the
