@@ -11,19 +11,36 @@ use crate::io::{
 use crate::lap::Columns;
 use crate::meta::SessionMeta;
 
-/// A clock that always shows the same time.
+/// A clock whose wall time is always the same; its monotonic time moves only when told to
+/// ([`FixedClock::advance`]).
 #[derive(Clone, Debug)]
-pub struct FixedClock(pub String);
+pub struct FixedClock {
+    iso: String,
+    mono: std::cell::Cell<f64>,
+}
+
+impl FixedClock {
+    /// Moves the monotonic clock on by `s` seconds.
+    pub fn advance(&self, s: f64) {
+        self.mono.set(self.mono.get() + s);
+    }
+}
 
 impl Default for FixedClock {
     fn default() -> FixedClock {
-        FixedClock("2026-01-01T00:00:00Z".to_owned())
+        FixedClock {
+            iso: "2026-01-01T00:00:00Z".to_owned(),
+            mono: std::cell::Cell::new(0.0),
+        }
     }
 }
 
 impl Clock for FixedClock {
     fn iso(&self) -> String {
-        self.0.clone()
+        self.iso.clone()
+    }
+    fn mono_s(&self) -> f64 {
+        self.mono.get()
     }
 }
 

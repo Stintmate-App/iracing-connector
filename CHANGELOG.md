@@ -132,3 +132,14 @@ All notable changes to this project are written here.
   budget is set for session texts of a few hundred KB. The minimum Rust version is now 1.89.
 - `irsdk`: breaking, `CarSetup` now wraps a `serde_json::Value` instead of the YAML parser's value type, so the
   parser is not part of the public API.
+- `iracing-core`: fixes in the tracker. A lap that did not start at the line (joined mid-lap, or
+  after a jump of the car) is sent invalid with cause `unknown` and no time, whatever iRacing
+  timed; a disconnect ends the session after five seconds of wall time (`Clock::mono_s`), not of
+  session time, which stands still while the simulator is gone; a lap counter that rises in the
+  stall, nearly stopped or within a second of driving starting, without the lap fraction
+  wrapping, is not a crossing; the wrap of the lap fraction alone ends a lap that started at the
+  line only after half of it was driven; a lap iRacing did not time (-1) or that ended early is
+  `unknown` instead of having no cause; the lap open when a session closes or the recorder stops
+  is `in` only if the car was on the pit road. The tracker no longer allocates a lap buffer on
+  the tick thread when the sink offers one (`Sink::spare_buffer`). The golden scenarios also run
+  through `IbtSource` and compare equal, and a golden scenario feeds rows with `connected` false.

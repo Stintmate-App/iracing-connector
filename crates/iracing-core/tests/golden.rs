@@ -27,8 +27,11 @@ fn meta_of(text: &[u8], update: i32, session_num: i32) -> Arc<SessionMeta> {
 }
 
 /// Runs the rows of a scenario through a tracker, with the session text changes at their rows.
+///
+/// A scenario with no text changes and no gaps goes through [`IbtSource`] as well, and both
+/// runs must give the same calls to the sink.
 fn run(s: &Scenario) -> (RecordingSink, Tracker, State) {
-    run_rows(
+    let direct = run_rows(
         s.layout(),
         s.rows(),
         s.initial_yaml(),
@@ -36,14 +39,41 @@ fn run(s: &Scenario) -> (RecordingSink, Tracker, State) {
             .iter()
             .map(|u| (u.at_row, u.text.as_slice()))
             .collect(),
-    )
+        s.disconnects(),
+    );
+    if s.yaml_updates().is_empty() && s.disconnects().is_empty() {
+        let via = run_ibt(s);
+        assert_eq!(
+            via.to_json(),
+            direct.0.to_json(),
+            "through IbtSource the calls differ"
+        );
+    }
+    direct
 }
 
+fn run_ibt(s: &Scenario) -> RecordingSink {
+    let mut src = IbtSource::new(s.ibt()).expect("source");
+    let meta = Arc::clone(src.meta().expect("meta"));
+    let mut tracker = Tracker::new(1024);
+    let mut sink = RecordingSink::new();
+    let clock = FixedClock::default();
+    let mut tick = Tick::new();
+    while src.next(&mut tick) == SourceEvent::Row {
+        tracker.step(&tick, Some(&meta), &mut sink, &clock);
+    }
+    tracker.stop(true, &mut sink, &clock);
+    sink
+}
+
+/// `gaps` are `(row, seconds)`: before that row the simulator is gone for `seconds` of wall
+/// time, which shows as rows with `connected` false (the session time stands still).
 fn run_rows(
     layout: &irsdk::testing::Layout,
     rows: &[Vec<u8>],
     initial: &[u8],
     updates: Vec<(usize, &[u8])>,
+    gaps: &[(usize, f64)],
 ) -> (RecordingSink, Tracker, State) {
     let table = table_of(layout);
     let vars = Vars::resolve(&table).expect("vars");
@@ -63,6 +93,13 @@ fn run_rows(
             r.set_tick(i as i32);
             tick.fill(&vars, &r);
             meta = meta_of(text, update, tick.session_num);
+        }
+        for &(_, secs) in gaps.iter().filter(|(at, _)| *at == i) {
+            tick.connected = false;
+            for _ in 0..(secs * 60.0).ceil() as usize {
+                clock.advance(1.0 / 60.0);
+                tracker.step(&tick, Some(&meta), &mut sink, &clock);
+            }
         }
         let mut row = Row::from_slice(bytes);
         row.set_tick(i as i32);
@@ -149,16 +186,7 @@ fn tracker_replays_an_ibt_through_ibt_source() {
     s.lap(LapProfile::new(20.3));
     let (want, _, _) = run(&s);
 
-    let mut src = IbtSource::new(s.ibt()).expect("source");
-    let meta = Arc::clone(src.meta().expect("meta"));
-    let mut tracker = Tracker::new(1024);
-    let mut sink = RecordingSink::new();
-    let clock = FixedClock::default();
-    let mut tick = Tick::new();
-    while src.next(&mut tick) == SourceEvent::Row {
-        tracker.step(&tick, Some(&meta), &mut sink, &clock);
-    }
-    tracker.stop(true, &mut sink, &clock);
+    let sink = run_ibt(&s);
     assert_eq!(types(&sink), types(&want));
     assert_eq!(sink.kinds(), want.kinds());
 }
@@ -643,7 +671,7 @@ fn golden_recorded_session() {
     r.leave_car();
 
     let y = YamlBuilder::new().build_cp1252();
-    let (sink, tracker, state) = run_rows(&r.layout, &r.rows, &y, Vec::new());
+    let (sink, tracker, state) = run_rows(&r.layout, &r.rows, &y, Vec::new(), &[]);
     check("recorded_session", &sink);
 
     // The session opened out of the car, before the first drive.
@@ -698,4 +726,31 @@ fn golden_recorded_session() {
         .position(|e| e["call"] == "lap" && e["time_s"] == 121.8)
         .expect("the timed lap");
     assert!(timed < last_exit);
+}
+
+// ---- a disconnect is wall time -----------------------------------------------------------
+
+#[test]
+fn golden_disconnect() {
+    let mut s = Scenario::new(YamlBuilder::new());
+    s.garage(1.0).to_stall().drive_out();
+    s.lap(LapProfile::new(20.1));
+    // Gone for three seconds: the session goes on and the lap is kept.
+    s.disconnect(3.0);
+    s.lap(LapProfile::new(20.2));
+    // Gone for six: the session ends with the lap open, and a new one opens after.
+    s.disconnect(6.0);
+    s.lap(LapProfile::new(20.3));
+    let (sink, _, _) = run(&s);
+    check("disconnect", &sink);
+
+    assert_eq!(sink.calls("start_session").len(), 2);
+    assert_eq!(sink.calls("end_session").len(), 1);
+    let kinds = sink.kinds();
+    let end = kinds.iter().position(|k| *k == "end_session").expect("end");
+    assert_eq!(
+        kinds[..end].iter().filter(|k| **k == "lap").count(),
+        2,
+        "the lap over the three second gap is kept; the session ends after the six second one"
+    );
 }

@@ -15,6 +15,9 @@ use crate::validity::InvalidCause;
 pub trait Clock: Send {
     /// The current time as an ISO 8601 text in UTC, for timestamps.
     fn iso(&self) -> String;
+    /// Seconds on a monotonic clock that keeps running while the simulator is gone (the
+    /// session time does not). Only differences are used.
+    fn mono_s(&self) -> f64;
 }
 
 /// What a [`Source`] found when asked for the next row.
@@ -280,4 +283,10 @@ pub trait Sink {
     fn catalog(&mut self, meta: Arc<SessionMeta>);
     /// The car entered its stall; `tyres` are the readings of that moment. Optional.
     fn stall_tyres(&mut self, _local: u64, _tyres: &StallTyres) {}
+    /// A fresh, empty lap buffer for the tracker's pool, made on the sink's own thread so the
+    /// tick thread does not allocate it. Called after each lap is handed over. `None` (the
+    /// default) makes the tracker allocate one when the next lap ends.
+    fn spare_buffer(&mut self, _rows: usize) -> Option<LapBuffer> {
+        None
+    }
 }

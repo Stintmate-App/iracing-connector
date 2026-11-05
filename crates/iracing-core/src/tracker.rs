@@ -48,6 +48,13 @@ pub const OFF_GRACE_S: f64 = 5.0;
 /// The smallest jump of the lap fraction that is a reset, not driving.
 pub const JUMP_PCT_MIN: f64 = 0.02;
 
+/// Seconds after driving starts in which a rise of a lap counter, with no wrap of the lap
+/// fraction, only re-syncs the simulator's lap number (re-entry in the stall).
+pub const DRIVE_START_QUIET_S: f64 = 1.0;
+/// The fraction of the lap that must have been driven for the wrap of the lap fraction alone to
+/// end a lap that started at the line.
+pub const WRAP_MIN_DRIVEN: f64 = 0.5;
+
 const TRK_LOC_IN_PIT_STALL: i32 = 1;
 const SESSION_STATE_PARADE: i32 = 3;
 
@@ -160,6 +167,8 @@ struct LapState {
     formation: bool,
     sim_lap: i32,
     start_row_s: f64,
+    /// Fraction of the lap driven forward since the lap started.
+    driven: f64,
 }
 
 impl LapState {
@@ -176,6 +185,7 @@ impl LapState {
         formation: false,
         sim_lap: 0,
         start_row_s: f64::NEG_INFINITY,
+        driven: 0.0,
     };
 
     fn lap_type(&self, ended_on_pit_road: bool, garage_return: bool) -> LapType {
@@ -207,6 +217,8 @@ struct Pending {
     baseline: f32,
     crossed_at: f64,
     from_line: bool,
+    /// The lap started mid-track: the simulator's time is not the time of what was recorded.
+    mid_lap: bool,
 }
 
 /// The tracker. See the module documentation.
@@ -224,7 +236,10 @@ pub struct Tracker {
     visit: PitVisit,
     prev: Option<Prev>,
     gap_since: Option<f64>,
+    /// Monotonic seconds ([`Clock::mono_s`]) when the first row without a connection came.
     off_since: Option<f64>,
+    /// Session time of the row that started the current spell of driving.
+    drive_since: f64,
     last_seen_last: f32,
     last_fuel: f32,
     conditions: Conditions,
@@ -257,6 +272,7 @@ impl Tracker {
             prev: None,
             gap_since: None,
             off_since: None,
+            drive_since: f64::NEG_INFINITY,
             last_seen_last: -1.0,
             last_fuel: 0.0,
             conditions: Conditions::default(),
@@ -322,12 +338,12 @@ impl Tracker {
         clock: &dyn Clock,
     ) {
         if !t.connected {
-            let since = *self
-                .off_since
-                .get_or_insert(self.prev.map_or(t.session_time, |p| p.time));
+            // The session time stops while the simulator is gone: the grace is wall time.
+            let wall = clock.mono_s();
+            let since = *self.off_since.get_or_insert(wall);
             self.state = State::Off;
             self.view.state = State::Off;
-            if t.session_time - since >= OFF_GRACE_S {
+            if wall - since >= OFF_GRACE_S {
                 self.on_off(sink, clock);
             }
             return;
@@ -455,7 +471,10 @@ impl Tracker {
             return;
         };
         let end_s = self.prev.map_or(self.lap.started_at_s, |p| p.time);
-        self.end_partial(end_s, false, true, sink);
+        // An interrupted lap is not a garage return: it is `in` only if the last row was on the
+        // pit road.
+        let on_pit_road = self.prev.is_some_and(|p| p.on_pit_road);
+        self.end_partial(end_s, on_pit_road, false, sink);
         self.resolve_pending(self.last_seen_last, sink);
         if end {
             sink.end_session(local, &clock.iso());
@@ -497,6 +516,9 @@ impl Tracker {
         let service = t.pit_service_active.unwrap_or(false);
         let tow = t.tow_time.unwrap_or(0.0) > 0.0;
         let prev = self.prev;
+        if matches!(before, State::Off | State::Idle | State::Garage) {
+            self.drive_since = now;
+        }
 
         if !self.lap.active {
             if tow {
@@ -556,10 +578,22 @@ impl Tracker {
                 } else if !fell {
                     let counted = t.lap > p.lap || t.lap_completed > p.completed;
                     let wrapped = p.pct > 0.9 && t.lap_dist_pct < 0.1;
-                    if counted || wrapped {
-                        if self.lap.start_kind == StartKind::Line
-                            && now - self.lap.started_at_s < SYNC_WINDOW_S
-                        {
+                    let ahead = f64::from(t.lap_dist_pct - p.pct).rem_euclid(1.0);
+                    let ahead = if ahead < 0.5 { ahead } else { 0.0 };
+                    let from_line = self.lap.start_kind == StartKind::Line;
+                    // In the stall, nearly stopped or just after driving started, a counter
+                    // that rises without the lap fraction wrapping is not a crossing.
+                    let still = stall
+                        || t.speed * 3.6 < MOVING_KMH
+                        || now - self.drive_since < DRIVE_START_QUIET_S;
+                    // The wrap alone ends a lap that started at the line only when most of it
+                    // was driven (jitter across the line in the pit lane is not a lap).
+                    let wrap_ok =
+                        wrapped && (!from_line || self.lap.driven + ahead >= WRAP_MIN_DRIVEN);
+                    if counted && !wrapped && still {
+                        self.lap.sim_lap = t.lap;
+                    } else if counted || wrap_ok {
+                        if from_line && now - self.lap.started_at_s < SYNC_WINDOW_S {
                             self.lap.sim_lap = t.lap;
                         } else {
                             line = true;
@@ -602,6 +636,10 @@ impl Tracker {
         self.validity
             .step(t, self.state == State::Track, clock_s, rise);
         if let Some(p) = self.prev {
+            let ahead = f64::from(t.lap_dist_pct - p.pct).rem_euclid(1.0);
+            if ahead < 0.5 {
+                self.lap.driven += ahead;
+            }
             self.sectors
                 .step(f64::from(p.pct), f64::from(t.lap_dist_pct), p.time, now);
         }
@@ -645,21 +683,25 @@ impl Tracker {
             formation: false,
             sim_lap: t.lap,
             start_row_s: t.session_time,
+            driven: 0.0,
         };
         self.last_fuel = t.fuel_l;
         self.validity.reset();
+        if kind == StartKind::Resume {
+            self.validity.mark_mid_lap_start(t.lap_dist);
+        }
         self.sectors.start_lap(at_s, kind != StartKind::Line);
         self.buffer.clear();
     }
 
     fn take_buffer(&mut self) -> LapBuffer {
         let length = self.open.as_ref().map_or(0.0, |o| o.length_m);
+        // The sink refills the pool after it takes a lap; only if it does not is one made here.
         let mut fresh = self
             .spare
             .take()
             .unwrap_or_else(|| LapBuffer::with_capacity(self.pool_rows));
         fresh.set_length(length);
-        self.spare = Some(LapBuffer::with_capacity(self.pool_rows));
         std::mem::replace(&mut self.buffer, fresh)
     }
 
@@ -712,6 +754,7 @@ impl Tracker {
             baseline: self.last_seen_last,
             crossed_at: crossed,
             from_line,
+            mid_lap: self.lap.start_kind == StartKind::Resume,
         });
     }
 
@@ -744,7 +787,15 @@ impl Tracker {
         self.fill_validity(&mut lap, &self.validity.clone());
         if let Some(local) = self.open.as_ref().map(|o| o.local) {
             self.laps_recorded += 1;
-            sink.lap(local, lap);
+            self.send_lap(local, lap, sink);
+        }
+    }
+
+    /// Hands a lap to the sink and takes the fresh buffer it offers for the pool.
+    fn send_lap(&mut self, local: u64, lap: FinishedLap, sink: &mut dyn Sink) {
+        sink.lap(local, lap);
+        if self.spare.is_none() {
+            self.spare = sink.spare_buffer(self.pool_rows);
         }
     }
 
@@ -779,7 +830,7 @@ impl Tracker {
             p.lap.measured_time_s = Some(measured);
         }
         let mut official = None;
-        if changed && last > 0.0 {
+        if changed && last > 0.0 && !p.mid_lap {
             p.lap.time_s = Some(last);
             p.lap.time_source = Some(TimeSource::Official);
             official = Some(last);
@@ -803,7 +854,7 @@ impl Tracker {
         self.last_s = p.lap.time_s.or(self.last_s);
         self.laps_recorded += 1;
         if let Some(local) = self.open.as_ref().map(|o| o.local) {
-            sink.lap(local, p.lap);
+            self.send_lap(local, p.lap, sink);
         }
     }
 
@@ -991,5 +1042,169 @@ mod tests {
         }
         assert!(sink.laps().is_empty());
         assert_eq!(tracker.view().state, State::Track);
+    }
+
+    /// Steps `rows` rows at 60 Hz from `pct`, wrapping the lap fraction and counting the lap at
+    /// the wrap. Returns the time and the lap fraction reached.
+    fn drive_rows(
+        tracker: &mut Tracker,
+        meta: &Arc<SessionMeta>,
+        sink: &mut RecordingSink,
+        (mut time, mut pct): (f64, f32),
+        rows: usize,
+        last: f32,
+    ) -> (f64, f32) {
+        let clock = FixedClock::default();
+        let mut lap = 3;
+        for _ in 0..rows {
+            time += 1.0 / 60.0;
+            pct += 0.0002;
+            if pct >= 1.0 {
+                pct -= 1.0;
+                lap += 1;
+            }
+            let mut t = driving(time, pct);
+            t.lap = lap;
+            t.lap_completed = lap - 1;
+            t.lap_last_time = last;
+            tracker.step(&t, Some(meta), sink, &clock);
+        }
+        (time, pct)
+    }
+
+    #[test]
+    fn tracker_a_lap_started_mid_track_is_sent_invalid_with_no_official_time() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        // Driving starts at 0.9 of the lap, crosses the line, and the simulator times the lap.
+        let at = drive_rows(&mut tracker, &meta, &mut sink, (0.0, 0.9), 560, -1.0);
+        drive_rows(&mut tracker, &meta, &mut sink, at, 300, 95.5);
+        tracker.stop(true, &mut sink, &clock);
+        let first = &sink.laps()[0];
+        assert!(!first.partial, "it ended at the line");
+        assert!(!first.valid);
+        assert_eq!(first.cause, Some(InvalidCause::Unknown));
+        assert!(!first.cause_certain);
+        assert_eq!(
+            first.time_s, None,
+            "the official time is not this trace's time"
+        );
+        assert_eq!(tracker.view().best_s, None);
+    }
+
+    #[test]
+    fn tracker_a_disconnect_ends_the_session_in_wall_time() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        drive_rows(&mut tracker, &meta, &mut sink, (0.0, 0.5), 600, -1.0);
+        assert!(tracker.session_local().is_some());
+        // The session time stops while the simulator is gone.
+        let mut gone = driving(10.0, 0.62);
+        gone.connected = false;
+        for i in 0..100 {
+            clock.advance(0.05);
+            tracker.step(&gone, Some(&meta), &mut sink, &clock);
+            assert!(i >= 99 || tracker.session_local().is_some(), "row {i}");
+        }
+        assert_eq!(tracker.state(), State::Off);
+        assert!(
+            tracker.session_local().is_some(),
+            "4.95 s: still within the grace"
+        );
+        clock.advance(0.1);
+        tracker.step(&gone, Some(&meta), &mut sink, &clock);
+        assert!(tracker.session_local().is_none());
+        assert_eq!(sink.calls("end_session").len(), 1);
+        assert_eq!(sink.laps().len(), 1, "the open lap was sent");
+    }
+
+    fn stall_tick(time: f64, lap: i32) -> Box<Tick> {
+        let mut t = driving(time, 0.0313);
+        t.lap = lap;
+        t.lap_completed = 0;
+        t.speed = 0.0;
+        t.on_pit_road = true;
+        t.in_pit_stall = Some(true);
+        t.track_loc = 1;
+        t
+    }
+
+    fn counter_rise_in_the_stall(late_rows: usize) {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let mut time = 0.0;
+        // Out of the car (counters 0), then back in the stall; `Lap` goes to 1 `late_rows`
+        // rows after driving starts.
+        let mut out = stall_tick(time, 0);
+        out.is_on_track = false;
+        out.is_on_track_car = false;
+        out.is_in_garage = true;
+        tracker.step(&out, Some(&meta), &mut sink, &clock);
+        for i in 0..90 {
+            time += 1.0 / 60.0;
+            let lap = if i >= late_rows { 1 } else { 0 };
+            tracker.step(&stall_tick(time, lap), Some(&meta), &mut sink, &clock);
+        }
+        let started = tracker.view().lap_clock_s;
+        assert!(
+            started > 1.48,
+            "the stall lap goes on: {started} (rise at row {late_rows})"
+        );
+        assert_eq!(tracker.view().lap_type, Some(LapType::Out));
+        assert!(sink.laps().is_empty());
+        // And leaving the stall onto the pit road does not end it either.
+        for _ in 0..60 {
+            time += 1.0 / 60.0;
+            let mut t = stall_tick(time, 1);
+            t.in_pit_stall = Some(false);
+            t.track_loc = 2;
+            t.speed = 5.0;
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+        }
+        assert!(tracker.view().lap_clock_s > 2.48);
+        assert!(sink.laps().is_empty());
+    }
+
+    #[test]
+    fn tracker_a_counter_rise_one_row_late_in_the_stall_is_not_a_lap() {
+        counter_rise_in_the_stall(1);
+    }
+
+    #[test]
+    fn tracker_a_counter_rise_five_rows_late_in_the_stall_is_not_a_lap() {
+        counter_rise_in_the_stall(5);
+    }
+
+    #[test]
+    fn tracker_jitter_across_the_line_in_the_pit_lane_is_not_a_lap() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        // A lap starts at the line after a mid-track start (the first, invalid lap is sent).
+        let (mut time, _) = drive_rows(&mut tracker, &meta, &mut sink, (0.0, 0.9), 560, -1.0);
+        // Then the car creeps along the pit lane over the line, back and forth, counters still.
+        for i in 0..240 {
+            time += 1.0 / 60.0;
+            let pct = if i % 2 == 0 { 0.9995 } else { 0.0005 };
+            let mut t = driving(time, pct);
+            t.lap = 4;
+            t.lap_completed = 3;
+            t.speed = 5.0;
+            t.on_pit_road = true;
+            t.track_loc = 2;
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+        }
+        tracker.stop(true, &mut sink, &clock);
+        assert_eq!(sink.laps().len(), 1, "only the lap before the jitter");
+    }
+
+    #[test]
+    fn tracker_an_interrupted_lap_is_not_labelled_in() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        drive_rows(&mut tracker, &meta, &mut sink, (0.0, 0.5), 600, -1.0);
+        tracker.stop(true, &mut sink, &clock);
+        let lap = &sink.laps()[0];
+        assert!(lap.partial);
+        assert_eq!(lap.lap_type, LapType::Flying);
     }
 }

@@ -536,7 +536,7 @@
   },
   {
     "call": "lap",
-    "cause": null,
+    "cause": "unknown",
     "cause_certain": false,
     "channels": {
       "abs": {
@@ -822,7 +822,7 @@
   },
   {
     "call": "lap",
-    "cause": null,
+    "cause": "unknown",
     "cause_certain": false,
     "channels": {
       "abs": {
@@ -1232,7 +1232,7 @@
   },
   {
     "call": "lap",
-    "cause": null,
+    "cause": "unknown",
     "cause_certain": false,
     "channels": {
       "abs": {
