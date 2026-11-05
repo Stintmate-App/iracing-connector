@@ -11,6 +11,15 @@ All notable changes to this project are written here.
   player's own yellow, clear, the blue flag train, red, the meatball flag and the full-course
   caution (start, pits open, last lap, restart). `tests/detector_replay.rs` replays these cases
   from scenarios, and `tests/no_alloc.rs` counts the detector's allocations.
+- `iracing-core`: the `Detector` also announces the black flag penalty (without a type, as the
+  simulator has no penalty variable) and its serving, the disqualification, the final lap, the
+  chequered flag with the position, the player's retirement and a rival's (`on_meta`, from the
+  session text), a rival's disqualification, the player's incidents (merged within two seconds)
+  and the incident limit warning. The gate no longer starts a quiet time when the session state
+  goes from racing to chequered, so the finish is announced. New `announce::spotter::Spotter`
+  turns `CarLeftRight` into car left or right, in the middle, still there, clear and all clear
+  calls. `tests/detector_replay.rs` has the new cases, a ten-minute randomised test keeps the
+  spotter under 120 calls a minute, and `tests/no_alloc.rs` counts its allocations.
 - `iracing-core`: `lap` (the per-lap channel columns in Pitwall's units, reserved once, no allocation per
   row; steering is the angle over half the reported lock to lock angle, the clutch is 1 pressed),
   `sectors` (sector times interpolated at the sector starts, dropped when they do not add up to

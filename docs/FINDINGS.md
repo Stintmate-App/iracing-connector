@@ -279,6 +279,37 @@ them. Nothing here was seen in a race session, online or with other cars (see
   between two reads; the lapping car of a blue flag is the nearest real car up to 500 m behind
   that is more than half a lap ahead in race distance. To confirm in a race with cautions.
 
+## Race end and rivals
+
+- **observed**: there is no penalty variable (see "Incidents and flags"), so a penalty is
+  announced without its type. Offline, `PlayerIncidents` stayed 0, so an incident's cause comes
+  from the time off the track (`IncidentTracker`), and the announcement does not name a cause.
+- **assumed** (not observed on a race yet): a penalty is the `black` flag bit held for half a
+  second in a race, and it is served when the bit clears after the car was on the pit road; the
+  `disqualify` bit is the player's disqualification and its `black` bit is not a penalty to
+  serve. The final lap is the `white` bit, or, when it is missing, the race leader crossing the
+  line with `SessionLapsRemainEx` at 1. The finish is the `checkered` bit; the session state
+  5 that comes with it does not start a quiet time. The finishing position is
+  `PlayerCarClassPosition` in a multiclass event, else `PlayerCarPosition`; 0 gives a call
+  without a position. To confirm in a race.
+- **assumed** (not observed yet): `ReasonOutId` of the session text's results turns non-zero for
+  a car that is out of the race, for the player and for rivals; the first session text of a
+  session is the baseline. A rival shown the `disqualify` bit in `CarIdxSessionFlags` is told
+  as disqualified and not again as out. To confirm with a retirement and a disqualification.
+- **assumed** (not observed yet): the incident limit warning comes when the points left to the
+  event's limit are at most the larger of 4 and a quarter of the limit. To confirm in an
+  event with a limit.
+
+## Spotter
+
+- **assumed** (not observed with a car alongside yet): `CarLeftRight` reads 1 with the sides
+  clear, 2 a car on the left, 3 on the right, 4 both sides, 5 two cars on the left, 6 two on the
+  right, and 0 with the simulator's own spotter off. Two cars on a side count as one.
+- **assumed** (not observed yet): the value does not flicker at the edges of an overlap, so a
+  side that stays empty for 0.15 s is clear and one that fills again within 1.5 s of its clear
+  is called only if it still holds. To confirm with cars alongside; if the value bounces, the
+  clear delay goes up.
+
 ## Pit stops
 
 - **observed**: a stop for four tyres and fuel, in order:
