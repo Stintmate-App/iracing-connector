@@ -4,12 +4,20 @@ All notable changes to this project are written here.
 
 ## 0.1.0 (2026-11-05)
 
-- Repository created.
+- Shared runtime moved from `v0.1.0` to `v0.1.2`: a refusal after the hello shows `refused`, and
+  every process lowers its priority. No code change was needed.
+- `iracing-core`: the game window is found by class `SimWinClass`, with the title
+  `iRacing.com Simulator` (lowercase in the spec) as the fallback.
+- The recorder's hello test no longer depends on whether iRacing runs on the machine: it accepts
+  either state and checks the message and phase that go with it.
+- `docs/FINDINGS.md`: the facts observed in a 30-minute offline session (header, formats,
+  encoding, window, lap counters, states, surfaces, incidents, pit stops, tyres, setup, signs and
+  scales, disk logging), and the list of what is not observed yet.- Repository created.
 - Workspace skeleton: toolchain, cargo configuration, licence checks, notices, manual CI file.
 - `iracing-core`: `SPEC`, the connector description on the shared connector runtime (id `iracing`,
   simulator iRacing, the process `iRacingSim64DX11.exe`, the product key, 60 Hz), the English UI
   catalog `locales/en.json`, and tests that the spec is valid and the catalog complete.
-- The three programs on the runtime, pinned to its release tag `v0.1.0`: `iracing-connector-ui`
+- The three programs on the runtime, pinned to its release tag `v0.1.2`: `iracing-connector-ui`
   (control app), `iracing-connector-window` and `iracing-recorder`, each with its icon and
   version resource. The recorder connects to Pitwall and reports whether iRacing runs; it reads no
   simulator data and writes no laps.

@@ -1,6 +1,6 @@
-//! The recorder against a fake Pitwall: it says hello, reports that iRacing is not running and
-//! leaves within two seconds of the stop event. A unique development tag keeps its kernel
-//! objects apart from any real recorder's.
+//! The recorder against a fake Pitwall: it says hello, reports whether iRacing runs and
+//! leaves within two seconds of the stop event, whether or not iRacing runs on the machine. A
+//! unique development tag keeps its kernel objects apart from any real recorder's.
 
 use iracing_core::SPEC;
 use std::process::{Child, Command, Stdio};
@@ -9,6 +9,9 @@ use std::time::{Duration, Instant};
 use stintmate_connector_platform::single::{Names, signal_stop};
 use stintmate_connector_testing::{FakePitwall, TempWorkspace, pitwall_pipe, to_json, unique_user};
 use stintmate_ipc::blocking::Delivery;
+
+const WAITING: &str = "Waiting for iRacing";
+const RUNNING: &str = "iRacing is running; laps are not recorded by this version";
 
 struct Kill(Child);
 impl Drop for Kill {
@@ -75,19 +78,24 @@ fn the_recorder_says_hello_reports_the_status_and_stops() {
             }
         })
         .expect("subscribe to connector.status");
-    // The simulator is not running on the machine that runs this test.
+    // Either state is right: iRacing may or may not run on the machine that runs this test.
+    // Each state must come with its own message and phase.
     assert!(
-        wait_for(10, || last
-            .lock()
-            .unwrap()
-            .as_ref()
-            .is_some_and(|s| s["message"] == "Waiting for iRacing")),
+        wait_for(10, || last.lock().unwrap().as_ref().is_some_and(
+            |s| s["message"] == WAITING || s["message"] == RUNNING
+        )),
         "no status: {:?}",
         last.lock().unwrap()
     );
     let status = last.lock().unwrap().clone().unwrap();
-    assert_eq!(status["game_running"], false);
-    assert!(status["phase"].is_null());
+    if status["game_running"] == true {
+        assert_eq!(status["message"], RUNNING);
+        assert_eq!(status["phase"], "menus");
+    } else {
+        assert_eq!(status["game_running"], false);
+        assert_eq!(status["message"], WAITING);
+        assert!(status["phase"].is_null());
+    }
 
     let stop = Names::tagged(&SPEC, &tag).recorder_stop;
     assert!(signal_stop(&stop), "the stop event exists");

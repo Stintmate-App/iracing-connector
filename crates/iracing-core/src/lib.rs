@@ -32,8 +32,8 @@ pub static SPEC: ConnectorSpec = ConnectorSpec {
     autostart_value: "iRacing connector",
     game: GameSpec {
         exes: &["iracingsim64dx11.exe"],
-        window_title: None,
-        window_class: None,
+        window_title: Some("iracing.com simulator"),
+        window_class: Some("SimWinClass"),
         cheap_hint: Some(irsdk::live::sim_mapping_exists),
     },
     recorder_hz: 60.0,
