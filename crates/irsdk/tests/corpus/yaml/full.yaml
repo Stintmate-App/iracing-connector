@@ -1,0 +1,190 @@
+---
+WeekendInfo:
+ TrackName: testtrack gp
+ TrackID: 123
+ TrackLength: 5.79 km
+ TrackDisplayName: Test Track Grand Prix
+ TrackConfigName: Grand Prix
+ TrackPitSpeedLimit: 80.00 kph
+ TrackNumTurns: 14
+ SeriesID: 77
+ SessionID: 900100
+ SubSessionID: 900200
+ EventType: Race
+ Category: Road
+ SimMode: full
+ Official: 0
+ TeamRacing: 0
+ NumCarClasses: 1
+ TrackWeatherType: Static
+ WeekendOptions:
+  IncidentLimit: 17
+  IsFixedSetup: 1
+  StandingStart: 0
+  FastRepairsLimit: unlimited
+ TelemetryOptions:
+  TelemetryDiskFile:
+SessionInfo:
+ CurrentSessionNum: 1
+ Sessions:
+ - SessionNum: 0
+   SessionLaps: unlimited
+   SessionTime: 900.0000 sec
+   SessionType: Practice
+   SessionName: PRACTICE
+   ResultsPositions:
+ - SessionNum: 1
+   SessionLaps: 30
+   SessionTime: unlimited
+   SessionType: Race
+   SessionName: RACE
+   ResultsPositions:
+   - Position: 1
+     ClassPosition: 0
+     CarIdx: 3
+     Lap: 12
+     Time: 91.4521
+     FastestLap: 7
+     FastestTime: 90.8811
+     LastTime: 91.4521
+     LapsLed: 12
+     LapsComplete: 12
+     Incidents: 2
+     ReasonOutId: 0
+     ReasonOutStr: Running
+   - Position: 2
+     ClassPosition: 1
+     CarIdx: 0
+     Lap: 12
+     Time: 92.1
+     FastestLap: 5
+     FastestTime: 91.2
+     LastTime: -1.0000
+     LapsLed: 0
+     LapsComplete: 12
+     Incidents: 0
+     ReasonOutId: 0
+     ReasonOutStr: Running
+QualifyResultsInfo:
+ Results:
+ - Position: 0
+   ClassPosition: 0
+   CarIdx: 3
+   FastestLap: 4
+   FastestTime: 90.5
+SplitTimeInfo:
+ Sectors:
+ - SectorNum: 0
+   SectorStartPct: 0.000000
+ - SectorNum: 1
+   SectorStartPct: 0.333300
+ - SectorNum: 2
+   SectorStartPct: 0.666700
+CameraInfo:
+ Groups:
+ - GroupNum: 1
+   GroupName: Nose
+DriverInfo:
+ DriverCarIdx: 3
+ PaceCarIdx: -1
+ DriverCarFuelMaxLtr: 106.000
+ DriverCarFuelKgPerLtr: 0.750
+ DriverCarMaxFuelPct: 0.500
+ DriverCarRedLine: 7500.000
+ DriverCarEstLapTime: 90.1234
+ DriverSetupName: baseline.sto
+ DriverSetupIsModified: 0
+ DriverIncidentCount: 2
+ Drivers:
+ - CarIdx: 0
+   UserName: Alex Rivera
+   AbbrevName: Rivera, A
+   Initials: AR
+   UserID: 100001
+   TeamID: 0
+   TeamName: Alex Rivera
+   CarNumber: "12"
+   CarNumberRaw: 12
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 1
+   UserName: Pace Car
+   AbbrevName: Car, P
+   Initials: PC
+   UserID: -1
+   TeamID: 0
+   TeamName: Pace Car
+   CarNumber: "0"
+   CarNumberRaw: 0
+   CarID: 1
+   CarPath: safety pcfr500s
+   CarScreenName: Safety Pace Car
+   CarClassID: 11
+   CarClassShortName: Pace
+   CarClassEstLapTime: 0.0
+   CarIsPaceCar: 1
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 2
+   UserName: Watcher Example
+   AbbrevName: Example, W
+   Initials: WE
+   UserID: 100002
+   TeamID: 0
+   TeamName: Watcher Example
+   CarNumber: "99"
+   CarNumberRaw: 99
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 1
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 3
+   UserName: Sam Tester
+   AbbrevName: Tester, S
+   Initials: ST
+   UserID: 100003
+   TeamID: 4
+   TeamName: Test Racing
+   CarNumber: 7
+   CarNumberRaw: 7
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 2
+   TeamIncidentCount: 2
+CarSetup:
+ UpdateCount: 5
+ TiresAero:
+  TireType:
+   TireType: Dry Tire
+  LeftFront:
+   StartingPressure: 165 kPa
+   LastHotPressure: 172 kPa
+   LastTempsOMI: 80C, 82C, 81C
+ Chassis:
+  Front:
+   ArbSetting: 3

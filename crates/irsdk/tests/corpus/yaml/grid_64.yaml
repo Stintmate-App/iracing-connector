@@ -1,0 +1,1390 @@
+---
+WeekendInfo:
+ TrackName: testtrack gp
+ TrackID: 123
+ TrackLength: 5.79 km
+ TrackDisplayName: Test Track Grand Prix
+ TrackConfigName: Grand Prix
+ TrackPitSpeedLimit: 80.00 kph
+ TrackNumTurns: 14
+ SeriesID: 77
+ SessionID: 900100
+ SubSessionID: 900200
+ EventType: Race
+ Category: Road
+ SimMode: full
+ Official: 0
+ TeamRacing: 0
+ NumCarClasses: 1
+ TrackWeatherType: Static
+ WeekendOptions:
+  IncidentLimit: 17
+  IsFixedSetup: 1
+  StandingStart: 0
+  FastRepairsLimit: unlimited
+ TelemetryOptions:
+  TelemetryDiskFile:
+SessionInfo:
+ CurrentSessionNum: 1
+ Sessions:
+ - SessionNum: 0
+   SessionLaps: unlimited
+   SessionTime: 900.0000 sec
+   SessionType: Practice
+   SessionName: PRACTICE
+   ResultsPositions:
+ - SessionNum: 1
+   SessionLaps: 30
+   SessionTime: unlimited
+   SessionType: Race
+   SessionName: RACE
+   ResultsPositions:
+   - Position: 1
+     ClassPosition: 0
+     CarIdx: 3
+     Lap: 12
+     Time: 91.4521
+     FastestLap: 7
+     FastestTime: 90.8811
+     LastTime: 91.4521
+     LapsLed: 12
+     LapsComplete: 12
+     Incidents: 2
+     ReasonOutId: 0
+     ReasonOutStr: Running
+   - Position: 2
+     ClassPosition: 1
+     CarIdx: 0
+     Lap: 12
+     Time: 92.1
+     FastestLap: 5
+     FastestTime: 91.2
+     LastTime: -1.0000
+     LapsLed: 0
+     LapsComplete: 12
+     Incidents: 0
+     ReasonOutId: 0
+     ReasonOutStr: Running
+QualifyResultsInfo:
+ Results:
+ - Position: 0
+   ClassPosition: 0
+   CarIdx: 3
+   FastestLap: 4
+   FastestTime: 90.5
+SplitTimeInfo:
+ Sectors:
+ - SectorNum: 0
+   SectorStartPct: 0.000000
+ - SectorNum: 1
+   SectorStartPct: 0.333300
+ - SectorNum: 2
+   SectorStartPct: 0.666700
+CameraInfo:
+ Groups:
+ - GroupNum: 1
+   GroupName: Nose
+DriverInfo:
+ DriverCarIdx: 17
+ PaceCarIdx: -1
+ DriverCarFuelMaxLtr: 106.000
+ DriverCarFuelKgPerLtr: 0.750
+ DriverCarMaxFuelPct: 0.500
+ DriverCarRedLine: 7500.000
+ DriverCarEstLapTime: 90.1234
+ DriverSetupName: baseline.sto
+ DriverSetupIsModified: 0
+ DriverIncidentCount: 2
+ Drivers:
+ - CarIdx: 0
+   UserName: Driver 00 Example
+   AbbrevName: Example, D00
+   Initials: D00
+   UserID: 200000
+   TeamID: 0
+   TeamName: Team 00
+   CarNumber: "1"
+   CarNumberRaw: 1
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 1
+   UserName: Driver 01 Example
+   AbbrevName: Example, D01
+   Initials: D01
+   UserID: 200001
+   TeamID: 0
+   TeamName: Team 01
+   CarNumber: "2"
+   CarNumberRaw: 2
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 2
+   UserName: Driver 02 Example
+   AbbrevName: Example, D02
+   Initials: D02
+   UserID: 200002
+   TeamID: 0
+   TeamName: Team 02
+   CarNumber: "3"
+   CarNumberRaw: 3
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 3
+   UserName: Driver 03 Example
+   AbbrevName: Example, D03
+   Initials: D03
+   UserID: 200003
+   TeamID: 0
+   TeamName: Team 03
+   CarNumber: "4"
+   CarNumberRaw: 4
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 4
+   UserName: Driver 04 Example
+   AbbrevName: Example, D04
+   Initials: D04
+   UserID: 200004
+   TeamID: 0
+   TeamName: Team 04
+   CarNumber: "5"
+   CarNumberRaw: 5
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 5
+   UserName: Driver 05 Example
+   AbbrevName: Example, D05
+   Initials: D05
+   UserID: 200005
+   TeamID: 0
+   TeamName: Team 05
+   CarNumber: "6"
+   CarNumberRaw: 6
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 6
+   UserName: Driver 06 Example
+   AbbrevName: Example, D06
+   Initials: D06
+   UserID: 200006
+   TeamID: 0
+   TeamName: Team 06
+   CarNumber: "7"
+   CarNumberRaw: 7
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 7
+   UserName: Driver 07 Example
+   AbbrevName: Example, D07
+   Initials: D07
+   UserID: 200007
+   TeamID: 0
+   TeamName: Team 07
+   CarNumber: "8"
+   CarNumberRaw: 8
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 8
+   UserName: Driver 08 Example
+   AbbrevName: Example, D08
+   Initials: D08
+   UserID: 200008
+   TeamID: 0
+   TeamName: Team 08
+   CarNumber: "9"
+   CarNumberRaw: 9
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 9
+   UserName: Driver 09 Example
+   AbbrevName: Example, D09
+   Initials: D09
+   UserID: 200009
+   TeamID: 0
+   TeamName: Team 09
+   CarNumber: "10"
+   CarNumberRaw: 10
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 10
+   UserName: Driver 10 Example
+   AbbrevName: Example, D10
+   Initials: D10
+   UserID: 200010
+   TeamID: 0
+   TeamName: Team 10
+   CarNumber: "11"
+   CarNumberRaw: 11
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 11
+   UserName: Driver 11 Example
+   AbbrevName: Example, D11
+   Initials: D11
+   UserID: 200011
+   TeamID: 0
+   TeamName: Team 11
+   CarNumber: "12"
+   CarNumberRaw: 12
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 12
+   UserName: Driver 12 Example
+   AbbrevName: Example, D12
+   Initials: D12
+   UserID: 200012
+   TeamID: 0
+   TeamName: Team 12
+   CarNumber: "13"
+   CarNumberRaw: 13
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 13
+   UserName: Driver 13 Example
+   AbbrevName: Example, D13
+   Initials: D13
+   UserID: 200013
+   TeamID: 0
+   TeamName: Team 13
+   CarNumber: "14"
+   CarNumberRaw: 14
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 14
+   UserName: Driver 14 Example
+   AbbrevName: Example, D14
+   Initials: D14
+   UserID: 200014
+   TeamID: 0
+   TeamName: Team 14
+   CarNumber: "15"
+   CarNumberRaw: 15
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 15
+   UserName: Driver 15 Example
+   AbbrevName: Example, D15
+   Initials: D15
+   UserID: 200015
+   TeamID: 0
+   TeamName: Team 15
+   CarNumber: "16"
+   CarNumberRaw: 16
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 16
+   UserName: Driver 16 Example
+   AbbrevName: Example, D16
+   Initials: D16
+   UserID: 200016
+   TeamID: 0
+   TeamName: Team 16
+   CarNumber: "17"
+   CarNumberRaw: 17
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 17
+   UserName: Driver 17 Example
+   AbbrevName: Example, D17
+   Initials: D17
+   UserID: 200017
+   TeamID: 0
+   TeamName: Team 17
+   CarNumber: "18"
+   CarNumberRaw: 18
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 18
+   UserName: Driver 18 Example
+   AbbrevName: Example, D18
+   Initials: D18
+   UserID: 200018
+   TeamID: 0
+   TeamName: Team 18
+   CarNumber: "19"
+   CarNumberRaw: 19
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 19
+   UserName: Driver 19 Example
+   AbbrevName: Example, D19
+   Initials: D19
+   UserID: 200019
+   TeamID: 0
+   TeamName: Team 19
+   CarNumber: "20"
+   CarNumberRaw: 20
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 20
+   UserName: Driver 20 Example
+   AbbrevName: Example, D20
+   Initials: D20
+   UserID: 200020
+   TeamID: 0
+   TeamName: Team 20
+   CarNumber: "21"
+   CarNumberRaw: 21
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 21
+   UserName: Driver 21 Example
+   AbbrevName: Example, D21
+   Initials: D21
+   UserID: 200021
+   TeamID: 0
+   TeamName: Team 21
+   CarNumber: "22"
+   CarNumberRaw: 22
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 22
+   UserName: Driver 22 Example
+   AbbrevName: Example, D22
+   Initials: D22
+   UserID: 200022
+   TeamID: 0
+   TeamName: Team 22
+   CarNumber: "23"
+   CarNumberRaw: 23
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 23
+   UserName: Driver 23 Example
+   AbbrevName: Example, D23
+   Initials: D23
+   UserID: 200023
+   TeamID: 0
+   TeamName: Team 23
+   CarNumber: "24"
+   CarNumberRaw: 24
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 24
+   UserName: Driver 24 Example
+   AbbrevName: Example, D24
+   Initials: D24
+   UserID: 200024
+   TeamID: 0
+   TeamName: Team 24
+   CarNumber: "25"
+   CarNumberRaw: 25
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 25
+   UserName: Driver 25 Example
+   AbbrevName: Example, D25
+   Initials: D25
+   UserID: 200025
+   TeamID: 0
+   TeamName: Team 25
+   CarNumber: "26"
+   CarNumberRaw: 26
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 26
+   UserName: Driver 26 Example
+   AbbrevName: Example, D26
+   Initials: D26
+   UserID: 200026
+   TeamID: 0
+   TeamName: Team 26
+   CarNumber: "27"
+   CarNumberRaw: 27
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 27
+   UserName: Driver 27 Example
+   AbbrevName: Example, D27
+   Initials: D27
+   UserID: 200027
+   TeamID: 0
+   TeamName: Team 27
+   CarNumber: "28"
+   CarNumberRaw: 28
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 28
+   UserName: Driver 28 Example
+   AbbrevName: Example, D28
+   Initials: D28
+   UserID: 200028
+   TeamID: 0
+   TeamName: Team 28
+   CarNumber: "29"
+   CarNumberRaw: 29
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 29
+   UserName: Driver 29 Example
+   AbbrevName: Example, D29
+   Initials: D29
+   UserID: 200029
+   TeamID: 0
+   TeamName: Team 29
+   CarNumber: "30"
+   CarNumberRaw: 30
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 30
+   UserName: Driver 30 Example
+   AbbrevName: Example, D30
+   Initials: D30
+   UserID: 200030
+   TeamID: 0
+   TeamName: Team 30
+   CarNumber: "31"
+   CarNumberRaw: 31
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 31
+   UserName: Driver 31 Example
+   AbbrevName: Example, D31
+   Initials: D31
+   UserID: 200031
+   TeamID: 0
+   TeamName: Team 31
+   CarNumber: "32"
+   CarNumberRaw: 32
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 32
+   UserName: Driver 32 Example
+   AbbrevName: Example, D32
+   Initials: D32
+   UserID: 200032
+   TeamID: 0
+   TeamName: Team 32
+   CarNumber: "33"
+   CarNumberRaw: 33
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 33
+   UserName: Driver 33 Example
+   AbbrevName: Example, D33
+   Initials: D33
+   UserID: 200033
+   TeamID: 0
+   TeamName: Team 33
+   CarNumber: "34"
+   CarNumberRaw: 34
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 34
+   UserName: Driver 34 Example
+   AbbrevName: Example, D34
+   Initials: D34
+   UserID: 200034
+   TeamID: 0
+   TeamName: Team 34
+   CarNumber: "35"
+   CarNumberRaw: 35
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 35
+   UserName: Driver 35 Example
+   AbbrevName: Example, D35
+   Initials: D35
+   UserID: 200035
+   TeamID: 0
+   TeamName: Team 35
+   CarNumber: "36"
+   CarNumberRaw: 36
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 36
+   UserName: Driver 36 Example
+   AbbrevName: Example, D36
+   Initials: D36
+   UserID: 200036
+   TeamID: 0
+   TeamName: Team 36
+   CarNumber: "37"
+   CarNumberRaw: 37
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 37
+   UserName: Driver 37 Example
+   AbbrevName: Example, D37
+   Initials: D37
+   UserID: 200037
+   TeamID: 0
+   TeamName: Team 37
+   CarNumber: "38"
+   CarNumberRaw: 38
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 38
+   UserName: Driver 38 Example
+   AbbrevName: Example, D38
+   Initials: D38
+   UserID: 200038
+   TeamID: 0
+   TeamName: Team 38
+   CarNumber: "39"
+   CarNumberRaw: 39
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 39
+   UserName: Driver 39 Example
+   AbbrevName: Example, D39
+   Initials: D39
+   UserID: 200039
+   TeamID: 0
+   TeamName: Team 39
+   CarNumber: "40"
+   CarNumberRaw: 40
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 40
+   UserName: Driver 40 Example
+   AbbrevName: Example, D40
+   Initials: D40
+   UserID: 200040
+   TeamID: 0
+   TeamName: Team 40
+   CarNumber: "41"
+   CarNumberRaw: 41
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 41
+   UserName: Driver 41 Example
+   AbbrevName: Example, D41
+   Initials: D41
+   UserID: 200041
+   TeamID: 0
+   TeamName: Team 41
+   CarNumber: "42"
+   CarNumberRaw: 42
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 42
+   UserName: Driver 42 Example
+   AbbrevName: Example, D42
+   Initials: D42
+   UserID: 200042
+   TeamID: 0
+   TeamName: Team 42
+   CarNumber: "43"
+   CarNumberRaw: 43
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 43
+   UserName: Driver 43 Example
+   AbbrevName: Example, D43
+   Initials: D43
+   UserID: 200043
+   TeamID: 0
+   TeamName: Team 43
+   CarNumber: "44"
+   CarNumberRaw: 44
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 44
+   UserName: Driver 44 Example
+   AbbrevName: Example, D44
+   Initials: D44
+   UserID: 200044
+   TeamID: 0
+   TeamName: Team 44
+   CarNumber: "45"
+   CarNumberRaw: 45
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 45
+   UserName: Driver 45 Example
+   AbbrevName: Example, D45
+   Initials: D45
+   UserID: 200045
+   TeamID: 0
+   TeamName: Team 45
+   CarNumber: "46"
+   CarNumberRaw: 46
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 46
+   UserName: Driver 46 Example
+   AbbrevName: Example, D46
+   Initials: D46
+   UserID: 200046
+   TeamID: 0
+   TeamName: Team 46
+   CarNumber: "47"
+   CarNumberRaw: 47
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 47
+   UserName: Driver 47 Example
+   AbbrevName: Example, D47
+   Initials: D47
+   UserID: 200047
+   TeamID: 0
+   TeamName: Team 47
+   CarNumber: "48"
+   CarNumberRaw: 48
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 48
+   UserName: Driver 48 Example
+   AbbrevName: Example, D48
+   Initials: D48
+   UserID: 200048
+   TeamID: 0
+   TeamName: Team 48
+   CarNumber: "49"
+   CarNumberRaw: 49
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 49
+   UserName: Driver 49 Example
+   AbbrevName: Example, D49
+   Initials: D49
+   UserID: 200049
+   TeamID: 0
+   TeamName: Team 49
+   CarNumber: "50"
+   CarNumberRaw: 50
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 50
+   UserName: Driver 50 Example
+   AbbrevName: Example, D50
+   Initials: D50
+   UserID: 200050
+   TeamID: 0
+   TeamName: Team 50
+   CarNumber: "51"
+   CarNumberRaw: 51
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 51
+   UserName: Driver 51 Example
+   AbbrevName: Example, D51
+   Initials: D51
+   UserID: 200051
+   TeamID: 0
+   TeamName: Team 51
+   CarNumber: "52"
+   CarNumberRaw: 52
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 52
+   UserName: Driver 52 Example
+   AbbrevName: Example, D52
+   Initials: D52
+   UserID: 200052
+   TeamID: 0
+   TeamName: Team 52
+   CarNumber: "53"
+   CarNumberRaw: 53
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 53
+   UserName: Driver 53 Example
+   AbbrevName: Example, D53
+   Initials: D53
+   UserID: 200053
+   TeamID: 0
+   TeamName: Team 53
+   CarNumber: "54"
+   CarNumberRaw: 54
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 54
+   UserName: Driver 54 Example
+   AbbrevName: Example, D54
+   Initials: D54
+   UserID: 200054
+   TeamID: 0
+   TeamName: Team 54
+   CarNumber: "55"
+   CarNumberRaw: 55
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 55
+   UserName: Driver 55 Example
+   AbbrevName: Example, D55
+   Initials: D55
+   UserID: 200055
+   TeamID: 0
+   TeamName: Team 55
+   CarNumber: "56"
+   CarNumberRaw: 56
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 56
+   UserName: Driver 56 Example
+   AbbrevName: Example, D56
+   Initials: D56
+   UserID: 200056
+   TeamID: 0
+   TeamName: Team 56
+   CarNumber: "57"
+   CarNumberRaw: 57
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 57
+   UserName: Driver 57 Example
+   AbbrevName: Example, D57
+   Initials: D57
+   UserID: 200057
+   TeamID: 0
+   TeamName: Team 57
+   CarNumber: "58"
+   CarNumberRaw: 58
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 58
+   UserName: Driver 58 Example
+   AbbrevName: Example, D58
+   Initials: D58
+   UserID: 200058
+   TeamID: 0
+   TeamName: Team 58
+   CarNumber: "59"
+   CarNumberRaw: 59
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 59
+   UserName: Driver 59 Example
+   AbbrevName: Example, D59
+   Initials: D59
+   UserID: 200059
+   TeamID: 0
+   TeamName: Team 59
+   CarNumber: "60"
+   CarNumberRaw: 60
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 60
+   UserName: Driver 60 Example
+   AbbrevName: Example, D60
+   Initials: D60
+   UserID: 200060
+   TeamID: 0
+   TeamName: Team 60
+   CarNumber: "61"
+   CarNumberRaw: 61
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 61
+   UserName: Driver 61 Example
+   AbbrevName: Example, D61
+   Initials: D61
+   UserID: 200061
+   TeamID: 0
+   TeamName: Team 61
+   CarNumber: "62"
+   CarNumberRaw: 62
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 62
+   UserName: Driver 62 Example
+   AbbrevName: Example, D62
+   Initials: D62
+   UserID: 200062
+   TeamID: 0
+   TeamName: Team 62
+   CarNumber: "63"
+   CarNumberRaw: 63
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+ - CarIdx: 63
+   UserName: Driver 63 Example
+   AbbrevName: Example, D63
+   Initials: D63
+   UserID: 200063
+   TeamID: 0
+   TeamName: Team 63
+   CarNumber: "64"
+   CarNumberRaw: 64
+   CarID: 55
+   CarPath: testcar\gt3
+   CarScreenName: Test GT3
+   CarClassID: 11
+   CarClassShortName: GT3
+   CarClassEstLapTime: 91.5
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IsSpectator: 0
+   CurDriverIncidentCount: 0
+   TeamIncidentCount: 0
+CarSetup:
+ UpdateCount: 5
+ TiresAero:
+  TireType:
+   TireType: Dry Tire
+  LeftFront:
+   StartingPressure: 165 kPa
+   LastHotPressure: 172 kPa
+   LastTempsOMI: 80C, 82C, 81C
+ Chassis:
+  Front:
+   ArbSetting: 3

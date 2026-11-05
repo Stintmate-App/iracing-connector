@@ -19,8 +19,10 @@ pub mod header;
 pub mod live;
 pub mod row;
 pub mod sampler;
+pub mod session;
 pub mod vars;
 pub mod view;
+pub mod yaml;
 
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
