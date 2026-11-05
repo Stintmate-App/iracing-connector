@@ -9,10 +9,13 @@
 #![forbid(unsafe_code)]
 
 pub mod codes;
+pub mod lap;
 pub mod meta;
+pub mod sectors;
 #[cfg(feature = "testing")]
 pub mod testing;
 pub mod tick;
+pub mod validity;
 pub mod vars;
 
 use stintmate_connector_platform::spec::{ConnectorSpec, GameSpec};

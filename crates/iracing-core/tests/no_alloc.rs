@@ -1,0 +1,91 @@
+//! The hot path allocates nothing: filling a tick and feeding the lap pieces, row after row.
+
+use std::alloc::{GlobalAlloc, Layout, System};
+use std::cell::Cell;
+
+use iracing_core::lap::{LapBuffer, LapPoint};
+use iracing_core::sectors::SectorClock;
+use iracing_core::testing::{LapProfile, Scenario, YamlBuilder, table_of};
+use iracing_core::tick::Tick;
+use iracing_core::validity::{IncidentTracker, Validity};
+use iracing_core::vars::Vars;
+use irsdk::row::Row;
+
+/// Counts the allocations made by the thread that asked for it.
+struct Counting;
+
+thread_local! {
+    static ALLOCATIONS: Cell<usize> = const { Cell::new(0) };
+}
+
+fn bump() {
+    // `try_with` so an allocation during thread teardown cannot panic.
+    let _ = ALLOCATIONS.try_with(|c| c.set(c.get() + 1));
+}
+
+// SAFETY: every call is forwarded unchanged to the system allocator.
+unsafe impl GlobalAlloc for Counting {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        bump();
+        unsafe { System.alloc(layout) }
+    }
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        unsafe { System.dealloc(ptr, layout) }
+    }
+    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+        bump();
+        unsafe { System.alloc_zeroed(layout) }
+    }
+    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+        bump();
+        unsafe { System.realloc(ptr, layout, new_size) }
+    }
+}
+
+#[global_allocator]
+static ALLOC: Counting = Counting;
+
+fn allocations() -> usize {
+    ALLOCATIONS.with(Cell::get)
+}
+
+#[test]
+fn filling_a_tick_and_feeding_the_lap_pieces_allocates_nothing() {
+    let mut s = Scenario::new(YamlBuilder::new());
+    s.garage(1.0).to_stall().drive_out();
+    s.lap(LapProfile::new(8.0));
+    s.lap(LapProfile::new(8.0));
+    let table = table_of(s.layout());
+    let vars = Vars::resolve(&table).expect("vars");
+    let rows: Vec<Row> = s.rows().iter().map(|b| Row::from_slice(b)).collect();
+    assert!(rows.len() > 600);
+
+    let mut tick = Tick::new();
+    let mut buffer = LapBuffer::new();
+    let mut sectors = SectorClock::new(&[0.0, 0.3, 0.7]);
+    let mut incidents = IncidentTracker::new();
+    let mut validity = Validity::new();
+    sectors.start_lap(0.0, false);
+    let point = LapPoint {
+        timed: true,
+        lap_clock_s: 1.0,
+        valid: true,
+    };
+
+    let before = allocations();
+    let mut prev_pct = 0.0;
+    let mut prev_t = 0.0;
+    for row in &rows {
+        tick.fill(&vars, row);
+        let pct = f64::from(tick.lap_dist_pct);
+        sectors.step(prev_pct, pct, prev_t, tick.session_time);
+        prev_pct = pct;
+        prev_t = tick.session_time;
+        let rise = incidents.step(&tick);
+        validity.step(&tick, tick.is_on_track, 1.0, rise.as_ref());
+        buffer.push(&tick, &point, 0);
+    }
+    let after = allocations();
+    assert_eq!(after - before, 0, "allocations on the hot path");
+    assert_eq!(buffer.len(), rows.len());
+}
