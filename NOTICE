@@ -1,0 +1,19 @@
+iRacing connector
+Copyright 2026 The Stintmate authors
+
+This product is the iRacing connector of the Stintmate project, licensed under the Apache
+License, Version 2.0 (see LICENSE).
+
+iRacing is a trademark of iRacing.com Motorsport Simulations, LLC. This connector is not
+affiliated with or endorsed by it; it reads the data the simulator publishes through its SDK.
+
+"Stintmate" is a name of the Stintmate project. The licence does not grant permission to use it,
+except to describe the origin of the work (section 6 of the licence). Forks are welcome; please
+do not present them as official Stintmate software.
+
+The window process of the connector embeds fonts that come with the window crate of the
+connector runtime, under their own licences, which that crate's notices carry.
+
+The constants, enumerations and data layouts in crates/irsdk follow the iRacing SDK header
+irsdk_defines.h, Copyright (c) 2013, iRacing.com Motorsport Simulations, LLC, used under the
+BSD 3-Clause licence; see THIRD-PARTY-NOTICES-irsdk.txt. No SDK source code is included.

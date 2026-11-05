@@ -1,0 +1,20 @@
+[package]
+name = "irsdk"
+description = "Reader of the iRacing SDK data layouts"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[features]
+# The synthetic builders (`testing`) for other crates tests.
+testing = []
+
+[dependencies]
+
+[dev-dependencies]
+# The integration tests use the `testing` module.
+irsdk = { path = ".", features = ["testing"] }
