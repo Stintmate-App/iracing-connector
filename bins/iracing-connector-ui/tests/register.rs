@@ -49,7 +49,12 @@ fn register_writes_the_descriptor() {
             "notices",
             "translated_texts",
             "remembered_services",
-            "options"
+            "options",
+            "setups",
+            "fuel",
+            "sectors",
+            "conditions",
+            "rivals"
         ])
     );
     assert_eq!(d["endpoint"], "connector-iracing");

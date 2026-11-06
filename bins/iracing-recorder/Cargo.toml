@@ -14,6 +14,7 @@ iracing-core.workspace = true
 irsdk.workspace = true
 stintmate-connector-platform.workspace = true
 stintmate-connector-link.workspace = true
+stintmate-connector-wire.workspace = true
 tracing.workspace = true
 serde_json.workspace = true
 
@@ -22,6 +23,8 @@ stintmate-connector-resources.workspace = true
 embed-resource.workspace = true
 
 [dev-dependencies]
+iracing-core = { workspace = true, features = ["testing"] }
+irsdk = { workspace = true, features = ["testing"] }
 stintmate-connector-testing.workspace = true
 stintmate-ipc.workspace = true
 serde_json.workspace = true

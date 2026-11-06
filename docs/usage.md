@@ -38,9 +38,16 @@ An option the build does not know is ignored, so a newer Stintmate can pass one.
 0 done, 1 failed, 2 bad arguments, 3 workspace error, 4 managed by Stintmate (`--quit`).
 
 The window accepts `--version` (prints `iracing-connector-window <version>`) and the workspace
-options. The recorder accepts `--version`, `--hz <rate>` (the default is the rate in the control
-app's options, 60 by default; the stub logs it and reads nothing at it), `--workspace` and
-`--allow-synced`; any other option is exit 2, because only the control app starts it.
+options. The recorder accepts `--version`, `--hz <rate>`, `--workspace` and `--allow-synced`, and,
+for tests and replay runs, `--sdk-map <name>` with `--sdk-event <name>` (both or neither): it then
+opens that memory mapping and event instead of the simulator's and treats the simulator as
+running. Any other option is exit 2, because only the control app starts it.
+
+The recorder reads the simulator's shared memory and sends sessions, laps, setups, pit exits and
+the other cars' laps to Pitwall through an outbox in `connectors\iracing\outbox\`. When it stops
+while the simulator runs with a session open, it keeps the session open
+(`connectors\iracing\session-resume.json`), and a recorder started later in the same session
+continues it with the same session key.
 
 ## Data folder and logs
 

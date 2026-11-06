@@ -4,6 +4,15 @@ All notable changes to this project are written here.
 
 ## 0.1.0 (2026-11-05)
 
+- `iracing-recorder`: reads the simulator's shared memory at 60 Hz and records sessions, laps with
+  their channels, setups, pit exits and the other cars' laps through Pitwall's write API and an
+  outbox, allocating nothing per row (`tests/alloc.rs`); the session text is parsed on other
+  threads. `--sdk-map` and `--sdk-event` read a test mapping instead of the simulator's. A recorder
+  stopped while the simulator runs with a session open keeps the session open and a restarted one
+  continues it (`session-resume.json`); the control app answers the resume watcher by reading the
+  session ids from the simulator's memory. The connector declares the features `setups`, `fuel`,
+  `sectors`, `conditions` and `rivals`. `iracing-core` gains `LapBuffer::into_parts` and
+  `resume::identity_of`.
 - `iracing-core`: `live` (`LiveSnapshot`, a fixed-size copy of the row, the lap view and the last
   stall's tyre readings, and `frame_json`, which builds the live frame only when asked: menus,
   garage, on track and paused phases, the splits, the conditions, the wheels of the last stall entry

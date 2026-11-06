@@ -98,14 +98,19 @@ impl ResumeClock for IrClock {
 /// The text two sessions must share to be the same one:
 /// `"{car_id}|{track_id}|{layout_id}|{kind}|{unique_id}|{session_num}"`.
 pub fn identity(meta: &SessionMeta, tick: &Tick) -> String {
+    identity_of(meta, tick.session_unique_id, tick.session_num)
+}
+
+/// [`identity`] for a session known by its unique id and number.
+pub fn identity_of(meta: &SessionMeta, unique_id: i32, session_num: i32) -> String {
     format!(
         "{}|{}|{}|{}|{}|{}",
         meta.player.as_ref().map_or("", |p| p.car_id.as_str()),
         meta.track.track_id,
         meta.track.layout_id,
         meta.kind.as_str(),
-        tick.session_unique_id,
-        tick.session_num,
+        unique_id,
+        session_num,
     )
 }
 

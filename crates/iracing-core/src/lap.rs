@@ -184,6 +184,12 @@ impl LapBuffer {
         self.cols.t.capacity()
     }
 
+    /// Takes the columns and the presence flags, consuming the buffer (a finished lap hands its
+    /// columns to the writer without copying them).
+    pub fn into_parts(self) -> (Columns, Present) {
+        (self.cols, self.present)
+    }
+
     /// The columns.
     pub fn columns(&self) -> &Columns {
         &self.cols
