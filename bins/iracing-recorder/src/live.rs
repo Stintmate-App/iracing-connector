@@ -116,13 +116,18 @@ impl LiveBuffer {
                 std::hint::spin_loop();
                 continue;
             }
-            // SAFETY: the copy may race with the writer lapping this slot; it is used only if
-            // the sequence is unchanged afterwards, so the bytes are a complete publish.
+            // The copy may race with the writer lapping this slot, so it lands in uninitialised
+            // storage and becomes a `LiveSnapshot` only once the sequence proves it complete: a
+            // torn copy is never read as a value.
+            let mut copy = core::mem::MaybeUninit::<LiveSnapshot>::uninit();
+            // SAFETY: both pointers are valid for one `LiveSnapshot` and do not overlap.
             unsafe {
-                core::ptr::copy_nonoverlapping(slot.snap.get(), out as *mut LiveSnapshot, 1);
+                core::ptr::copy_nonoverlapping(slot.snap.get(), copy.as_mut_ptr(), 1);
             }
             fence(Ordering::Acquire);
             if slot.seq.load(Ordering::Relaxed) == before {
+                // SAFETY: the sequence did not change, so the bytes are one complete publish.
+                *out = unsafe { copy.assume_init() };
                 return true;
             }
         }
