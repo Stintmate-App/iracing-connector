@@ -54,7 +54,13 @@ fn register_writes_the_descriptor() {
             "fuel",
             "sectors",
             "conditions",
-            "rivals"
+            "rivals",
+            "live_frame",
+            "lap_status",
+            "capture_target",
+            "brake_cues",
+            "guidance",
+            "actions"
         ])
     );
     assert_eq!(d["endpoint"], "connector-iracing");

@@ -15,6 +15,7 @@ irsdk.workspace = true
 stintmate-connector-platform.workspace = true
 stintmate-connector-link.workspace = true
 stintmate-connector-wire.workspace = true
+stintmate-ipc.workspace = true
 tracing.workspace = true
 serde_json.workspace = true
 

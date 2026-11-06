@@ -13,6 +13,17 @@ All notable changes to this project are written here.
   session ids from the simulator's memory. The connector declares the features `setups`, `fuel`,
   `sectors`, `conditions` and `rivals`. `iracing-core` gains `LapBuffer::into_parts` and
   `resume::identity_of`.
+- `iracing-recorder`: serves Pitwall's live requests. `live.rs` is a double buffer of
+  `LiveSnapshot` slots (a seqlock each) filled by a copy on the sampling thread; the JSON frame is
+  built by the `connector.live_frame` handler. `telemetry.rs` is an 8-slot ring of atomics and a
+  sender thread: `connector.telemetry` at the declared 60 Hz, the `rate_hz` option, and the
+  keep-alive repeat every 0.25 s with `FRESH` clear. `serve.rs` answers `connector.capture_target`
+  and `connector.action` (`test.ping`, `test.announce`) and creates the announcer, which declares
+  the catalog, the guidance and the actions at every connection. The status reports `telemetry`
+  while Pitwall is subscribed. The connector declares the features `live_frame`, `lap_status`,
+  `capture_target`, `brake_cues`, `guidance` and `actions`. `tests/alloc.rs` counts the live
+  publish and the ring as part of the loop; `tests/live_frame.rs`, `tests/telemetry.rs` and
+  `tests/capture.rs` run the recorder against a fake Pitwall.
 - `iracing-recorder`: a new event no longer opens a session with the previous event's car and
   track. The session description is dropped when the simulator goes away, when a mapping opens
   and when its layout restarts, and it is taken only when it was built from the session text the
