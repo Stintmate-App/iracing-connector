@@ -24,6 +24,17 @@ All notable changes to this project are written here.
   `capture_target`, `brake_cues`, `guidance` and `actions`. `tests/alloc.rs` counts the live
   publish and the ring as part of the loop; `tests/live_frame.rs`, `tests/telemetry.rs` and
   `tests/capture.rs` run the recorder against a fake Pitwall.
+- `iracing-recorder`: announces events. The detectors and the spotter read every row on the
+  sampling thread and allocate nothing while nothing fires (`tests/alloc.rs` counts them with
+  events quiet); a fired call is moved into a 64-slot channel (`announce.rs`) and a sender thread
+  builds the announcement (`data`: `session_time`, `lap`, `lap_dist`) for the runtime's
+  announcer, whose windows allow 10 messages in any 60 s and 120 of the spotter group. A call over
+  a window or over the channel's capacity is dropped, never waited for. A new session description
+  also runs `Detector::on_meta`. The connector declares the features `announcements` and
+  `spotter`. `iracing-core` gains `Scenario::car_left_right`. `tests/announce.rs` covers the
+  catalog at connect, a yellow flag and an incident arriving as `pitwall.announce`, a refused
+  test announcement, the eleventh message in a minute dropped, and a flickering `CarLeftRight`
+  kept at or under 120 spotter and 10 other messages a minute.
 - `iracing-recorder`: a new event no longer opens a session with the previous event's car and
   track. The session description is dropped when the simulator goes away, when a mapping opens
   and when its layout restarts, and it is taken only when it was built from the session text the

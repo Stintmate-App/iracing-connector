@@ -6,6 +6,9 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use iracing_core::SPEC;
+use iracing_core::announce::detector::Detector;
+use iracing_core::announce::spotter::Spotter;
+use iracing_core::announce::{Call, Calls};
 use iracing_core::io::{Clock, Sink};
 use iracing_core::lap::RESERVE_ROWS;
 use iracing_core::meta::{MetaWorker, SessionMeta};
@@ -18,6 +21,7 @@ use iracing_core::vars::Vars;
 use irsdk::live::{Live, OpenError};
 use irsdk::sampler::Poll;
 use irsdk::worker::{YamlSource, YamlWorker};
+use stintmate_connector_link::announcer::Announcer;
 use stintmate_connector_link::boot::Booted;
 use stintmate_connector_link::link::LinkState;
 use stintmate_connector_link::sink::{CLOSE_DRAIN, WriteSink};
@@ -28,6 +32,7 @@ use stintmate_connector_platform::logging::local_iso;
 use stintmate_ipc::MethodOpts;
 use stintmate_ipc::clock::now_ns;
 
+use crate::announce::{self, Fired, Outlet};
 use crate::cli::{Options, SdkNames};
 use crate::live::LiveBuffer;
 use crate::serve::{self, SessionKeyCell};
@@ -99,6 +104,8 @@ pub struct Pipeline<S: Sink + NoteClock> {
     pub live: Option<Arc<LiveBuffer>>,
     /// Where each row's sample goes for `connector.telemetry`, when something serves it.
     pub ring: Option<Arc<Ring>>,
+    /// Where the fired announcements go; without it the detectors still run and say nothing.
+    pub announce: Option<Outlet>,
     /// The monotonic time of the row in nanoseconds, taken right after the wait returned.
     pub t_ns: i64,
     clock: Box<dyn Clock>,
@@ -106,7 +113,14 @@ pub struct Pipeline<S: Sink + NoteClock> {
     catalog: CatalogWatch,
     laps_seen: u32,
     frames: u32,
+    detector: Detector,
+    spotter: Spotter,
+    calls: Calls,
+    green_s: Option<f64>,
 }
+
+/// How often the other cars are read for the flags' causes and the rivals' flags.
+const RIVAL_HZ: f64 = 2.0;
 
 impl<S: Sink + NoteClock> Pipeline<S> {
     /// A pipeline writing to `sink` and reading time from `clock`.
@@ -118,19 +132,65 @@ impl<S: Sink + NoteClock> Pipeline<S> {
             meta: None,
             live: None,
             ring: None,
+            announce: None,
             t_ns: 0,
             clock,
             rivals: RivalTracker::new(),
             catalog: CatalogWatch::new(),
             laps_seen: 0,
             frames: 0,
+            detector: Detector::new(RIVAL_HZ),
+            spotter: Spotter::new(),
+            calls: Calls::new(),
+            green_s: None,
         }
+    }
+
+    /// Hands the calls the detectors made to the sender and empties the list. Nothing is
+    /// allocated unless a call fires.
+    fn flush(&mut self) {
+        if self.calls.is_empty() {
+            return;
+        }
+        if let Some(out) = &self.announce {
+            let length = self.meta.as_deref().and_then(|m| m.track.length_m);
+            let lap_dist = length.map(|l| (f64::from(self.tick.lap_dist_pct) * l) as f32);
+            for call in self.calls.as_slice() {
+                out.push(Fired {
+                    call: Call::clone(call),
+                    session_time: self.tick.session_time,
+                    lap: self.tick.lap,
+                    lap_dist,
+                });
+            }
+        }
+        self.calls.clear();
+    }
+
+    /// The detectors read the row. Hot: allocates nothing while no call fires.
+    fn announce_row(&mut self) {
+        if !self.tick.connected {
+            return;
+        }
+        let now = self.tick.session_time;
+        if self.tick.session_state == 4 {
+            self.green_s.get_or_insert(now);
+        } else {
+            self.green_s = None;
+        }
+        let meta = self.meta.as_deref();
+        self.detector.step(&self.tick, meta, &mut self.calls);
+        self.spotter
+            .step(&self.tick, meta, self.green_s, &mut self.calls);
+        self.flush();
     }
 
     /// A new session description arrived: the mid-session catalog goes out before any row that
     /// names a new car.
     pub fn set_meta(&mut self, meta: Arc<SessionMeta>) {
         self.catalog.offer(&meta, &mut self.sink);
+        self.detector.on_meta(&meta, &mut self.calls);
+        self.flush();
         if let Some(live) = &self.live {
             live.set_meta(Some(meta.clone()));
         }
@@ -178,6 +238,7 @@ impl<S: Sink + NoteClock> Pipeline<S> {
         let before = self.tracker.session_local();
         self.tracker
             .step(&self.tick, self.meta.as_ref(), &mut self.sink, &*self.clock);
+        self.announce_row();
         let after = self.tracker.session_local();
         if before != after {
             self.rivals.reset();
@@ -224,6 +285,10 @@ impl<S: Sink + NoteClock> Pipeline<S> {
         self.rivals.reset();
         self.catalog.closed();
         self.laps_seen = 0;
+        self.detector.reset();
+        self.spotter.reset();
+        self.green_s = None;
+        self.calls.clear();
     }
 
     /// The recorder stops. With `keep_open` the session is left open for a restarted recorder:
@@ -401,7 +466,7 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
     let ring = Arc::new(Ring::default());
     let session_key: SessionKeyCell = Arc::default();
     let io_err = |e: stintmate_ipc::Error| e.to_string();
-    let served = (|| -> Result<Telemetry, String> {
+    let served = (|| -> Result<(Telemetry, Arc<Announcer>), String> {
         let l = live.clone();
         booted
             .pitwall
@@ -412,10 +477,11 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
                 move |_ctx, _params| l.answer(),
             )
             .map_err(io_err)?;
-        serve::install(&booted.pitwall, session_key.clone(), booted.started_at)?;
-        Telemetry::install(&booted.pitwall.client, ring.clone()).map_err(io_err)
+        let announcer = serve::install(&booted.pitwall, session_key.clone(), booted.started_at)?;
+        let telemetry = Telemetry::install(&booted.pitwall.client, ring.clone()).map_err(io_err)?;
+        Ok((telemetry, announcer))
     })();
-    let telemetry = match served {
+    let (telemetry, announcer) = match served {
         Ok(t) => t,
         Err(e) => {
             tracing::error!("Cannot register the methods Pitwall calls: {e}");
@@ -429,6 +495,15 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
             return 1;
         }
     };
+    let (outlet, fired) = announce::channel();
+    let sender = match announce::spawn_sender(fired, announcer) {
+        Ok(h) => Some(h),
+        Err(e) => {
+            tracing::error!("Cannot start the announcement sender: {e}");
+            None
+        }
+    };
+    pipe.announce = sender.is_some().then_some(outlet);
     pipe.live = Some(live);
     pipe.ring = Some(ring.clone());
     booted.pitwall.start();
@@ -538,6 +613,10 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
     }
     pipe.sink.write.close(CLOSE_DRAIN);
     outbox_summary.close();
+    pipe.announce = None;
+    if let Some(h) = sender {
+        let _ = h.join();
+    }
     drop(reader);
     telemetry.close();
     worker.close();

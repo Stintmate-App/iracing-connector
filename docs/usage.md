@@ -39,7 +39,11 @@ thread only copies the row into preallocated buffers.
 At every connection it also declares to Pitwall its announcement catalog (`connector.iracing`),
 its guidance for the engineer (at most 16 items) and the two actions. The features it declares
 are `setups`, `fuel`, `sectors`, `conditions`, `rivals`, `live_frame`, `lap_status`,
-`capture_target`, `brake_cues`, `guidance` and `actions`. It does not announce events yet.
+`capture_target`, `brake_cues`, `guidance`, `actions`, `announcements` and `spotter`.
+
+While a session is open it announces flags, cautions, penalties, the finish, other cars'
+retirements, incidents and the spotter's calls through `pitwall.announce`. At most 10 messages in
+any 60 seconds go out, and 120 of the spotter's; one over its limit is dropped, not delayed.
 
 ## Options
 

@@ -1,10 +1,12 @@
-//! The loop allocates nothing per row while driving, live frame and telemetry ring included: a
+//! The loop allocates nothing per row while driving, live frame, telemetry ring, detectors and
+//! spotter included: a
 //! counting allocator on the loop thread
 //! only, over a test mapping filled by a replay.
 
 use iracing_core::testing::{FixedClock, LapProfile, RecordingSink, Scenario, YamlBuilder};
 use iracing_core::tracker::State;
 use iracing_core::{FinishedLap, ParticipantLap, SessionOpenInfo, SetupReason, Sink};
+use iracing_recorder::announce;
 use iracing_recorder::cli::SdkNames;
 use iracing_recorder::live::LiveBuffer;
 use iracing_recorder::recorder::{Pipeline, Reader};
@@ -105,6 +107,9 @@ fn the_loop_allocates_nothing_per_row_while_driving() {
     ring.set_subscribed(true);
     pipe.live = Some(live.clone());
     pipe.ring = Some(ring.clone());
+    // The detectors and the spotter run on every row; with events quiet they push nothing.
+    let (outlet, fired) = announce::channel();
+    pipe.announce = Some(outlet);
     let deadline = Instant::now() + Duration::from_secs(30);
     let mut driving = 0;
     while driving < 60 && Instant::now() < deadline {
@@ -135,6 +140,7 @@ fn the_loop_allocates_nothing_per_row_while_driving() {
     assert!(rows >= 150, "only {rows} rows were measured");
     assert!(samples >= rows, "{samples} samples for {rows} rows");
     assert_eq!(ring.dropped(), 0, "the ring was drained every row");
+    assert!(fired.try_recv().is_err(), "a quiet drive fired a call");
     let mut snap = iracing_core::live::LiveSnapshot::empty();
     assert!(live.read(&mut snap), "the live frame was published");
     assert_eq!(

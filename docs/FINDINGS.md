@@ -309,6 +309,10 @@ them. Nothing here was seen in a race session, online or with other cars (see
   side that stays empty for 0.15 s is clear and one that fills again within 1.5 s of its clear
   is called only if it still holds. To confirm with cars alongside; if the value bounces, the
   clear delay goes up.
+- **assumed** (not observed yet): the shortest cycle the spotter can follow, a car, a clear after
+  0.15 s and a 1.5 s bounce window, gives about 140 calls a minute from a value that flickers on
+  both sides at that pace. The announcer's window of 120 spotter messages in 60 s cuts it, so the
+  limit holds whatever the value does. To confirm with cars alongside.
 
 ## Pit stops
 
