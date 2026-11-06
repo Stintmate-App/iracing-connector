@@ -187,9 +187,9 @@ impl CoreSink for TrackerSink {
         let Some(snapshot) = meta.setup.clone() else {
             return;
         };
-        let (at_owned, reason_name) = (at.to_owned(), reason.as_str());
+        let reason_name = reason.as_str();
         let fuel = (fuel_l > 0.0).then(|| f64::from(fuel_l));
-        let when = at_owned.clone();
+        let when = at.to_owned();
         self.write.setup(
             local,
             at,

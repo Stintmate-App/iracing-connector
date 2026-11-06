@@ -12,6 +12,15 @@ fn keys(rig: &Rig) -> Vec<String> {
         .collect()
 }
 
+fn lap_keys(rig: &Rig) -> Vec<String> {
+    rig.fake
+        .calls()
+        .iter()
+        .filter(|c| c.method.ends_with(".lap"))
+        .filter_map(|c| c.ik.clone())
+        .collect()
+}
+
 #[test]
 fn a_restarted_recorder_keeps_the_session_key() {
     let rig = rig();
@@ -34,6 +43,17 @@ fn a_restarted_recorder_keeps_the_session_key() {
         "no lap after the restart"
     );
     let all = keys(&rig);
+    let iks = lap_keys(&rig);
+    let distinct: std::collections::HashSet<_> = iks.iter().collect();
+    assert_eq!(
+        distinct.len(),
+        iks.len(),
+        "every lap key is distinct: {iks:?}"
+    );
+    assert!(
+        iks.len() > before.len(),
+        "the laps after the resume were written, not dropped as duplicates"
+    );
     assert!(
         all.iter().all(|k| *k == all[0]),
         "one session key across the restart: {all:?}"

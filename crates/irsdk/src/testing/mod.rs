@@ -367,55 +367,122 @@ pub fn ibt_bytes(
     image
 }
 
-/// The layout of [`synthetic_ibt`]: speed, lap distance, lap, session time and track state.
+/// The layout of [`synthetic_ibt`]: the variables of a car driving laps (session clock and
+/// identity, lap counters, speed, pedals, fuel, track state and the per-car lap arrays of the
+/// player's slot).
 pub fn synthetic_layout() -> Layout {
-    LayoutBuilder::new()
-        .tick_rate(60)
-        .num_buf(3)
-        .var(
-            "SessionTime",
-            VarType::Double,
-            1,
-            "s",
-            "Seconds since session start",
-        )
-        .var("Speed", VarType::Float, 1, "m/s", "GPS vehicle speed")
-        .var(
-            "LapDist",
-            VarType::Float,
-            1,
-            "m",
-            "Meters traveled from S/F this lap",
-        )
-        .var(
-            "LapDistPct",
-            VarType::Float,
-            1,
-            "%",
-            "Percentage distance around lap",
-        )
-        .var("Lap", VarType::Int, 1, "", "Laps started by car")
-        .var(
-            "IsOnTrack",
-            VarType::Bool,
-            1,
-            "",
-            "1 if the car is on track",
-        )
-        .var(
-            "PlayerTrackSurface",
-            VarType::Int,
-            1,
-            "irsdk_TrkLoc",
-            "Player car track location",
-        )
-        .build()
+    let mut b = LayoutBuilder::new().tick_rate(60).num_buf(3);
+    for (name, ty) in [
+        ("SessionNum", VarType::Int),
+        ("SessionUniqueID", VarType::Int),
+        ("SessionState", VarType::Int),
+        ("SessionFlags", VarType::BitField),
+        ("IsOnTrackCar", VarType::Bool),
+        ("IsInGarage", VarType::Bool),
+        ("IsReplayPlaying", VarType::Bool),
+        ("PlayerCarIdx", VarType::Int),
+        ("LapCompleted", VarType::Int),
+        ("LapLastLapTime", VarType::Float),
+        ("RPM", VarType::Float),
+        ("Gear", VarType::Int),
+        ("SteeringWheelAngle", VarType::Float),
+        ("LatAccel", VarType::Float),
+        ("LongAccel", VarType::Float),
+        ("FuelLevel", VarType::Float),
+        ("OnPitRoad", VarType::Bool),
+        ("ThrottleRaw", VarType::Float),
+        ("BrakeRaw", VarType::Float),
+    ] {
+        b = b.var(name, ty, 1, "", name);
+    }
+    for (name, ty) in [
+        ("CarIdxLap", VarType::Int),
+        ("CarIdxLapCompleted", VarType::Int),
+        ("CarIdxLapDistPct", VarType::Float),
+        ("CarIdxOnPitRoad", VarType::Bool),
+        ("CarIdxTrackSurface", VarType::Int),
+    ] {
+        b = b.var(name, ty, 64, "", name);
+    }
+    b.var(
+        "SessionTime",
+        VarType::Double,
+        1,
+        "s",
+        "Seconds since session start",
+    )
+    .var("Speed", VarType::Float, 1, "m/s", "GPS vehicle speed")
+    .var(
+        "LapDist",
+        VarType::Float,
+        1,
+        "m",
+        "Meters traveled from S/F this lap",
+    )
+    .var(
+        "LapDistPct",
+        VarType::Float,
+        1,
+        "%",
+        "Percentage distance around lap",
+    )
+    .var("Lap", VarType::Int, 1, "", "Laps started by car")
+    .var(
+        "IsOnTrack",
+        VarType::Bool,
+        1,
+        "",
+        "1 if the car is on track",
+    )
+    .var(
+        "PlayerTrackSurface",
+        VarType::Int,
+        1,
+        "irsdk_TrkLoc",
+        "Player car track location",
+    )
+    .build()
 }
 
-/// The session text of [`synthetic_ibt`].
-pub const SYNTHETIC_YAML: &str = "---\nWeekendInfo:\n TrackName: synthetic\n TrackLength: 2.00 km\n\
-\x20TrackDisplayName: Synthetic Track\nSessionInfo:\n Sessions:\n - SessionNum: 0\n   SessionType: Race\n\
-\x20  SessionLaps: unlimited\nDriverInfo:\n DriverCarIdx: 0\n Drivers:\n - CarIdx: 0\n   UserName: Test Driver\n...\n";
+/// The session text of [`synthetic_ibt`]: one track and one driver, the player in slot 0, with
+/// the keys the simulator writes for them.
+pub const SYNTHETIC_YAML: &str = concat!(
+    "---\n",
+    "WeekendInfo:\n",
+    " TrackName: synthetic\n",
+    " TrackID: 999\n",
+    " TrackLength: 2.00 km\n",
+    " TrackDisplayName: Synthetic Track\n",
+    " TrackConfigName: Default\n",
+    " SessionID: 1\n",
+    " SubSessionID: 1\n",
+    "SessionInfo:\n",
+    " CurrentSessionNum: 0\n",
+    " Sessions:\n",
+    " - SessionNum: 0\n",
+    "   SessionLaps: unlimited\n",
+    "   SessionTime: 3600.0000 sec\n",
+    "   SessionType: Race\n",
+    "DriverInfo:\n",
+    " DriverCarIdx: 0\n",
+    " PaceCarIdx: -1\n",
+    " DriverCarFuelMaxLtr: 100.000\n",
+    " DriverCarMaxFuelPct: 1.000\n",
+    " Drivers:\n",
+    " - CarIdx: 0\n",
+    "   UserName: Test Driver\n",
+    "   UserID: 1000\n",
+    "   TeamName: Test Driver\n",
+    "   CarNumber: 10\n",
+    "   CarPath: synthcar\n",
+    "   CarScreenName: Synthetic Car\n",
+    "   CarClassID: 74\n",
+    "   CarClassShortName: Synth\n",
+    "   CarClassEstLapTime: 90.0000\n",
+    "   CarIsPaceCar: 0\n",
+    "   IsSpectator: 0\n",
+    "...\n",
+);
 
 /// An in-memory `.ibt` of `laps` laps of a 2 km track, `rows_per_lap` rows each, with the
 /// variables of [`synthetic_layout`]. The speed is a smooth function of the distance.
@@ -437,7 +504,27 @@ pub fn synthetic_ibt(laps: u32, rows_per_lap: u32) -> Ibt {
             .set_f32("LapDistPct", pct)
             .set_i32("Lap", lap as i32 + 1)
             .set_bool("IsOnTrack", true)
-            .set_i32("PlayerTrackSurface", 3);
+            .set_i32("PlayerTrackSurface", 3)
+            .set_i32("SessionUniqueID", 1)
+            .set_i32("SessionState", 4)
+            .set_bool("IsOnTrackCar", true)
+            .set_i32("LapCompleted", lap as i32)
+            .set_f32(
+                "LapLastLapTime",
+                if lap == 0 {
+                    -1.0
+                } else {
+                    per_lap as f32 / layout.tick_rate() as f32
+                },
+            )
+            .set_f32("RPM", 6000.0)
+            .set_i32("Gear", 3)
+            .set_f32("FuelLevel", 50.0)
+            .set_f32("ThrottleRaw", 0.8)
+            .set_i32_at("CarIdxLap", 0, lap as i32 + 1)
+            .set_i32_at("CarIdxLapCompleted", 0, lap as i32)
+            .set_f32_at("CarIdxLapDistPct", 0, pct)
+            .set_i32_at("CarIdxTrackSurface", 0, 3);
             rows.push(b.into_bytes());
         }
     }

@@ -10,12 +10,16 @@ fn laps_wait_in_the_outbox_while_pitwall_is_busy() {
     let _replay = Replay::start(&rig, scenario(2, 6.0));
     let mut child = rig.spawn();
     let outbox = rig.data_dir().join("outbox");
-    assert!(
-        wait_for(40, || std::fs::read_dir(&outbox)
-            .map(|d| d.count() >= 2)
-            .unwrap_or(false)),
-        "nothing was queued on disk"
-    );
+    // The files hold the encoded writes: the method name is in the bytes.
+    let has_lap = || {
+        std::fs::read_dir(&outbox)
+            .map(|d| {
+                d.filter_map(|e| std::fs::read(e.ok()?.path()).ok())
+                    .any(|b| b.windows(17).any(|w| w == b"pitwall.write.lap"))
+            })
+            .unwrap_or(false)
+    };
+    assert!(wait_for(40, has_lap), "no lap waited in the outbox");
     rig.fake.rules.lock().unwrap().refuse_all_with = None;
     assert!(
         rig.fake

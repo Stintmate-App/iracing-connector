@@ -1,6 +1,6 @@
 //! The synthetic session of the replay tool (`iracing-replay --synthetic`) through the
-//! recorder into a fake Pitwall. Its session text lists no drivers, so no session can open: the
-//! recorder reads the rows, writes nothing and stops cleanly.
+//! recorder into a fake Pitwall: its session text lists the player and its layout holds the
+//! variables the recorder needs, so the session opens and the laps are written.
 
 mod common;
 use common::*;
@@ -10,9 +10,9 @@ use irsdk::testing::synthetic_ibt;
 use std::sync::atomic::AtomicBool;
 
 #[test]
-fn the_synthetic_replay_opens_no_session_and_the_recorder_stays_quiet() {
+fn the_synthetic_replay_opens_a_session_and_its_laps_are_written() {
     let rig = rig();
-    let ibt = synthetic_ibt(4, 120);
+    let ibt = synthetic_ibt(4, 240);
     let layout = layout_of(&ibt);
     let size = TestMap::required_size(&layout, ibt.yaml_raw().len());
     let mut map =
@@ -22,14 +22,17 @@ fn the_synthetic_replay_opens_no_session_and_the_recorder_stays_quiet() {
     let player = std::thread::spawn(move || replay(&ibt, &mut map, 60.0, &stop));
     let rows = player.join().unwrap();
     assert!(rows > 0);
-    let writes: Vec<String> = rig
-        .fake
-        .calls()
-        .into_iter()
-        .map(|c| c.method)
-        .filter(|m| m.starts_with("pitwall.write."))
-        .collect();
+    assert!(
+        rig.fake
+            .wait_for(|c| c.iter().any(|x| x.method.ends_with(".lap")), 20),
+        "no lap was written: {:?}",
+        rig.fake
+            .calls()
+            .iter()
+            .map(|c| &c.method)
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(rig.count_suffix("session_start"), 1);
     assert_eq!(rig.stop(&mut child), Some(0));
     rig.fake.stop();
-    assert!(writes.is_empty(), "unexpected writes: {writes:?}");
 }

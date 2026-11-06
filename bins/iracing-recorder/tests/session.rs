@@ -29,10 +29,14 @@ fn a_replayed_session_reaches_pitwall_and_is_kept_open_on_stop() {
     assert!(start.ik.as_deref().unwrap().starts_with("iracing/"));
     let sp = to_json(&start.params);
     assert!(sp["car_id"].is_string() && sp["track_id"].is_string());
-    let first_catalog = calls.iter().position(|c| c.method.ends_with("catalog"));
+    let first_catalog = calls
+        .iter()
+        .position(|c| c.method.ends_with("catalog"))
+        .expect("a catalog was sent");
     let first_start = calls
         .iter()
-        .position(|c| c.method.ends_with("session_start"));
+        .position(|c| c.method.ends_with("session_start"))
+        .expect("a session start was sent");
     assert!(first_catalog < first_start, "the catalog goes first");
     let lap = calls.iter().find(|c| c.method.ends_with(".lap")).unwrap();
     assert_eq!(to_json(&lap.params)["channels"]["speed"]["encoding"], "f32");

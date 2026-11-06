@@ -27,11 +27,14 @@ use stintmate_connector_platform::logging::local_iso;
 use crate::cli::{Options, SdkNames};
 use crate::sink::{NoteClock, TrackerSink};
 use crate::status::{self, Facts};
+use crate::summary::OutboxSummary;
 
 /// How long one wait for the simulator's event lasts. A missed event costs at most this.
 const WAIT: Duration = Duration::from_millis(25);
 /// How often the status is filled.
 const STATUS_EVERY: Duration = Duration::from_millis(500);
+/// How often the outbox summary is refreshed, on its own thread.
+const OUTBOX_EVERY: Duration = Duration::from_millis(250);
 /// How often the simulator's process (or its memory map) is looked for while nothing is open.
 const ATTACH_EVERY: Duration = Duration::from_secs(1);
 /// The game token of a test mapping, which has no process.
@@ -155,9 +158,18 @@ impl<S: Sink + NoteClock> Pipeline<S> {
         }
     }
 
+    /// The source of the rows changed (the simulator went away, a new mapping opened or its
+    /// layout restarted): the description of the old one must not be matched to the rows of the
+    /// new one. The tracker matches a description to rows by the session number alone, and the
+    /// offline simulator numbers the sessions of every event 0.
+    pub fn forget_meta(&mut self) {
+        self.meta = None;
+    }
+
     /// The simulator went away: the session ends.
     pub fn off(&mut self) {
         self.tracker.on_off(&mut self.sink, &*self.clock);
+        self.forget_meta();
         self.rivals.reset();
         self.catalog.closed();
         self.laps_seen = 0;
@@ -251,15 +263,23 @@ impl Reader {
                     self.last_update = update;
                     self.yaml.notify(update);
                 }
-                if self.metaw.generation() != self.last_gen {
-                    self.last_gen = self.metaw.generation();
-                    if let Some(meta) = self.metaw.latest() {
-                        pipe.set_meta(meta);
+                let generation = self.metaw.generation();
+                if generation != self.last_gen {
+                    // A description is taken only when it was built from the text the simulator
+                    // holds now; a newer text is on its way and the description is retried.
+                    match self.metaw.latest() {
+                        Some(meta) if meta.update == update => {
+                            self.last_gen = generation;
+                            pipe.set_meta(meta);
+                        }
+                        Some(_) => {}
+                        None => self.last_gen = generation,
                     }
                 }
                 pipe.row();
             }
             Poll::Reset => {
+                pipe.forget_meta();
                 self.resolve();
                 self.last_update = i32::MIN;
             }
@@ -309,6 +329,19 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
         }
     };
     let worker = StatusWorker::new(booted.status);
+    // The sampling thread never takes the outbox lock (it is held while a lap is written to the
+    // disk): the summary is read on a thread of its own, and the loop copies the last one.
+    let outbox_summary = {
+        let outbox = write.outbox();
+        OutboxSummary::spawn(OUTBOX_EVERY, move |s| {
+            outbox.with_summary(|pending, oldest, rejected| {
+                s.pending = pending;
+                s.rejected = rejected;
+                s.oldest_at.clear();
+                s.oldest_at.push_str(oldest.unwrap_or_default());
+            });
+        })
+    };
     let mut pipe = Pipeline::new(TrackerSink::new(write), Box::new(WallClock::new()));
     let mut watch = GameWatch::new(&SPEC.game);
     let mut input = StatusInput::default();
@@ -331,6 +364,7 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
                                 |_| Some(SDK_TOKEN),
                             );
                             pipe.sink.write.set_game_token(token);
+                            pipe.forget_meta();
                             tracing::info!("Attached to the simulator");
                             reader = Some(r);
                         }
@@ -354,8 +388,6 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
         if now >= next_status || first {
             next_status = now + STATUS_EVERY;
             let sink = &pipe.sink.write;
-            let (pending, oldest, rejected) =
-                sink.with_outbox_summary(|n, o, r| (n, o.map(str::to_owned), r));
             let stats = sink.stats();
             let local = pipe.tracker.session_local();
             let open = local.is_some();
@@ -371,15 +403,19 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
                 meta: pipe.meta.as_deref(),
             };
             status::fill(&mut input, &facts);
+            outbox_summary.with(|o| {
+                input.plain.outbox_pending = o.pending;
+                input.plain.outbox_rejected = o.rejected;
+                input
+                    .oldest_at
+                    .assign((!o.oldest_at.is_empty()).then_some(o.oldest_at.as_str()));
+            });
             let p = &mut input.plain;
-            p.outbox_pending = pending;
-            p.outbox_rejected = rejected;
             p.laps_queued = stats.laps_queued;
             p.laps_sent = stats.laps_sent;
             p.laps_rejected = stats.laps_rejected;
             p.stint = sink.stint(local);
             p.session_id = sink.remote_id(local);
-            input.oldest_at.assign(oldest.as_deref());
             sink.with_session_key(local, |k| input.session_key.assign(k));
             worker.submit(&input, first);
             first = false;
@@ -401,6 +437,7 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
         pipe.stop(false);
     }
     pipe.sink.write.close(CLOSE_DRAIN);
+    outbox_summary.close();
     drop(reader);
     worker.close();
     booted.pitwall.close();

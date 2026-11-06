@@ -7,3 +7,4 @@ pub mod cli;
 pub mod recorder;
 pub mod sink;
 pub mod status;
+pub mod summary;
