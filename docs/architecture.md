@@ -12,10 +12,109 @@ are relative to the repository root. Facts about the simulator itself are in
 | `crates/iracing-core` | The connector's core: the variable map and tick, lap channels, sectors, validity, announcements, the session meta (`meta`, built on its own thread), the catalog ids (`catalog`), the car setup and tyre readings (`setup`) and the resume clock (`resume`). |
 | `tools/probe` | `iracing-probe`: a read-only diagnostic that records what the simulator publishes into a folder. |
 | `tools/replay` | `iracing-replay`: writes an `.ibt` file or a synthetic lap into a test mapping, to drive a reader without the simulator. |
+| `tools/measure` | `iracing-measure`: runs the recorder's loop over a synthetic session and reports CPU, step time, allocations and memory (see [Performance](#performance)). |
+| `bins/iracing-recorder` | `iracing-recorder`: the recorder, a library and a program (see [The recorder](#the-recorder)). |
+| `bins/iracing-connector-ui`, `bins/iracing-connector-window` | The control app and the window, on the shared connector runtime ([usage.md](usage.md)). |
 
-The rest of this page is about `irsdk`. The crate never sends anything to the simulator: it
+The page first describes the recorder, then `irsdk`. The `irsdk` crate never sends anything to the simulator: it
 defines no message to send, never maps memory for writing under the simulator's names, and
 writes no file in the simulator's folders.
+
+## The recorder
+
+`iracing-recorder.exe` is started hidden by the control app. Its loop is `recorder::run`
+(`bins/iracing-recorder/src/recorder.rs`).
+
+### Threads
+
+| Thread | Does | Source |
+|---|---|---|
+| main (the sampling thread) | waits for the simulator's event for at most 25 ms, copies the row, runs the tracker, the detectors and the spotter, and publishes the live frame and the telemetry sample; fills the status every 500 ms | `recorder.rs` (`WAIT`, `STATUS_EVERY`) |
+| `irsdk-yaml` | reads and parses the session text when its update counter moved | `crates/irsdk/src/worker.rs` |
+| `iracing-meta` | builds the session description (`SessionMeta`) from the parsed text | `crates/iracing-core/src/meta.rs` |
+| `outbox-summary` | reads the outbox's counters every 250 ms, so the sampling thread never takes the outbox lock | `bins/iracing-recorder/src/summary.rs` |
+| `telemetry` | sends the samples of the ring to Pitwall while it is subscribed | `bins/iracing-recorder/src/telemetry.rs` |
+| `announce` | builds the announcement of a fired call and hands it to the runtime's announcer | `bins/iracing-recorder/src/announce.rs` |
+
+The shared connector runtime adds its own threads: the link to Pitwall, the writer of the outbox
+and the link to the control app. Writing a lap, a setup or the other cars' laps happens there,
+never on the sampling thread.
+
+### The loop
+
+While no simulator is open the loop looks for it once a second: the process
+`iRacingSim64DX11.exe`, or, with `--sdk-map`, the named test mapping. With a mapping open,
+`Reader::poll` does, for each row (`bins/iracing-recorder/src/recorder.rs`):
+
+1. `Live::wait`: wait for the event, then poll the sampler (see "The tick-checked copy").
+2. `Tick::fill`: read every variable of the row into a plain-value struct without allocating.
+3. Pass the session text's update counter to `irsdk-yaml`, and take a new `SessionMeta` from
+   `iracing-meta` when it was built from the text the simulator holds now.
+4. `Pipeline::row`: the `Tracker` turns rows into sessions, laps and pit visits and writes them to
+   the sink; `Detector` and `Spotter` read the row and may fire a call; the `RivalTracker` follows
+   the other cars' laps.
+5. `Pipeline::publish`: copy the row into the live frame's double buffer
+   (`bins/iracing-recorder/src/live.rs`: two slots, each guarded by a sequence number) and, while
+   Pitwall is subscribed, push a 32-byte sample into an 8-slot ring of atomics
+   (`bins/iracing-recorder/src/telemetry.rs`, `SLOTS`).
+
+Nothing in steps 1 to 5 allocates while no lap ends, no session opens or closes and no call
+fires; `bins/iracing-recorder/tests/alloc.rs` counts allocations on the loop thread over a replay.
+The JSON of the live frame is built by the request's handler thread from the last published
+snapshot (`LiveBuffer::answer`), never by the loop.
+
+### The serving side
+
+The recorder registers its methods before the link to Pitwall starts
+(`bins/iracing-recorder/src/serve.rs`, `recorder.rs`): `connector.live_frame`,
+`connector.capture_target`, `connector.action` and the stream `connector.telemetry`. Their
+behaviour is in [usage.md](usage.md). The telemetry stream repeats the last sample every 250 ms
+with the fresh flag clear when no row arrives (`telemetry.rs`, `KEEPALIVE`); the ring is
+single-producer, single-consumer, and a full ring drops the new sample and counts it.
+
+### Announcements
+
+The detectors run on the sampling thread. A fired call is a small value moved into a 64-slot
+channel (`announce.rs`, `CAPACITY`); when the channel is full the call is dropped, never waited
+for. The `announce` thread turns it into an announcement and gives it to the runtime's announcer,
+which applies its message windows (10 messages in any 60 s, 120 of the spotter group). The
+catalog of announcements (`crates/iracing-core/data/catalog.json`), the guidance for the
+engineer and the actions are declared to Pitwall at every connection (`serve.rs`, `install`).
+`bins/iracing-recorder/tests/announce.rs` checks the windows against a fake Pitwall.
+
+### Performance
+
+Measured with `iracing-measure` (`tools/measure`), which runs the recorder's own loop
+(`Reader::poll_timed` and `Pipeline`, the live frame, the telemetry ring, the detectors and the
+spotter included) over a synthetic session replayed into a test mapping at 60 rows per second.
+The records go to a sink that counts them; the pipe to Pitwall, the writer thread and the
+simulator itself are not part of the measurement. Allocations are counted on the sampling thread
+only, with a counting global allocator.
+
+**How it was measured.** On 2026-11-06, one run of
+`target\release\iracing-measure.exe --synthetic 600 --cars 64 --subscribe`, built with
+`cargo build --release -p iracing-measure` (the workspace's release profile: thin LTO, one
+codegen unit) with rustc 1.99.1, on Windows 11 Pro, an Intel Core i7-10700K at 3.8 GHz (8 cores,
+16 logical processors; model and counts from `Win32_Processor`), with the simulator not running
+and no other heavy program. It is a synthetic replay: 64 cars, laps of 60 s, 36499 rows (608.3 s),
+the telemetry stream switched on and drained by another thread. One run, not a distribution
+over runs; the figures will differ on another machine.
+
+| Figure | Result |
+|---|---|
+| Step per row, from the wait returning to the row published (tracker, rivals, detectors, spotter, live frame, telemetry sample) | p50 8.8 us, p99 52.3 us, max 493.1 us |
+| Sum of the steps | 0.482 s over 608.3 s, 0.08 % of one core |
+| CPU of every thread of the process except the feeder (the loop, the session text and description threads, the drain thread) | 1.828 s over 608.3 s, 0.30 % of one core |
+| Allocations on the sampling thread | 2496 in 36499 rows; 36459 rows allocated nothing; the 40 that did (the session opening, the laps ending, the rivals' rows, the first description) allocated at most 253 times in one row |
+| Working set of the process | 133.4 MiB before the loop, 135.1 MiB after, peak 135.2 MiB; 121.7 MiB of it is the replayed rows, held in memory by the tool, so the loop's growth is 1.7 MiB |
+| Torn copies, resets | 0, 0 |
+
+The system accounts a thread's CPU time in clock ticks of about 15.6 ms: the process figure is
+statistical, and the sampling thread's own figure read 0.000 s (below a tick), so it is not
+reported; the step times come from a monotonic clock and are exact. The step time includes the
+cost of the allocations in the rows that made them. The pipe to Pitwall, the outbox writer and
+the real simulator are not in these figures: the simulator writes the map in its own process.
+Rebuild and run the command above to reproduce them.
 
 ## The reader, in one picture
 
@@ -185,6 +284,15 @@ methods:
 No `&[u8]` is ever formed over the live view. The simulator writes it concurrently, so a slice
 over it would be undefined behaviour in Rust; copying out is not. The parsers therefore run on
 the copies.
+
+Outside `irsdk` there is `unsafe` in three places (`iracing-core` forbids it):
+
+- `bins/iracing-recorder/src/live.rs`: the live frame's double buffer, a sequence-numbered slot
+  that one writer fills and any number of readers copy, keeping a copy only when the number did
+  not change;
+- `tools/probe/src/win.rs`: the calls that list the simulator's windows;
+- `tools/measure/src/main.rs`: the counting allocator, and the calls that read a thread's and a
+  process's CPU time and the working set.
 
 A property test also drives the safe `View` implementation over arbitrary offsets and lengths
 to check that nothing reads outside the data (`crates/irsdk/tests/props.rs`).

@@ -6,6 +6,7 @@ members = [
     "bins/iracing-connector-ui",
     "bins/iracing-connector-window",
     "bins/iracing-recorder",
+    "tools/measure",
     "tools/probe",
     "tools/replay",
 ]

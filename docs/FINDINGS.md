@@ -18,6 +18,29 @@ none torn). The probe also wrote a state sample about once a second; the facts a
 counters below come from those samples, so a time shorter than a second cannot be told from
 them. Nothing here was seen in a race session, online or with other cars (see
 [Not observed yet](#not-observed-yet)).
+
+## Assumed, to confirm
+
+Every default the code uses without having seen it on the simulator is listed here, with the
+place in the code and what would confirm it. The full statement of each is in the section
+named; a doc comment that says "Not observed on the simulator yet" points to that section.
+
+| Assumed | Where in the code | What would confirm it |
+|---|---|---|
+| A session restarted within ten minutes continues the open session while `SubSessionID` is 0 ([Session identity](#session-identity)) | `crates/iracing-core/src/resume.rs` | Two offline events started one after the other: do `SessionUniqueID` and the other ids tell them apart? |
+| The layout id is the `TrackID` as a decimal number ([Session identity](#session-identity)) | `crates/iracing-core/src/catalog.rs` | A second layout of a track already seen: a different `TrackID`? |
+| Session type texts other than `Offline Testing` match the rules in the code ([Session type](#session-type)) | `crates/iracing-core/src/codes.rs` | The `SessionType` text of a practice, a qualifying, a warm-up and a race session |
+| Flag, caution, pit-open and restart rules, and the cause of a yellow or blue flag ([Incidents and flags](#incidents-and-flags)) | `crates/iracing-core/src/announce/detector.rs` | A race with a full-course caution, a local yellow and a lapping car |
+| A penalty, its serving, the final lap, the finish and the finishing position ([Race end and rivals](#race-end-and-rivals)) | `crates/iracing-core/src/announce/detector.rs` | A race with a penalty, then the chequered flag, in a multiclass and a single-class event |
+| `ReasonOutId` turns non-zero for a car that is out, and a disqualified rival is told once ([Race end and rivals](#race-end-and-rivals)) | `crates/iracing-core/src/announce/detector.rs` | A race with a retirement and a disqualification |
+| The incident limit warning threshold ([Race end and rivals](#race-end-and-rivals)) | `crates/iracing-core/src/announce/detector.rs` | An event with an incident limit |
+| The values of `CarLeftRight` ([Spotter](#spotter)) | `crates/iracing-core/src/announce/spotter.rs` | Cars alongside, on each side and on both |
+| `CarLeftRight` does not flicker at the edge of an overlap, and the call rate stays under the limit ([Spotter](#spotter)) | `crates/iracing-core/src/announce/spotter.rs` | A recording of `CarLeftRight` while passing a car |
+| The live frame shows the three live tyre temperatures as tread temperatures, their mean as the carcass temperature, and wear as one minus the mean ([Tyres](#tyres)) | `crates/iracing-core/src/live.rs` | Tyre temperatures against a source that names the layer |
+| Another car's pit mode in the live frame is "into the pits" whenever it is on the pit road outside its stall ([Tyres](#tyres)) | `crates/iracing-core/src/live.rs` | A race with rivals making stops |
+| The order of the three `TreadRemaining` values is the order the text writes ([Setup](#setup)) | `crates/iracing-core/src/setup.rs` | A setup with different wear on the outer and inner edge of a right-hand tyre |
+| A steering lock of 450 degrees when the simulator reports none | `crates/iracing-core/src/lap.rs` | A car whose `SteeringWheelAngleMax` is 0 or absent |
+
 ## Header and variables
 
 - **documented**: the mapping is called `Local\IRSDKMemMapFileName` and the data-valid event
@@ -152,6 +175,15 @@ them. Nothing here was seen in a race session, online or with other cars (see
   layout id is the `TrackID` as a decimal number (`crates/iracing-core/src/catalog.rs`); to
   confirm with a second layout.
 
+## Session type
+
+- **observed**: the `SessionType` of the offline Test Drive was `Offline Testing`.
+- **assumed** (not observed beyond that): the text is matched ignoring case, the first rule that
+  matches wins: `race`, then `qualif`, `warm`, `test` and `practice`; anything else is "other"
+  (`crates/iracing-core/src/codes.rs`). The strings the table test expects are "Practice", "Open
+  Practice", "Lone Practice", "Offline Testing", "Lone Qualify", "Open Qualify" and "Race"; to
+  confirm with a session of each kind.
+
 ## Rates
 
 - **documented**: the header carries `tick_rate`, the ticks per second at which row buffers are
@@ -173,7 +205,7 @@ them. Nothing here was seen in a race session, online or with other cars (see
 
 - **observed**: the simulator had one visible top-level window for the whole session: window
   class `SimWinClass`, title `iRacing.com Simulator`, client area 1024 x 720, not minimised,
-  read 180 times by `iracing-probe` over the 30 minutes. The connector's spec names the class
+  read 180 times by `iracing-probe` over the 30 minutes. The connector's description (`SPEC`) names the class
   and, as a fallback, the title in lowercase (`crates/iracing-core/src/lib.rs`). The window
   existed before the mapping did.
 - **not observed yet**: a virtual-reality mirror window, full screen, a minimised window, and
@@ -411,10 +443,13 @@ Measured on 1427 driving rows above 15 m/s, on a clockwise circuit.
 - A pause, spectating, a rewound replay, a virtual-reality mirror, full screen.
 - `.ibt` files, including whether they hold `Lat` and `Lon`.
 
-Six tests are written for recordings from a real machine and ignored until the recordings are
-in `crates/irsdk/tests/fixtures/real/` (`crates/irsdk/tests/real_fixtures.rs`). They check
-that every row of a recording reads with sensible values, that the variable table equals a
-golden list, that a dump of the live header parses, that every session text parses without
-a section error, that a replayed recording equals the file, and what the tick rate and
-decimation are. Run `cargo test -p irsdk -- --ignored --nocapture` to see which of them find
-their files.
+Tests for recordings from a real machine are written and ignored. `crates/iracing-core/tests/real_fixtures.rs`
+reads the folder `iracing-probe` writes (`IRSDK_FIXTURES=<folder>`): the recorded rows fill the
+tick, every recorded session text builds a session description with the track, the layout, the
+player's car, the fuel capacity and the sectors, the setup gives typed pressures and fuel, the
+signs of the lateral and longitudinal acceleration agree with the steering and the brake, and,
+when the folder holds `.ibt` files, the lap crossings match the declared lap count.
+`crates/irsdk/tests/real_fixtures.rs` reads `.ibt` files, a header dump and session texts from
+`crates/irsdk/tests/fixtures/real/`. Run `cargo test -p iracing-core --test real_fixtures -- --ignored --nocapture`
+and `cargo test -p irsdk -- --ignored --nocapture`; each test prints `SKIP` and what it needs
+when it finds nothing. The recordings are real user data and are not in the repository.

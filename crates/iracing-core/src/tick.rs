@@ -28,7 +28,7 @@ macro_rules! define_tick {
             /// The brake, 0 to 1: `BrakeRaw`, else `Brake`.
             pub brake: f32,
             /// The clutch, 0 to 1: `ClutchRaw`, else `Clutch`, when the layout has one.
-            /// Which end of the travel is "pressed" is not observed yet.
+            /// Observed: the pedal up reads 1 and pressed reads 0.
             pub clutch: Option<f32>,
             /// Carcass temperature in degrees Celsius per wheel (left front, right front, left
             /// rear, right rear) and position (left, middle, right), when the layout has all.
