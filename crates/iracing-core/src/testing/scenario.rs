@@ -563,6 +563,15 @@ impl Scenario {
         self
     }
 
+    /// Holds `CarLeftRight` at `word` (1 clear, 2 left, 3 right, 4 both) for `s` seconds while
+    /// the car keeps going, then back to clear.
+    pub fn car_left_right(&mut self, word: i32, s: f64) -> &mut Self {
+        self.sim.car_lr = word;
+        self.run(s);
+        self.sim.car_lr = 1;
+        self
+    }
+
     /// Sets `SessionState` (3 is the parade laps, 4 racing) from the next row on.
     pub fn session_state(&mut self, state: i32) -> &mut Self {
         self.sim.state = state;

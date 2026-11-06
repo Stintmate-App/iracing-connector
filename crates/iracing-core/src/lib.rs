@@ -67,6 +67,8 @@ pub static SPEC: ConnectorSpec = ConnectorSpec {
         "brake_cues",
         "guidance",
         "actions",
+        "announcements",
+        "spotter",
     ],
     ui_catalog: include_str!("../locales/en.json"),
     glyph: Glyph::I,

@@ -152,6 +152,11 @@ pub struct Replay {
 
 impl Replay {
     pub fn start(rig: &Rig, s: Scenario) -> Replay {
+        Replay::start_at(rig, s, 60.0)
+    }
+
+    /// As [`start`](Replay::start) at `hz` rows per second.
+    pub fn start_at(rig: &Rig, s: Scenario, hz: f64) -> Replay {
         let size = TestMap::required_size(s.layout(), s.initial_yaml().len() + 64 * 1024);
         let map = TestMap::create(&rig.map, &rig.event, s.layout(), s.initial_yaml(), size)
             .expect("test mapping");
@@ -159,7 +164,7 @@ impl Replay {
         let flag = stop.clone();
         let handle = std::thread::spawn(move || {
             let mut map = map;
-            s.replay_into(&mut map, 60.0, &flag)
+            s.replay_into(&mut map, hz, &flag)
         });
         Replay {
             stop,

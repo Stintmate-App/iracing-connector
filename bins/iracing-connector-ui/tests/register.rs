@@ -60,7 +60,9 @@ fn register_writes_the_descriptor() {
             "capture_target",
             "brake_cues",
             "guidance",
-            "actions"
+            "actions",
+            "announcements",
+            "spotter"
         ])
     );
     assert_eq!(d["endpoint"], "connector-iracing");
