@@ -69,6 +69,8 @@ pub struct IncidentTracker {
     last_report_at: f64,
     /// Points and start time of an incident that may still grow.
     pending: Option<(i32, f64)>,
+    /// Points of an incident whose window ended on the row a new rise began another one.
+    settled: Option<i32>,
     seen: bool,
     /// Session time at which the car was last seen off the track (or now).
     last_off_s: Option<f64>,
@@ -82,6 +84,7 @@ impl IncidentTracker {
             last_report: 0,
             last_report_at: f64::NEG_INFINITY,
             pending: None,
+            settled: None,
             seen: false,
             last_off_s: None,
         }
@@ -137,7 +140,13 @@ impl IncidentTracker {
             Some((points, since)) if now - since <= INCIDENT_MERGE_S => {
                 Some((points + delta, since))
             }
-            _ => Some((delta, now)),
+            expired => {
+                // The open incident's window is over: it is settled, not overwritten.
+                if let Some((points, _)) = expired {
+                    *self.settled.get_or_insert(0) += points;
+                }
+                Some((delta, now))
+            }
         };
         Some(IncidentRise {
             delta,
@@ -155,6 +164,9 @@ impl IncidentTracker {
     /// Takes the pending incident once [`INCIDENT_MERGE_S`] passed since it began, so a pair of
     /// rises (iRacing can add a 4x as 2 + 2) is told as one incident. Returns its points.
     pub fn take_settled(&mut self, now_s: f64) -> Option<i32> {
+        if let Some(points) = self.settled.take() {
+            return Some(points);
+        }
         match self.pending {
             Some((points, since)) if now_s - since > INCIDENT_MERGE_S => {
                 self.pending = None;
@@ -532,6 +544,45 @@ mod tests {
         assert_eq!(inc.take_settled(3.0), None);
         assert_eq!(inc.take_settled(4.5), Some(4));
         assert_eq!(inc.pending(), None);
+    }
+
+    #[test]
+    fn a_rise_on_the_first_row_after_the_window_does_not_overwrite_the_open_incident() {
+        let mut inc = IncidentTracker::new();
+        let mut t = tick(0.0);
+        assert_eq!(inc.step(&t), None);
+        // 1 Hz rows: a rise at 1.0 s, the next at 3.5 s, past the window.
+        t.session_time = 1.0;
+        t.incidents = Some(1);
+        assert!(inc.step(&t).is_some());
+        t.session_time = 3.5;
+        t.incidents = Some(2);
+        assert!(inc.step(&t).is_some());
+        // The first incident is told with its point, then the second with its own.
+        assert_eq!(inc.take_settled(3.5), Some(1));
+        assert_eq!(inc.take_settled(3.5), None);
+        assert_eq!(inc.pending(), Some((1, 3.5)));
+        assert_eq!(inc.take_settled(6.0), Some(1));
+        assert_eq!(inc.points_session, 2);
+    }
+
+    #[test]
+    fn the_points_come_from_the_count_not_from_the_one_row_pulse() {
+        // Observed at 60 Hz: the report word holds for one row and the count follows later;
+        // the penalty byte ("2x") is not the points.
+        let (_, _, rises) = run(600, |i, t| {
+            t.incident_flags = Some(if i == 100 { 0x0302 } else { 0 });
+            t.incidents = Some(if i >= 103 { 1 } else { 0 });
+            if i == 300 {
+                // A report with a penalty byte and no points: no rise.
+                t.incident_flags = Some(0x0307);
+            }
+        });
+        assert_eq!(rises.len(), 1);
+        assert_eq!(
+            (rises[0].delta, rises[0].report, rises[0].cause),
+            (1, 2, InvalidCause::OffTrack)
+        );
     }
 
     #[test]

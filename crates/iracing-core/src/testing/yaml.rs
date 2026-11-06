@@ -39,12 +39,13 @@ pub struct ResultSpec {
 }
 
 impl ResultSpec {
-    /// A running car in position `position` (also its class position).
+    /// A running car in position `position` (the only class of the field).
     pub fn running(car_idx: i32, position: i32) -> ResultSpec {
         ResultSpec {
             car_idx,
             position,
-            class_position: position,
+            // As the simulator writes it: counted from 0, the overall position from 1.
+            class_position: position - 1,
             reason_out_id: 0,
             reason_out: "Running".to_owned(),
         }

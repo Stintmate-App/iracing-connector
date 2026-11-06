@@ -61,6 +61,10 @@ pub const BLUE_NEXT_GAP_S: f64 = 4.0;
 pub const BLUE_CAR_COOLDOWN_S: f64 = 20.0;
 /// Blue flags for the same lapping car per session.
 pub const BLUE_MAX_PER_CAR: u8 = 3;
+/// The chequered call waits this long after the player's crossing so the position it names is
+/// the one the crossing gave: a position changes at the car's own crossing, and whether in the
+/// same row as the lap counter is not observed.
+pub const POSITION_SETTLE_S: f64 = 0.5;
 /// The incident limit warning comes when the points left are at most the larger of this and a
 /// quarter of the limit.
 pub const LIMIT_WARNING_MIN_LEFT: i64 = 4;
@@ -79,6 +83,7 @@ pub fn cooldown(code: &str) -> f64 {
         | "flag_double_yellow_ahead"
         | "flag_yellow_self"
         | "flag_yellow_cause"
+        | "flag_debris"
         | "flag_red"
         | "flag_black_orange" => 30.0,
         "penalty_black_flag" => 30.0,
@@ -87,13 +92,14 @@ pub fn cooldown(code: &str) -> f64 {
     }
 }
 
-const COOLED: [&str; 10] = [
+const COOLED: [&str; 11] = [
     "flag_yellow",
     "flag_double_yellow",
     "flag_yellow_ahead",
     "flag_double_yellow_ahead",
     "flag_yellow_self",
     "flag_yellow_cause",
+    "flag_debris",
     "flag_red",
     "flag_black_orange",
     "penalty_black_flag",
@@ -198,6 +204,12 @@ pub struct Detector {
     // penalties and the finish
     black_pit: bool,
     prev_lap: Option<i32>,
+    // The white flag was shown and the player has not crossed the line since.
+    white_armed: bool,
+    // The chequered flag was shown and the player has not crossed the line since.
+    check_armed: bool,
+    // Session time at which the chequered call is made, once the player crossed.
+    check_at: Option<f64>,
     // the incident count
     incidents: IncidentTracker,
     // once per session
@@ -258,6 +270,9 @@ impl Detector {
             car_blue_count: [0; CARS],
             black_pit: false,
             prev_lap: None,
+            white_armed: false,
+            check_armed: false,
+            check_at: None,
             incidents: IncidentTracker::new(),
             once: [false; ONCE],
             ident_session: i32::MIN,
@@ -325,6 +340,9 @@ impl Detector {
         self.car_speed = [f32::NAN; CARS];
         self.pits_open = None;
         self.black_pit = false;
+        self.white_armed = false;
+        self.check_armed = false;
+        self.check_at = None;
         self.incidents.reset();
     }
 
@@ -413,11 +431,14 @@ impl Detector {
         if live && g.driving && !g.pit_road && !caution_active {
             self.yellow_step(t, meta, e_yellow, e_wave, now, out);
             if e_debris == Edge::Rise {
-                self.fire(
-                    now,
-                    out,
-                    Call::new("flag_yellow_cause").text("cause", "debris"),
-                );
+                // Observed: the debris flag is a surface flag with no yellow bit. "Yellow for
+                // debris" is said only while a yellow is out.
+                let call = if self.yellow.stable || self.waving.stable {
+                    Call::new("flag_yellow_cause").text("cause", "debris")
+                } else {
+                    Call::new("flag_debris")
+                };
+                self.fire(now, out, call);
             }
             self.clear_step(now, out);
         }
@@ -458,12 +479,25 @@ impl Detector {
         if e_black == Edge::Fall && std::mem::take(&mut self.black_pit) {
             self.fire(now, out, Call::new("penalty_served"));
         }
-        // Not observed on the simulator yet: see docs/FINDINGS.md, Race end and rivals.
+        // Observed: the white and chequered bits rise about 12 s before the player's crossing, so
+        // both calls wait for it (docs/FINDINGS.md, Race end and rivals).
+        if e_white == Edge::Rise {
+            self.white_armed = true;
+        }
+        if e_check == Edge::Rise {
+            self.check_armed = true;
+        }
         let leader_last_lap = crossed && t.laps_remain == Some(1) && t.position == Some(1);
-        if (e_white == Edge::Rise || leader_last_lap) && !self.done(Once::FinalLap) {
+        if ((crossed && self.white_armed) || leader_last_lap) && !self.done(Once::FinalLap) {
+            self.white_armed = false;
             self.fire(now, out, Call::new("final_lap"));
         }
-        if e_check == Edge::Rise && !self.done(Once::Chequered) {
+        if crossed && self.check_armed && self.check_at.is_none() {
+            self.check_at = Some(now + POSITION_SETTLE_S);
+        }
+        if self.check_at.is_some_and(|at| now >= at) && !self.done(Once::Chequered) {
+            self.check_armed = false;
+            self.check_at = None;
             let place = if meta.multiclass {
                 t.class_position
             } else {

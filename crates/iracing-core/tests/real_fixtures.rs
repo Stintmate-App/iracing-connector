@@ -9,7 +9,7 @@
 //! - `layout.bin`: the bytes of the live map from 0 to the end of the variable headers;
 //! - `rows/<tick>.row.bin`: raw rows (a name with `-g` belongs to a later layout and is skipped);
 //! - `session/NNN.yaml.bin`: the session text as the map held it, one file per change;
-//! - `*.ibt` (optional): telemetry files, for the lap test.
+//! - `ibt/*.ibt` (optional): telemetry files, for the lap test.
 //!
 //! The recordings are real user data and are never committed.
 
@@ -89,11 +89,16 @@ fn metas(root: &Path) -> Vec<(PathBuf, SessionMeta)> {
     files(root, "session", ".yaml.bin")
         .into_iter()
         .enumerate()
-        .map(|(i, p)| {
+        .filter_map(|(i, p)| {
             let raw = std::fs::read(&p).unwrap();
+            // Observed: the session text is empty at an event switch; the worker keeps no
+            // meta for it, so there is nothing to check.
+            if raw.is_empty() {
+                println!("skipped the empty session text {}", p.display());
+                return None;
+            }
             let doc = SessionDoc::from_raw(i as i32, &raw);
-            let m = meta::build(&doc, 0);
-            (p, m)
+            Some((p, meta::build(&doc, 0)))
         })
         .collect()
 }
@@ -249,14 +254,15 @@ fn real_signs() {
 #[test]
 #[ignore = "needs the probe's recordings"]
 fn real_ibt_laps() {
-    let ibts = root().map(|r| files(&r, "", ".ibt")).unwrap_or_default();
-    if skip("real_ibt_laps", "at least one *.ibt", !ibts.is_empty()) {
+    let ibts = root().map(|r| files(&r, "ibt", ".ibt")).unwrap_or_default();
+    if skip("real_ibt_laps", "at least one ibt/*.ibt", !ibts.is_empty()) {
         return;
     }
     for path in ibts {
         let ibt =
             irsdk::ibt::Ibt::open(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-        let vars = Vars::resolve(ibt.vars()).expect("the recorder's variables are in the file");
+        let vars =
+            Vars::resolve_file(ibt.vars()).expect("the recorder's variables are in the file");
         let mut t = Tick::new();
         let mut crossings = 0;
         let mut last = f32::NAN;

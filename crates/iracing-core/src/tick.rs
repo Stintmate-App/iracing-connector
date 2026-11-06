@@ -10,6 +10,8 @@ macro_rules! define_tick {
         req: [$($rf:ident : $rt:ty = $rn:literal,)*],
         opt: [$($of:ident : $ot:ty = $on:literal,)*],
         req_arr: [$($raf:ident : $rat:ty = $ran:literal,)*],
+        live_only: [$($lf:ident : $lt:ty = $ln:literal => $ld:expr,)*],
+        live_only_arr: [$($laf:ident : $lat:ty = $lan:literal => $lad:expr,)*],
         opt_arr: [$($oaf:ident : $oat:ty = $oan:literal,)*],
     ) => {
         /// One row of telemetry, in the SDK's units.
@@ -22,6 +24,8 @@ macro_rules! define_tick {
             $(#[doc = concat!("The `", $rn, "` variable.")] pub $rf: $rt,)*
             $(#[doc = concat!("The `", $on, "` variable, when the layout has it.")] pub $of: Option<$ot>,)*
             $(#[doc = concat!("The `", $ran, "` variable of every car slot.")] pub $raf: [$rat; CARS],)*
+            $(#[doc = concat!("The `", $ln, "` variable; ", stringify!($ld), " when an `.ibt` file lacks it.")] pub $lf: $lt,)*
+            $(#[doc = concat!("The `", $lan, "` variable of every car slot; ", stringify!($lad), " when an `.ibt` file lacks it.")] pub $laf: [$lat; CARS],)*
             $(#[doc = concat!("The `", $oan, "` variable of every car slot, when the layout has it.")] pub $oaf: Option<[$oat; CARS]>,)*
             /// The throttle, 0 to 1: `ThrottleRaw`, else `Throttle`.
             pub throttle: f32,
@@ -52,6 +56,8 @@ macro_rules! define_tick {
                     $($rf: <$rt as VarValue>::ZERO,)*
                     $($of: None,)*
                     $($raf: [<$rat as VarValue>::ZERO; CARS],)*
+                    $($lf: $ld,)*
+                    $($laf: [$lad; CARS],)*
                     $($oaf: None,)*
                     throttle: 0.0,
                     brake: 0.0,
@@ -70,6 +76,13 @@ macro_rules! define_tick {
                 $(self.$rf = vars.$rf.read(row);)*
                 $(self.$of = vars.$of.as_ref().map(|v| v.read(row));)*
                 $(fill_array(&mut self.$raf, &vars.$raf, row);)*
+                $(self.$lf = vars.$lf.as_ref().map_or($ld, |v| v.read(row));)*
+                $(
+                    match vars.$laf.as_ref() {
+                        Some(v) => fill_array(&mut self.$laf, v, row),
+                        None => self.$laf = [$lad; CARS],
+                    }
+                )*
                 $(
                     match vars.$oaf.as_ref() {
                         Some(v) => fill_array(self.$oaf.get_or_insert([<$oat as VarValue>::ZERO; CARS]), v, row),

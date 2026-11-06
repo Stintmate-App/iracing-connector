@@ -4,6 +4,37 @@ All notable changes to this project are written here.
 
 ## Unreleased
 
+## 0.1.1 (2026-11-07)
+
+Fixes for what a second recording session on the simulator showed (a five-lap offline race with
+its warmup, and four `.ibt` files).
+
+- **`.ibt` files open.** `Vars::resolve_file` accepts a file's variable table, which lacks the
+  variables the simulator publishes only live (`IsInGarage`, `IsReplayPlaying`, `CarIdxLap`,
+  `CarIdxLapCompleted`, `CarIdxLapDistPct`, `CarIdxOnPitRoad`, `CarIdxTrackSurface`). They read as not in the garage,
+  no replay, lap 0, no completed laps, no car in the world. `IbtSource` uses it; `Vars::resolve`
+  still requires them on a live map.
+- **`final_lap` is told at the crossing.** The white bit rises about 12 s before the final lap
+  starts; the call now waits for the player's next crossing of the line.
+- **`chequered` is told at the finish.** The checkered bit rises about 12 s before the player
+  finishes, and positions change only at a car's own crossing. The call waits for the player's
+  crossing, then half a second, and names the position after it.
+- **A debris flag alone is no yellow.** With no yellow bit out it is said as the new `flag_debris`
+  ("Debris on the track."); `flag_yellow_cause` ("Yellow for debris.") is kept for a debris flag
+  together with a yellow.
+- **Incidents.** Two rises of the count that land on either side of the two-second window no longer
+  lose the first one: the open incident is settled before the next starts. The points come only
+  from `PlayerCarMyIncidentCount`; the report byte of `PlayerIncidents` (a one-row pulse) only
+  names the cause.
+- **A crossing after the finish.** After the chequered flag the lap counter can rise at a later
+  crossing and fall back some seconds later. A crossing after the finish crossing is a lap only
+  when the counter holds for 10 s.
+- **An empty session text** (seen when the event changes) publishes no session description and
+  the previous one stays in force.
+- **Class position from the results** counts from 1 (the results count it from 0).
+- Tests: the real-recording tests read `.ibt` files from the `ibt/` folder of a probe recording
+  and skip empty session texts.
+
 ## 0.1.0 (2026-11-06)
 
 First release: a connector that reads iRacing's shared memory and records sessions, laps, setups,

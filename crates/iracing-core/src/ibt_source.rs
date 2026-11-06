@@ -25,7 +25,7 @@ pub struct IbtSource {
 impl IbtSource {
     /// A source over `ibt`. Fails when the file lacks a variable the recorder requires.
     pub fn new(ibt: Ibt) -> Result<IbtSource, VarsError> {
-        let vars = Vars::resolve(ibt.vars())?;
+        let vars = Vars::resolve_file(ibt.vars())?;
         let mut row = Row::new(ibt.row_len(), 0);
         let mut meta = None;
         if let Some(first) = ibt.row(0) {

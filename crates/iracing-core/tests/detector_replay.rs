@@ -139,10 +139,17 @@ fn detector_yellow_that_turns_to_waving_is_called_again() {
 fn detector_debris_says_the_cause() {
     let mut s = race();
     s.flags(flag::DEBRIS, 2.0);
+    // Observed: the debris flag comes with no yellow bit; no yellow is said to be out.
     let fired = run(&s, &meta(SessionKind::Race));
-    assert_eq!(codes(&fired), ["flag_yellow_cause"]);
+    assert_eq!(codes(&fired), ["flag_debris"]);
+
+    // With a yellow out, the cause is told.
+    let mut s = race();
+    s.flags(flag::YELLOW | flag::DEBRIS, 2.0);
+    let fired = run(&s, &meta(SessionKind::Race));
+    assert_eq!(codes(&fired), ["flag_yellow_ahead", "flag_yellow_cause"]);
     assert_eq!(
-        param(&fired[0].1, "cause"),
+        param(&fired[1].1, "cause"),
         &ParamValue::Str("debris".into())
     );
 }
@@ -425,10 +432,25 @@ fn detector_final_lap_by_the_white_flag_once() {
     s.flags(flag::WHITE, 2.0);
     s.flags(0, 1.0);
     s.flags(flag::WHITE, 2.0);
+    s.lap(LapProfile::new(LAP_S));
     assert_eq!(codes(&run(&s, &meta(SessionKind::Race))), ["final_lap"]);
     let mut s = race();
     s.flags(flag::WHITE, 2.0);
+    s.lap(LapProfile::new(LAP_S));
     assert!(run(&s, &meta(SessionKind::Practice)).is_empty());
+}
+
+#[test]
+fn detector_final_lap_waits_for_the_crossing_after_the_white_flag() {
+    // Observed: the white bit rises about 12 s before the player starts the final lap.
+    let mut s = race();
+    s.flags(flag::WHITE, 2.0);
+    let m = meta(SessionKind::Race);
+    assert!(run(&s, &m).is_empty(), "the bit alone says nothing");
+    s.lap(LapProfile::new(LAP_S));
+    let fired = run(&s, &m);
+    assert_eq!(codes(&fired), ["final_lap"]);
+    assert!(fired[0].0 > 40.0, "told at the crossing, at {}", fired[0].0);
 }
 
 #[test]
@@ -452,6 +474,8 @@ fn detector_final_lap_for_the_leader_when_the_flag_is_missing() {
 fn detector_chequered_with_the_position_or_the_class_position() {
     let mut s = race();
     s.chequered(3);
+    s.lap(LapProfile::new(LAP_S));
+    s.flags(0, 2.0);
     let fired = run(&s, &meta(SessionKind::Race));
     assert_eq!(codes(&fired), ["chequered"]);
     assert_eq!(param(&fired[0].1, "position"), &ParamValue::Int(3));
@@ -463,10 +487,34 @@ fn detector_chequered_with_the_position_or_the_class_position() {
 
     let mut s = race();
     s.chequered(0);
+    s.lap(LapProfile::new(LAP_S));
+    s.flags(0, 2.0);
     assert_eq!(
         codes(&run(&s, &meta(SessionKind::Race))),
         ["chequered_no_position"]
     );
+}
+
+#[test]
+fn detector_chequered_waits_for_the_crossing_and_names_the_position_after_it() {
+    // Observed: the bit rises about 12 s before the finish and a position changes only at the
+    // car's own crossing.
+    let mut s = race();
+    s.chequered(3);
+    let m = meta(SessionKind::Race);
+    assert!(run(&s, &m).is_empty(), "the bit alone says nothing");
+    s.lap(LapProfile::new(LAP_S));
+    s.flags(0, 2.0);
+    let mut base = None;
+    let fired = run_hook(&s, &m, |t, _, _| {
+        let lap = *base.get_or_insert(t.lap);
+        if t.lap > lap {
+            t.position = Some(2);
+        }
+    });
+    assert_eq!(codes(&fired), ["chequered"]);
+    assert_eq!(param(&fired[0].1, "position"), &ParamValue::Int(2));
+    assert!(fired[0].0 > 40.0, "told at the finish, at {}", fired[0].0);
 }
 
 #[test]

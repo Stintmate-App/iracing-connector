@@ -13,9 +13,10 @@ use crate::tick::Tick;
 /// How long a session of an offline event (`SubSessionID` 0) may wait for a restarted recorder,
 /// in seconds.
 ///
-/// Not observed on the simulator yet: see docs/FINDINGS.md, Session identity. Offline, the ids
-/// are probably the same in every event, so only the time since the last frame tells a
-/// continued session from a new one.
+/// Observed offline: `SubSessionID` and `SessionID` are 0 in every event and `SessionUniqueID`
+/// numbers the sessions of an event from 1, so the ids repeat across events (see
+/// docs/FINDINGS.md, Session identity). Only the time since the last frame tells a continued
+/// session from a new one.
 pub const OFFLINE_RESUME_TIMEOUT_S: f64 = 600.0;
 
 /// How far the session time may go back between the stored clock and the new one, in seconds.

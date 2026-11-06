@@ -18,8 +18,14 @@
 //!   `IsGarageVisible`.
 //! - `FuelLevel` reads 0 out of the car: fuel is read only while driving.
 //! - The live tyre readings change only in the row the car enters its stall.
+//! - After the session's chequered flag the lap counter rose at a later crossing (the pit lane
+//!   on the way in) and fell back about five seconds later: iRacing counts no lap after the
+//!   finish. The first crossing with the chequered bit up is the finish and ends its lap as
+//!   always; a later one ends a lap only when the counter held for [`LATE_CROSSING_HOLD_S`].
 
 use std::sync::Arc;
+
+use irsdk::defs::session_flags;
 
 use crate::codes::{self, SessionKind};
 use crate::io::{
@@ -39,6 +45,9 @@ pub const GATE_GRACE_S: f64 = 0.5;
 pub const SYNC_WINDOW_S: f64 = 1.0;
 /// Seconds to wait for the simulator's lap time after a crossing.
 pub const PENDING_TIMEOUT_S: f64 = 3.0;
+/// Seconds a lap counter that rose after the finish must hold before the crossing is a lap.
+/// Observed: it fell back after about five seconds.
+pub const LATE_CROSSING_HOLD_S: f64 = 10.0;
 /// Partial laps shorter than this are dropped.
 pub const MIN_PARTIAL_LAP_S: f64 = 5.0;
 /// Laps whose top speed stays under this are dropped (km/h).
@@ -209,6 +218,13 @@ struct PitVisit {
     tyres_taken: bool,
 }
 
+/// A crossing after the finish that waits to see whether the counter holds.
+#[derive(Clone, Copy)]
+struct Late {
+    crossed: f64,
+    lap: i32,
+}
+
 /// A lap that crossed the line and waits for the simulator's time.
 struct Pending {
     lap: FinishedLap,
@@ -233,6 +249,9 @@ pub struct Tracker {
     spare: Option<LapBuffer>,
     pool_rows: usize,
     pending: Option<Pending>,
+    /// The finish crossing (the first with the chequered bit up) was taken.
+    finished: bool,
+    late: Option<Late>,
     visit: PitVisit,
     prev: Option<Prev>,
     gap_since: Option<f64>,
@@ -265,6 +284,8 @@ impl Tracker {
             spare: Some(LapBuffer::with_capacity(pool_rows)),
             pool_rows,
             pending: None,
+            finished: false,
+            late: None,
             visit: PitVisit {
                 was_in_stall: false,
                 tyres_taken: false,
@@ -461,6 +482,8 @@ impl Tracker {
         self.validity.reset();
         self.lap = LapState::NONE;
         self.pending = None;
+        self.finished = false;
+        self.late = None;
         self.stall_tyres = None;
         self.laps_recorded = 0;
         self.best_s = None;
@@ -558,6 +581,15 @@ impl Tracker {
         } else if let Some(p) = prev {
             let length = self.open.as_ref().map_or(0.0, |o| o.length_m);
             let mut line = false;
+            if let Some(l) = self.late {
+                if t.lap < l.lap {
+                    self.late = None;
+                } else if now - l.crossed >= LATE_CROSSING_HOLD_S {
+                    self.late = None;
+                    self.end_at_line(t, l.crossed, sink);
+                    self.start_lap(t, StartKind::Line, l.crossed);
+                }
+            }
             if tow && !p.tow {
                 self.validity
                     .mark_tow(t.lap_dist, (now - self.lap.started_at_s) as f32);
@@ -618,8 +650,16 @@ impl Tracker {
                 }
                 if line {
                     let crossed = crossing_time(p, t);
-                    self.end_at_line(t, crossed, sink);
-                    self.start_lap(t, StartKind::Line, crossed);
+                    if self.finished {
+                        self.late.get_or_insert(Late {
+                            crossed,
+                            lap: t.lap,
+                        });
+                    } else {
+                        self.finished = t.session_flags & session_flags::CHECKERED != 0;
+                        self.end_at_line(t, crossed, sink);
+                        self.start_lap(t, StartKind::Line, crossed);
+                    }
                 }
             }
             if t.on_pit_road && !p.on_pit_road {
@@ -1040,6 +1080,79 @@ mod tests {
         let lap = &sink.laps()[0];
         assert!(lap.partial && !lap.valid && lap.time_s.is_none());
         assert_eq!(lap.cause, Some(InvalidCause::Unknown));
+    }
+
+    /// Drives `rows` rows at 60 Hz from `(time, pct, lap)` with `flags` up. From row `fall_from`
+    /// of the call the lap counters read one lap less (a counter that falls back).
+    fn drive_flagged(
+        tracker: &mut Tracker,
+        meta: &Arc<SessionMeta>,
+        sink: &mut RecordingSink,
+        (mut time, mut pct, mut lap): (f64, f32, i32),
+        rows: usize,
+        (flags, fall_from): (u32, usize),
+    ) -> (f64, f32, i32) {
+        let clock = FixedClock::default();
+        for i in 0..rows {
+            time += 1.0 / 60.0;
+            pct += 0.0002;
+            if pct >= 1.0 {
+                pct -= 1.0;
+                lap += 1;
+            }
+            let counter = if i >= fall_from { lap - 1 } else { lap };
+            let mut t = driving(time, pct);
+            t.session_flags = flags;
+            t.lap = counter;
+            t.lap_completed = counter - 1;
+            tracker.step(&t, Some(meta), sink, &clock);
+        }
+        (time, pct, lap)
+    }
+
+    /// A lap, then the finish crossing with the chequered bit up; returns where it ended and
+    /// how many laps were sent.
+    fn to_the_finish(
+        tracker: &mut Tracker,
+        meta: &Arc<SessionMeta>,
+        sink: &mut RecordingSink,
+    ) -> ((f64, f32, i32), usize) {
+        let none = (0, usize::MAX);
+        let at = drive_flagged(tracker, meta, sink, (0.0, 0.0, 3), 4000, none);
+        let flagged = (session_flags::CHECKERED, usize::MAX);
+        let at = drive_flagged(tracker, meta, sink, at, 1500, flagged);
+        let finished = sink.laps().len();
+        assert!(finished >= 1, "the finish crossing ended its lap");
+        (at, finished)
+    }
+
+    #[test]
+    fn tracker_a_crossing_after_the_finish_that_falls_back_is_no_lap() {
+        let (meta, mut sink) = (meta(), RecordingSink::new());
+        let mut tracker = Tracker::new(64);
+        let (at, finished) = to_the_finish(&mut tracker, &meta, &mut sink);
+        // The next crossing is at row 4500 of the cool-down; the counter is back a second later.
+        let back = (session_flags::CHECKERED, 4560);
+        drive_flagged(&mut tracker, &meta, &mut sink, at, 6000, back);
+        assert_eq!(
+            sink.laps().len(),
+            finished,
+            "the late crossing was taken back"
+        );
+    }
+
+    #[test]
+    fn tracker_a_crossing_after_the_finish_that_holds_is_a_lap() {
+        let (meta, mut sink) = (meta(), RecordingSink::new());
+        let mut tracker = Tracker::new(64);
+        let (at, finished) = to_the_finish(&mut tracker, &meta, &mut sink);
+        let held = (session_flags::CHECKERED, usize::MAX);
+        drive_flagged(&mut tracker, &meta, &mut sink, at, 6000, held);
+        assert_eq!(
+            sink.laps().len(),
+            finished + 1,
+            "a counter that holds is a lap"
+        );
     }
 
     #[test]
