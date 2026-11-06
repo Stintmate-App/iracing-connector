@@ -13,11 +13,15 @@ publish.workspace = true
 iracing-core.workspace = true
 stintmate-connector-platform.workspace = true
 stintmate-connector-control.workspace = true
+stintmate-connector-link.workspace = true
+irsdk.workspace = true
+serde_json.workspace = true
 
 [build-dependencies]
 stintmate-connector-resources.workspace = true
 embed-resource.workspace = true
 
 [dev-dependencies]
-serde_json.workspace = true
+iracing-core = { workspace = true, features = ["testing"] }
+irsdk = { workspace = true, features = ["testing"] }
 tempfile.workspace = true

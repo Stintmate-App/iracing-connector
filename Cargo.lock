@@ -1293,8 +1293,10 @@ version = "0.1.0"
 dependencies = [
  "embed-resource",
  "iracing-core",
+ "irsdk",
  "serde_json",
  "stintmate-connector-control",
+ "stintmate-connector-link",
  "stintmate-connector-platform",
  "stintmate-connector-resources",
  "tempfile",
@@ -1346,6 +1348,7 @@ dependencies = [
  "stintmate-connector-platform",
  "stintmate-connector-resources",
  "stintmate-connector-testing",
+ "stintmate-connector-wire",
  "stintmate-ipc",
  "tempfile",
  "tracing",

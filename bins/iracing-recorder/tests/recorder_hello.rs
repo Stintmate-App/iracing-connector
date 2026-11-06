@@ -11,7 +11,7 @@ use stintmate_connector_testing::{FakePitwall, TempWorkspace, pitwall_pipe, to_j
 use stintmate_ipc::blocking::Delivery;
 
 const WAITING: &str = "Waiting for iRacing";
-const RUNNING: &str = "iRacing is running; laps are not recorded by this version";
+const RUNNING: &str = "iRacing is running: not in a car";
 
 struct Kill(Child);
 impl Drop for Kill {

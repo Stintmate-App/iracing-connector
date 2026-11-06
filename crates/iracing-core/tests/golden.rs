@@ -73,7 +73,7 @@ fn run_ibt(s: &Scenario, rivals: bool) -> RecordingSink {
     if let Some(g) = glue.as_mut() {
         g.finish(&tick, &mut sink);
     }
-    tracker.stop(true, &mut sink, &clock);
+    tracker.finish_open_lap(&mut sink);
     sink
 }
 
@@ -126,7 +126,7 @@ fn run_rows(
     }
     // Send what is still waiting, without ending the session.
     let state = tracker.state();
-    tracker.stop(true, &mut sink, &clock);
+    tracker.finish_open_lap(&mut sink);
     (sink, tracker, state)
 }
 

@@ -4,6 +4,28 @@ All notable changes to this project are written here.
 
 ## 0.1.0 (2026-11-05)
 
+- `iracing-recorder`: reads the simulator's shared memory at 60 Hz and records sessions, laps with
+  their channels, setups, pit exits and the other cars' laps through Pitwall's write API and an
+  outbox, allocating nothing per row (`tests/alloc.rs`); the session text is parsed on other
+  threads. `--sdk-map` and `--sdk-event` read a test mapping instead of the simulator's. A recorder
+  stopped while the simulator runs with a session open keeps the session open and a restarted one
+  continues it (`session-resume.json`); the control app answers the resume watcher by reading the
+  session ids from the simulator's memory. The connector declares the features `setups`, `fuel`,
+  `sectors`, `conditions` and `rivals`. `iracing-core` gains `LapBuffer::into_parts` and
+  `resume::identity_of`.
+- `iracing-recorder`: a new event no longer opens a session with the previous event's car and
+  track. The session description is dropped when the simulator goes away, when a mapping opens
+  and when its layout restarts, and it is taken only when it was built from the session text the
+  simulator holds now (`SessionMeta::update` equals the mapping's update counter). The outbox
+  summary for the status is read on a thread of its own (`summary.rs`), so the sampling thread
+  never waits for the lock the outbox holds while it writes a lap to the disk.
+- `iracing-core`: `Tracker::stop(true)` drops the open lap instead of sending it as a partial
+  one; the recorder that resumes the session closes that lap, so a stop in the middle of a lap no
+  longer writes it twice. `Tracker::finish_open_lap` sends the open lap without ending the
+  session (the end of a replayed file).
+- `irsdk`: the synthetic session (`irsdk::testing::synthetic_ibt`, `iracing-replay --synthetic`)
+  lists the player in `DriverInfo` and its layout holds the variables the recorder needs, so the
+  recorder opens a session and writes laps from it (`tests/synthetic.rs`).
 - `iracing-core`: `live` (`LiveSnapshot`, a fixed-size copy of the row, the lap view and the last
   stall's tyre readings, and `frame_json`, which builds the live frame only when asked: menus,
   garage, on track and paused phases, the splits, the conditions, the wheels of the last stall entry

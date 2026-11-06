@@ -307,24 +307,34 @@ impl Tracker {
 
     /// The game went away: the open lap closes, the session ends.
     pub fn on_off(&mut self, sink: &mut dyn Sink, clock: &dyn Clock) {
-        self.close_session(true, sink, clock);
+        self.close_session(true, true, sink, clock);
         self.state = State::Off;
         self.prev = None;
         self.off_since = None;
         self.view = LapView::IDLE;
     }
 
-    /// The recorder stops. With `keep_open` the session is not ended (it may resume); its open
-    /// lap is still closed and sent.
+    /// The recorder stops. With `keep_open` the session is not ended (it may resume) and its
+    /// open lap is dropped, not sent: the recorder that resumes the session closes that lap
+    /// as a partial one, and sending it here as well would write it twice.
     pub fn stop(&mut self, keep_open: bool, sink: &mut dyn Sink, clock: &dyn Clock) {
         if keep_open {
-            self.close_session(false, sink, clock);
+            self.close_session(false, false, sink, clock);
             self.state = State::Off;
             self.prev = None;
             self.view = LapView::IDLE;
         } else {
             self.on_off(sink, clock);
         }
+    }
+
+    /// Sends the open lap as a partial lap and leaves the session open: the end of a replayed
+    /// file, where nothing resumes.
+    pub fn finish_open_lap(&mut self, sink: &mut dyn Sink) {
+        let end_s = self.prev.map_or(self.lap.started_at_s, |p| p.time);
+        let on_pit_road = self.prev.is_some_and(|p| p.on_pit_road);
+        self.end_partial(end_s, on_pit_road, false, sink);
+        self.resolve_pending(self.last_seen_last, sink);
     }
 
     /// Feeds one new row. `meta` is the latest session description.
@@ -363,7 +373,7 @@ impl Tracker {
                 || m.is_some_and(|m| m.identity_hash != open.key.meta_identity)
         });
         if changed {
-            self.close_session(true, sink, clock);
+            self.close_session(true, true, sink, clock);
         } else if let (Some(open), Some(m)) = (&mut self.open, m)
             && !Arc::ptr_eq(&open.meta, m)
         {
@@ -466,15 +476,21 @@ impl Tracker {
     }
 
     /// Closes the open lap and sends everything pending. `end` sends `end_session`.
-    fn close_session(&mut self, end: bool, sink: &mut dyn Sink, clock: &dyn Clock) {
+    /// Closes the open session. `send_lap`: the open lap goes out as a partial lap; otherwise it
+    /// is dropped.
+    fn close_session(&mut self, end: bool, send_lap: bool, sink: &mut dyn Sink, clock: &dyn Clock) {
         let Some(local) = self.open.as_ref().map(|o| o.local) else {
             return;
         };
-        let end_s = self.prev.map_or(self.lap.started_at_s, |p| p.time);
-        // An interrupted lap is not a garage return: it is `in` only if the last row was on the
-        // pit road.
-        let on_pit_road = self.prev.is_some_and(|p| p.on_pit_road);
-        self.end_partial(end_s, on_pit_road, false, sink);
+        if send_lap {
+            let end_s = self.prev.map_or(self.lap.started_at_s, |p| p.time);
+            // An interrupted lap is not a garage return: it is `in` only if the last row was on
+            // the pit road.
+            let on_pit_road = self.prev.is_some_and(|p| p.on_pit_road);
+            self.end_partial(end_s, on_pit_road, false, sink);
+        } else {
+            self.buffer.clear();
+        }
         self.resolve_pending(self.last_seen_last, sink);
         if end {
             sink.end_session(local, &clock.iso());
@@ -1074,12 +1090,12 @@ mod tests {
 
     #[test]
     fn tracker_a_lap_started_mid_track_is_sent_invalid_with_no_official_time() {
-        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let (meta, mut sink) = (meta(), RecordingSink::new());
         let mut tracker = Tracker::new(64);
         // Driving starts at 0.9 of the lap, crosses the line, and the simulator times the lap.
         let at = drive_rows(&mut tracker, &meta, &mut sink, (0.0, 0.9), 560, -1.0);
         drive_rows(&mut tracker, &meta, &mut sink, at, 300, 95.5);
-        tracker.stop(true, &mut sink, &clock);
+        tracker.finish_open_lap(&mut sink);
         let first = &sink.laps()[0];
         assert!(!first.partial, "it ended at the line");
         assert!(!first.valid);
@@ -1193,18 +1209,32 @@ mod tests {
             t.track_loc = 2;
             tracker.step(&t, Some(&meta), &mut sink, &clock);
         }
-        tracker.stop(true, &mut sink, &clock);
+        tracker.finish_open_lap(&mut sink);
         assert_eq!(sink.laps().len(), 1, "only the lap before the jitter");
     }
 
     #[test]
     fn tracker_an_interrupted_lap_is_not_labelled_in() {
+        let (meta, mut sink) = (meta(), RecordingSink::new());
+        let mut tracker = Tracker::new(64);
+        drive_rows(&mut tracker, &meta, &mut sink, (0.0, 0.5), 600, -1.0);
+        tracker.finish_open_lap(&mut sink);
+        let lap = &sink.laps()[0];
+        assert!(lap.partial);
+        assert_eq!(lap.lap_type, LapType::Flying);
+    }
+
+    #[test]
+    fn tracker_a_stop_that_keeps_the_session_open_drops_the_open_lap() {
         let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
         let mut tracker = Tracker::new(64);
         drive_rows(&mut tracker, &meta, &mut sink, (0.0, 0.5), 600, -1.0);
         tracker.stop(true, &mut sink, &clock);
-        let lap = &sink.laps()[0];
-        assert!(lap.partial);
-        assert_eq!(lap.lap_type, LapType::Flying);
+        assert!(
+            sink.laps().is_empty(),
+            "the resuming recorder closes that lap"
+        );
+        assert_eq!(tracker.session_local(), None);
+        assert!(!sink.kinds().contains(&"end_session"));
     }
 }
