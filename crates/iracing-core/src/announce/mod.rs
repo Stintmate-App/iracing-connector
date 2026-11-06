@@ -257,7 +257,7 @@ mod tests {
     #[test]
     fn catalog_validates_with_the_runtime() {
         let cat = AnnounceCatalog::parse(CATALOG, CATALOG_ID).expect("catalog");
-        assert_eq!(cat.codes().len(), 38);
+        assert_eq!(cat.codes().len(), 39);
     }
 
     #[test]
@@ -270,6 +270,7 @@ mod tests {
             "flag_yellow_ahead",
             "flag_double_yellow_ahead",
             "flag_yellow_cause",
+            "flag_debris",
             "flag_yellow_self",
             "flag_clear",
             "flag_blue",

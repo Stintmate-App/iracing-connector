@@ -165,12 +165,15 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
   events (the offline ids above would be the same).
 ## Session identity
 
-- **not observed yet**: how a session is told from another one in an offline event. Offline,
-  `SessionUniqueID` was 1 and `SubSessionID` 0 in the one event seen, probably in every event.
+- **observed**: offline, `SubSessionID` and `SessionID` are 0 in every event and
+  `SessionUniqueID` numbers the sessions of an event from 1 (a warmup 1 and a race 2; a test drive
+  1), so the ids repeat across events. `SessionTime` restarts with each event and each session.
+  The session text is empty (length 0) for a while when the event changes.
   Assumed: while `SubSessionID` is 0 a restarted recorder continues the open session only when its
   first frame comes within ten minutes of the last frame the stopped recorder saw
   (`crates/iracing-core/src/resume.rs`), besides the same ids, session number, car, track,
-  layout and session type; to confirm with two offline events.
+  layout and session type; the ids alone cannot tell two offline events apart, so the time is
+  needed.
 - **not observed yet**: whether `TrackID` differs for two layouts of one track. Assumed: the
   layout id is the `TrackID` as a decimal number (`crates/iracing-core/src/catalog.rs`); to
   confirm with a second layout.
@@ -311,7 +314,39 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
   between two reads; the lapping car of a blue flag is the nearest real car up to 500 m behind
   that is more than half a lap ahead in race distance. To confirm in a race with cautions.
 
+- **observed** (second probe run, offline race): `PlayerIncidents` is a **one-row pulse**: it
+  holds its word for one row (1/60 s) and is 0 otherwise, which is why every 1 Hz sample read 0.
+  `PlayerCarMyIncidentCount` rises 1 to 3 rows after the pulse. The report byte (low byte) was
+  reliable (2 off track, 5 collision with the world, 7 car contact). **The penalty byte did not
+  match the points**: "2x" came with +1 once and with 0 once, and the warmup words had no penalty
+  byte, so the points are taken from the count only. A report can come with no points. The team,
+  driver and own incident counts were equal.
+- **observed**: `PaceMode` was 1 (double-file start) in every race sample, also after the green
+  and after the finish, and 4 in every warmup sample: it says how the race starts, not whether the
+  field is pacing now. No state 3 (parade laps) appeared in the race. `CarIdxPaceFlags` was not
+  seen in the race.
+- **observed**: the debris flag (`0x40`) came alone, with no yellow, yellow-waving or caution bit,
+  at the same place (lap fraction 0.61 to 0.65) on two laps. No yellow, yellow-waving, caution or
+  caution-waving bit appeared in the race.
+
 ## Race end and rivals
+
+- **observed** (second probe run, offline race of five laps): the **white** bit rose at lap
+  fraction 0.909 of lap 4, 12.7 s before the player started lap 5; the **checkered** bit rose at
+  0.910 of lap 5, 12.3 s before the player's finish; the session state went to 5 at about the
+  same time as the bit. The state went to 6 three seconds after the player left the car. After the
+  finish the bits read checkered with `oneLapToGreen`.
+- **observed**: a position changes only at that car's own crossing of the line (18 of 18 changes
+  of eight cars fell within 5 % of the line). `CarIdxPosition` was 0 for every car on the grid
+  and all were set at the first crossing. `PlayerCarPosition` equalled `CarIdxPosition` of the
+  player in every sample. The player's position stays after the finish.
+- **observed**: after the chequered flag `Lap` rose at a crossing in the pit lane and fell back
+  about five seconds later (race 6 to 7 and back to 6; warmup 4 to 5 and back to 4): no lap is
+  counted after the session's end.
+- **observed**: `ResultsPositions` holds `ClassPosition` counted from 0, while the live
+  `PlayerCarClassPosition` counts from 1; `Position` counts from 1.
+- **observed**: `SessionLapsRemainEx` went 3, 2, 1, 0 at the leader's crossings, up to 3 s before
+  the player's own.
 
 - **observed**: there is no penalty variable (see "Incidents and flags"), so a penalty is
   announced without its type. Offline, `PlayerIncidents` stayed 0, so an incident's cause comes
@@ -430,6 +465,15 @@ Measured on 1427 driving rows above 15 m/s, on a clockwise circuit.
   `.ibt` file existed under the iRacing documents folder afterwards, and the logging key
   started nothing.
 
+- **observed** (second probe run): four `.ibt` files (60 Hz, 282 variables, `ver 2`) hold `Lat`,
+  `Lon` and `Alt` (`Alt` 54 to 72 m over a lap) and, per wheel, `tempL`, `tempM`, `tempR`
+  (surface temperatures), `pressure`, `rideHeight` and `speed`, plus `BrakeABScutPct`: **28
+  variables that exist on disk only** (the live map has none of them). The files lack 77 live-only
+  variables: every `CarIdx*` array, `IsInGarage`, `IsReplayPlaying`, `CarLeftRight`, `RaceLaps`
+  and the 360 Hz variables. The session text in a file is that of the whole weekend. Dead
+  reckoning from `VelocityX`, `VelocityY` and `Yaw` closes a lap within 2.5 m of the position
+  from `Lat` and `Lon`.
+
 ## Not observed yet
 
 - A race session, a safety-car period, parade laps, and the flags under caution (yellow, blue,
@@ -441,7 +485,6 @@ Measured on 1427 driving rows above 15 m/s, on a clockwise circuit.
   `CarIdx*` arrays.
 - A second layout or event, to see whether `TrackID` differs per layout.
 - A pause, spectating, a rewound replay, a virtual-reality mirror, full screen.
-- `.ibt` files, including whether they hold `Lat` and `Lon`.
 
 Tests for recordings from a real machine are written and ignored. `crates/iracing-core/tests/real_fixtures.rs`
 reads the folder `iracing-probe` writes (`IRSDK_FIXTURES=<folder>`): the recorded rows fill the

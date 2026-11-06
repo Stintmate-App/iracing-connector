@@ -50,6 +50,15 @@
    "note": "Said when the simulator shows the debris flag. cause: debris.",
    "group": "flags"
   },
+  "flag_debris": {
+   "text": "Debris on the track.",
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 8,
+   "kind": "announcement",
+   "note": "Said when the simulator shows the debris flag with no yellow flag out. Observed: the debris flag comes alone, as a surface flag.",
+   "group": "flags"
+  },
   "flag_yellow_ahead": {
    "text": "Yellow flag ahead.",
    "audience": "driver",

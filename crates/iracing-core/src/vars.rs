@@ -33,8 +33,10 @@ impl std::error::Error for VarsError {}
 
 /// The list of variables, passed to the macro named `$m`.
 ///
-/// `req` and `opt` are scalars, `req_arr` and `opt_arr` per-car arrays of [`CARS`] elements.
-/// A required variable that is absent stops the recorder; an optional one reads as absent.
+/// `req`, `opt` and `live_only` are scalars, `req_arr`, `opt_arr` and `live_only_arr` per-car
+/// arrays of [`CARS`] elements. A required variable that is absent stops the recorder; an
+/// optional one reads as absent; a live-only one is required in a live table and reads as its
+/// default in a file's.
 macro_rules! variables {
     ($m:ident) => {
         $m! {
@@ -48,8 +50,6 @@ macro_rules! variables {
                 // observed yet: a car is driving when on track, on track car and not in a replay.
                 is_on_track: bool = "IsOnTrack",
                 is_on_track_car: bool = "IsOnTrackCar",
-                is_in_garage: bool = "IsInGarage",
-                is_replay: bool = "IsReplayPlaying",
                 player_idx: i32 = "PlayerCarIdx",
                 // Whether `Lap` rises on the out-lap crossing and in the pit lane is not observed
                 // yet: a recorder should treat either counter as a crossing.
@@ -104,7 +104,8 @@ macro_rules! variables {
                 class_position: i32 = "PlayerCarClassPosition",
                 // Whether the pits are reported closed under a caution is not observed yet.
                 pits_open: bool = "PitsOpen",
-                // The numbers of the pace modes are not observed yet.
+                // Observed: 1 (double-file start) for a whole race, also after the green, and 4 in practice: it
+                // says how the race starts, not whether the field is pacing now. Nothing reads it.
                 pace_mode: i32 = "PaceMode",
                 car_left_right: i32 = "CarLeftRight",
                 air_c: f32 = "AirTemp",
@@ -113,12 +114,20 @@ macro_rules! variables {
                 precip: f32 = "Precipitation",
                 wind_ms: f32 = "WindVel",
             ],
-            req_arr: [
-                car_lap: i32 = "CarIdxLap",
-                car_lap_completed: i32 = "CarIdxLapCompleted",
-                car_pct: f32 = "CarIdxLapDistPct",
-                car_on_pit_road: bool = "CarIdxOnPitRoad",
-                car_loc: i32 = "CarIdxTrackSurface",
+            req_arr: [],
+            // Variables the simulator publishes live but never writes to an `.ibt` file. A live
+            // table must have them; a file's table may lack them and they read as the default.
+            live_only: [
+                is_in_garage: bool = "IsInGarage" => false,
+                is_replay: bool = "IsReplayPlaying" => false,
+            ],
+            live_only_arr: [
+                car_pct: f32 = "CarIdxLapDistPct" => 0.0,
+                car_lap: i32 = "CarIdxLap" => 0,
+                car_lap_completed: i32 = "CarIdxLapCompleted" => -1,
+                car_on_pit_road: bool = "CarIdxOnPitRoad" => false,
+                // -1: not in the world.
+                car_loc: i32 = "CarIdxTrackSurface" => -1,
             ],
             opt_arr: [
                 // Whether the positions are filled outside races is not observed yet.
@@ -238,6 +247,8 @@ macro_rules! define_vars {
         req: [$($rf:ident : $rt:ty = $rn:literal,)*],
         opt: [$($of:ident : $ot:ty = $on:literal,)*],
         req_arr: [$($raf:ident : $rat:ty = $ran:literal,)*],
+        live_only: [$($lf:ident : $lt:ty = $ln:literal => $ld:expr,)*],
+        live_only_arr: [$($laf:ident : $lat:ty = $lan:literal => $lad:expr,)*],
         opt_arr: [$($oaf:ident : $oat:ty = $oan:literal,)*],
     ) => {
         /// Typed handles on every variable the recorder reads, for one variable table.
@@ -248,6 +259,8 @@ macro_rules! define_vars {
             $(pub(crate) $rf: Var<$rt>,)*
             $(pub(crate) $of: Option<Var<$ot>>,)*
             $(pub(crate) $raf: ArrayVar<$rat>,)*
+            $(pub(crate) $lf: Option<Var<$lt>>,)*
+            $(pub(crate) $laf: Option<ArrayVar<$lat>>,)*
             $(pub(crate) $oaf: Option<ArrayVar<$oat>>,)*
             pub(crate) throttle: Var<f32>,
             pub(crate) brake: Var<f32>,
@@ -262,9 +275,34 @@ macro_rules! define_vars {
             /// another type is an error; optional ones that are absent are listed by
             /// [`Vars::missing_optional`] and read as absent.
             pub fn resolve(table: &VarTable) -> Result<Vars, VarsError> {
+                Vars::resolve_with(table, true)
+            }
+
+            /// Resolves the variables of an `.ibt` file's table. The live-only variables may be
+            /// absent: they read as their defaults (not in the garage, no replay, no car on
+            /// any car slot). Every other rule is that of [`Vars::resolve`].
+            pub fn resolve_file(table: &VarTable) -> Result<Vars, VarsError> {
+                Vars::resolve_with(table, false)
+            }
+
+            fn resolve_with(table: &VarTable, live: bool) -> Result<Vars, VarsError> {
                 let mut missing = Vec::new();
                 $(let $rf = req(table, $rn)?;)*
                 $(let $raf = req_arr(table, $ran)?;)*
+                $(
+                    let $lf = if live {
+                        Some(req(table, $ln)?)
+                    } else {
+                        opt(table, $ln, &mut missing)
+                    };
+                )*
+                $(
+                    let $laf = if live {
+                        Some(req_arr(table, $lan)?)
+                    } else {
+                        opt_arr(table, $lan, &mut missing)
+                    };
+                )*
                 let throttle = either(table, "ThrottleRaw", "Throttle")?;
                 let brake = either(table, "BrakeRaw", "Brake")?;
                 let clutch = either(table, "ClutchRaw", "Clutch").ok();
@@ -276,7 +314,7 @@ macro_rules! define_vars {
                 let tyre_temp = tyres(table, &TYRE_TEMP, &mut missing);
                 let tyre_wear = tyres(table, &TYRE_WEAR, &mut missing);
                 Ok(Vars {
-                    $($rf,)* $($of,)* $($raf,)* $($oaf,)*
+                    $($rf,)* $($of,)* $($raf,)* $($lf,)* $($laf,)* $($oaf,)*
                     throttle, brake, clutch, tyre_temp, tyre_wear, missing,
                 })
             }
@@ -333,6 +371,44 @@ mod tests {
         let err = Vars::resolve(&table_of(&without(&["CarIdxLap"]))).unwrap_err();
         assert_eq!(err, VarsError::Missing("CarIdxLap"));
         assert!(err.to_string().contains("CarIdxLap"));
+    }
+
+    const LIVE_ONLY: [&str; 9] = [
+        "IsInGarage",
+        "IsReplayPlaying",
+        "CarIdxLap",
+        "CarIdxLapCompleted",
+        "CarIdxLapDistPct",
+        "CarIdxOnPitRoad",
+        "CarIdxTrackSurface",
+        "CarIdxPosition",
+        "CarLeftRight",
+    ];
+
+    #[test]
+    fn a_file_table_without_the_live_only_variables_resolves_with_defaults() {
+        let table = table_of(&without(&LIVE_ONLY));
+        // A live table must have them: this is the error an `.ibt` file used to give.
+        assert_eq!(
+            Vars::resolve(&table).unwrap_err(),
+            VarsError::Missing("IsInGarage")
+        );
+        let vars = Vars::resolve_file(&table).expect("file variables");
+        assert!(vars.is_in_garage.is_none() && vars.car_loc.is_none());
+        let row = irsdk::row::Row::from_slice(
+            irsdk::testing::RowBuilder::new(&without(&LIVE_ONLY)).bytes(),
+        );
+        let mut t = crate::tick::Tick::new();
+        t.fill(&vars, &row);
+        assert!(!t.is_in_garage && !t.is_replay);
+        assert_eq!(
+            (t.car_lap[3], t.car_lap_completed[3], t.car_loc[3]),
+            (0, -1, -1)
+        );
+        assert!(!t.car_on_pit_road[3] && t.car_pct[3] == 0.0);
+        // A file that has the variables reads them: the same table as a live one.
+        let full = Vars::resolve_file(&table_of(&full_layout())).expect("resolve");
+        assert!(full.is_in_garage.is_some() && full.car_lap.is_some());
     }
 
     #[test]

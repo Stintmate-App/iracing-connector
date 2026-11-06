@@ -51,7 +51,7 @@ fn practice_basic_round_trips_through_an_ibt() {
     );
 
     // The file's own table resolves, and its rows give the same values as the scenario's.
-    let vars = Vars::resolve(ibt.vars()).expect("file variables");
+    let vars = Vars::resolve_file(ibt.vars()).expect("file variables");
     let mut from_file = Tick::new();
     let mut from_rows = Tick::new();
     let table = iracing_core::testing::table_of(s.layout());

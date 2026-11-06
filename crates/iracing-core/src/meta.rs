@@ -60,7 +60,7 @@ pub struct DriverEntry {
 pub struct ResultEntry {
     /// The overall position, 0 when unknown.
     pub position: i32,
-    /// The position in the car's class, 0 when unknown.
+    /// The position in the car's class, from 1, 0 when unknown.
     pub class_position: i32,
     /// The simulator's reason-out number (0 when the car is still running).
     pub reason_out_id: i32,
@@ -350,7 +350,9 @@ pub fn build(doc: &SessionDoc, session_num: i32) -> SessionMeta {
         };
         meta.results[slot] = ResultEntry {
             position: int32(r.position),
-            class_position: int32(r.class_position),
+            // Observed: the results count the class position from 0, the live
+            // `PlayerCarClassPosition` from 1. Here it is from 1, as the overall position.
+            class_position: r.class_position.map_or(0, |c| int32(Some(c)) + 1),
             reason_out_id: int32(r.reason_out_id),
             reason_out: r.reason_out_str.clone().unwrap_or_default(),
         };
@@ -556,6 +558,11 @@ fn run(yaml: &YamlWorker, session_num: &AtomicI32, shared: &Shared) {
             && let Some(doc) = yaml.latest()
         {
             built = Some((generation, num));
+            // Observed: the text is empty at a switch of events. It describes nothing, so no
+            // meta is published for it and the previous one stays in force.
+            if doc.text.trim().is_empty() {
+                continue;
+            }
             let mut meta = build(&doc, num);
             let next = shared.generation.load(Ordering::Relaxed) + 1;
             meta.generation = next;
@@ -652,6 +659,8 @@ mod tests {
         let race = build(&doc, 2);
         assert_eq!(race.kind, SessionKind::Race);
         assert_eq!(race.results[1].position, 2);
+        // The results count the class position from 0; the meta from 1.
+        assert_eq!(race.results[1].class_position, 2);
         assert_eq!(race.results[2].reason_out_id, 3);
         assert_eq!(race.results[2].reason_out, "Disconnected");
         // A session the text does not list is of no known kind.
@@ -853,6 +862,37 @@ mod tests {
         // Nothing changed: no more metas.
         thread::sleep(Duration::from_millis(200));
         assert_eq!(worker.generation(), 3);
+        worker.close();
+    }
+
+    #[test]
+    fn an_empty_text_publishes_no_meta_and_keeps_the_previous_one() {
+        let src = Arc::new(Fake {
+            update: AtomicI32::new(1),
+            text: Mutex::new(YamlBuilder::new().roster(2, 1).build().into_bytes()),
+        });
+        let yaml = Arc::new(YamlWorker::spawn(src.clone()).unwrap());
+        let worker = MetaWorker::spawn(Arc::clone(&yaml), Arc::new(AtomicI32::new(0))).unwrap();
+        yaml.notify(1);
+        wait_for("first meta", || worker.generation() >= 1);
+
+        // The event switches: the text is empty for a while.
+        src.text.lock().unwrap().clear();
+        src.update.store(2, Ordering::SeqCst);
+        yaml.notify(2);
+        wait_for("the empty text is read", || {
+            yaml.latest().is_some_and(|d| d.update == 2)
+        });
+        thread::sleep(Duration::from_millis(200));
+        assert_eq!(worker.generation(), 1, "no meta for an empty text");
+        let kept = worker.latest().expect("meta");
+        assert!(!kept.track.track_id.is_empty(), "the previous meta stays");
+
+        // The next real text publishes again.
+        *src.text.lock().unwrap() = YamlBuilder::new().roster(3, 1).build().into_bytes();
+        src.update.store(3, Ordering::SeqCst);
+        yaml.notify(3);
+        wait_for("the new text", || worker.generation() >= 2);
         worker.close();
     }
 }
