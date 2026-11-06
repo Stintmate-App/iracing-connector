@@ -63,8 +63,8 @@ macro_rules! variables {
                 gear: i32 = "Gear",
                 steer_rad: f32 = "SteeringWheelAngle",
                 lat_accel: f32 = "LatAccel",
-                // The signs of lateral and longitudinal acceleration (right turn positive,
-                // braking negative) are assumed, not observed yet.
+                // Observed: lateral acceleration and the steering angle are above 0 to the left, and
+                // braking gives a negative longitudinal acceleration (docs/FINDINGS.md, Signs and scales).
                 long_accel: f32 = "LongAccel",
                 fuel_l: f32 = "FuelLevel",
                 on_pit_road: bool = "OnPitRoad",

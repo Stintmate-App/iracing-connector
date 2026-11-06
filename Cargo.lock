@@ -1329,6 +1329,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "iracing-measure"
+version = "0.1.0"
+dependencies = [
+ "iracing-core",
+ "iracing-recorder",
+ "irsdk",
+]
+
+[[package]]
 name = "iracing-probe"
 version = "0.1.0"
 dependencies = [

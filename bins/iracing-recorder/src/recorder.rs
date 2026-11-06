@@ -362,12 +362,33 @@ impl Reader {
 
     /// Waits for a row for at most `wait` and passes what comes through `pipe`.
     pub fn poll<S: Sink + NoteClock>(&mut self, wait: Duration, pipe: &mut Pipeline<S>) -> Poll {
+        self.poll_impl::<false, S>(wait, pipe).0
+    }
+
+    /// Like [`Reader::poll`], and also returns how long the row took to process: from the
+    /// moment the wait returned to the end of the row's publication (zero when no row came).
+    /// For measuring; the recorder's loop calls [`Reader::poll`], which reads no clock.
+    pub fn poll_timed<S: Sink + NoteClock>(
+        &mut self,
+        wait: Duration,
+        pipe: &mut Pipeline<S>,
+    ) -> (Poll, Duration) {
+        self.poll_impl::<true, S>(wait, pipe)
+    }
+
+    fn poll_impl<const TIMED: bool, S: Sink + NoteClock>(
+        &mut self,
+        wait: Duration,
+        pipe: &mut Pipeline<S>,
+    ) -> (Poll, Duration) {
         let poll = self.live.wait(wait);
+        let began = TIMED.then(Instant::now);
+        let mut step = Duration::ZERO;
         match poll {
             Poll::Row => {
                 pipe.t_ns = now_ns();
                 let Some(vars) = self.vars.as_ref() else {
-                    return poll;
+                    return (poll, step);
                 };
                 let sampler = self.live.sampler();
                 pipe.tick.fill(vars, sampler.row());
@@ -395,6 +416,9 @@ impl Reader {
                 }
                 pipe.row();
                 pipe.publish();
+                if let Some(t) = began {
+                    step = t.elapsed();
+                }
             }
             Poll::Reset => {
                 pipe.forget_meta();
@@ -409,7 +433,7 @@ impl Reader {
             }
             Poll::NoNewRow | Poll::Torn => {}
         }
-        poll
+        (poll, step)
     }
 }
 

@@ -1,0 +1,19 @@
+[package]
+name = "iracing-measure"
+description = "Measures the recorder's loop on a synthetic replay: CPU, step time, allocations and memory"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[[bin]]
+name = "iracing-measure"
+path = "src/main.rs"
+
+[dependencies]
+iracing-core = { workspace = true, features = ["testing"] }
+iracing-recorder = { path = "../../bins/iracing-recorder" }
+irsdk = { workspace = true, features = ["testing"] }
