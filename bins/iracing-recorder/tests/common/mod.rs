@@ -105,6 +105,35 @@ impl Rig {
     }
 }
 
+/// The recorder's connection in the fake Pitwall, once it is up.
+pub fn peer(rig: &Rig) -> stintmate_ipc::blocking::Peer {
+    assert!(wait_for(15, || rig.fake.peer().is_some()), "no hello");
+    rig.fake.peer().unwrap()
+}
+
+/// A call from the fake Pitwall to the recorder, answered as JSON.
+pub fn call(
+    rig: &Rig,
+    method: &str,
+    params: serde_json::Value,
+) -> Result<serde_json::Value, stintmate_ipc::Error> {
+    peer(rig)
+        .call(
+            method,
+            stintmate_connector_link::link::to_value(&params),
+            stintmate_ipc::connection::CallOptions::default(),
+        )
+        .map(|v| stintmate_connector_testing::to_json(&v))
+}
+
+/// The code of a refused call.
+pub fn remote_code(r: Result<serde_json::Value, stintmate_ipc::Error>) -> String {
+    match r {
+        Err(stintmate_ipc::Error::Remote(e)) => e.code,
+        other => panic!("expected a remote error, got {other:?}"),
+    }
+}
+
 /// A session with `laps` laps of `lap_s` seconds, after the garage and the pit exit.
 pub fn scenario(laps: u32, lap_s: f64) -> Scenario {
     let mut s = Scenario::new(YamlBuilder::new());

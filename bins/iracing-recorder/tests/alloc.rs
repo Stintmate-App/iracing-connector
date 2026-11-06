@@ -1,12 +1,15 @@
-//! The loop allocates nothing per row while driving: a counting allocator on the loop thread
+//! The loop allocates nothing per row while driving, live frame and telemetry ring included: a
+//! counting allocator on the loop thread
 //! only, over a test mapping filled by a replay.
 
 use iracing_core::testing::{FixedClock, LapProfile, RecordingSink, Scenario, YamlBuilder};
 use iracing_core::tracker::State;
 use iracing_core::{FinishedLap, ParticipantLap, SessionOpenInfo, SetupReason, Sink};
 use iracing_recorder::cli::SdkNames;
+use iracing_recorder::live::LiveBuffer;
 use iracing_recorder::recorder::{Pipeline, Reader};
 use iracing_recorder::sink::NoteClock;
+use iracing_recorder::telemetry::Ring;
 use irsdk::sampler::Poll;
 use irsdk::testing::map::TestMap;
 use std::alloc::{GlobalAlloc, Layout, System};
@@ -96,22 +99,32 @@ fn the_loop_allocates_nothing_per_row_while_driving() {
         Rec(RecordingSink::default()),
         Box::new(FixedClock::default()),
     );
+    // The live frame and a subscribed telemetry stream are part of the loop.
+    let live = Arc::new(LiveBuffer::default());
+    let ring = Arc::new(Ring::default());
+    ring.set_subscribed(true);
+    pipe.live = Some(live.clone());
+    pipe.ring = Some(ring.clone());
     let deadline = Instant::now() + Duration::from_secs(30);
     let mut driving = 0;
     while driving < 60 && Instant::now() < deadline {
         reader.poll(Duration::from_millis(25), &mut pipe);
+        while ring.pop().is_some() {}
         if pipe.tracker.view().state == State::Track {
             driving += 1;
         }
     }
     assert!(driving >= 60, "the replay never reached the track");
-    let (mut rows, mut allocs) = (0u32, 0u64);
+    let (mut rows, mut allocs, mut samples) = (0u32, 0u64, 0u32);
     let end = Instant::now() + Duration::from_secs(5);
     while rows < 200 && Instant::now() < end {
         N.with(|n| n.set(0));
         COUNT.with(|c| c.set(true));
         let poll = reader.poll(Duration::from_millis(25), &mut pipe);
         COUNT.with(|c| c.set(false));
+        while ring.pop().is_some() {
+            samples += 1;
+        }
         if poll == Poll::Row {
             rows += 1;
             allocs += N.with(Cell::get);
@@ -120,6 +133,10 @@ fn the_loop_allocates_nothing_per_row_while_driving() {
     stop.store(true, Ordering::Relaxed);
     let _ = replay.join();
     assert!(rows >= 150, "only {rows} rows were measured");
+    assert!(samples >= rows, "{samples} samples for {rows} rows");
+    assert_eq!(ring.dropped(), 0, "the ring was drained every row");
+    let mut snap = iracing_core::live::LiveSnapshot::empty();
+    assert!(live.read(&mut snap), "the live frame was published");
     assert_eq!(
         allocs, 0,
         "the loop allocated {allocs} times in {rows} rows"

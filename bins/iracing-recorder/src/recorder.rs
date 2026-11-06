@@ -11,6 +11,7 @@ use iracing_core::lap::RESERVE_ROWS;
 use iracing_core::meta::{MetaWorker, SessionMeta};
 use iracing_core::resume::IrClock;
 use iracing_core::rivals::{CatalogWatch, RivalTracker};
+use iracing_core::telemetry::sample;
 use iracing_core::tick::Tick;
 use iracing_core::tracker::{State, Tracker};
 use iracing_core::vars::Vars;
@@ -24,10 +25,16 @@ use stintmate_connector_link::status::{StatusInput, StatusWorker};
 use stintmate_connector_platform::game::{GameWatch, game_pid};
 use stintmate_connector_platform::logging::local_iso;
 
+use stintmate_ipc::MethodOpts;
+use stintmate_ipc::clock::now_ns;
+
 use crate::cli::{Options, SdkNames};
+use crate::live::LiveBuffer;
+use crate::serve::{self, SessionKeyCell};
 use crate::sink::{NoteClock, TrackerSink};
 use crate::status::{self, Facts};
 use crate::summary::OutboxSummary;
+use crate::telemetry::{Ring, Telemetry};
 
 /// How long one wait for the simulator's event lasts. A missed event costs at most this.
 const WAIT: Duration = Duration::from_millis(25);
@@ -88,10 +95,17 @@ pub struct Pipeline<S: Sink + NoteClock> {
     pub sink: S,
     /// The latest session description.
     pub meta: Option<Arc<SessionMeta>>,
+    /// Where each row is published for `connector.live_frame`, when something serves it.
+    pub live: Option<Arc<LiveBuffer>>,
+    /// Where each row's sample goes for `connector.telemetry`, when something serves it.
+    pub ring: Option<Arc<Ring>>,
+    /// The monotonic time of the row in nanoseconds, taken right after the wait returned.
+    pub t_ns: i64,
     clock: Box<dyn Clock>,
     rivals: RivalTracker,
     catalog: CatalogWatch,
     laps_seen: u32,
+    frames: u32,
 }
 
 impl<S: Sink + NoteClock> Pipeline<S> {
@@ -102,10 +116,14 @@ impl<S: Sink + NoteClock> Pipeline<S> {
             tracker: Tracker::new(RESERVE_ROWS),
             sink,
             meta: None,
+            live: None,
+            ring: None,
+            t_ns: 0,
             clock,
             rivals: RivalTracker::new(),
             catalog: CatalogWatch::new(),
             laps_seen: 0,
+            frames: 0,
         }
     }
 
@@ -113,7 +131,33 @@ impl<S: Sink + NoteClock> Pipeline<S> {
     /// names a new car.
     pub fn set_meta(&mut self, meta: Arc<SessionMeta>) {
         self.catalog.offer(&meta, &mut self.sink);
+        if let Some(live) = &self.live {
+            live.set_meta(Some(meta.clone()));
+        }
         self.meta = Some(meta);
+    }
+
+    /// Hands the row just processed to the live frame and to the telemetry stream. Hot: copies
+    /// plain values into preallocated buffers, takes no lock and allocates nothing.
+    pub fn publish(&mut self) {
+        let view = self.tracker.view();
+        if let Some(live) = &self.live {
+            live.publish(
+                &self.tick,
+                &view,
+                self.tracker.stall_tyres().copied(),
+                wall_s(),
+            );
+        }
+        if let Some(ring) = self.ring.as_ref().filter(|r| r.wanted()) {
+            self.frames = self.frames.wrapping_add(1);
+            let length = self
+                .meta
+                .as_deref()
+                .and_then(|m| m.track.length_m)
+                .map_or(0.0, |l| l as f32);
+            ring.push(&sample(&self.tick, &view, length, self.frames), self.t_ns);
+        }
     }
 
     /// The wall clock's reading of the row for the resume file; `None` without a description.
@@ -163,12 +207,19 @@ impl<S: Sink + NoteClock> Pipeline<S> {
     /// new one. The tracker matches a description to rows by the session number alone, and the
     /// offline simulator numbers the sessions of every event 0.
     pub fn forget_meta(&mut self) {
-        self.meta = None;
+        if self.meta.take().is_some()
+            && let Some(live) = &self.live
+        {
+            live.set_meta(None);
+        }
     }
 
     /// The simulator went away: the session ends.
     pub fn off(&mut self) {
         self.tracker.on_off(&mut self.sink, &*self.clock);
+        if let Some(live) = &self.live {
+            live.clear();
+        }
         self.forget_meta();
         self.rivals.reset();
         self.catalog.closed();
@@ -249,6 +300,7 @@ impl Reader {
         let poll = self.live.wait(wait);
         match poll {
             Poll::Row => {
+                pipe.t_ns = now_ns();
                 let Some(vars) = self.vars.as_ref() else {
                     return poll;
                 };
@@ -277,6 +329,7 @@ impl Reader {
                     }
                 }
                 pipe.row();
+                pipe.publish();
             }
             Poll::Reset => {
                 pipe.forget_meta();
@@ -284,8 +337,10 @@ impl Reader {
                 self.last_update = i32::MIN;
             }
             Poll::Disconnected => {
+                pipe.t_ns = now_ns();
                 pipe.tick.connected = false;
                 pipe.row();
+                pipe.publish();
             }
             Poll::NoNewRow | Poll::Torn => {}
         }
@@ -312,10 +367,6 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
             ""
         }
     );
-    booted.pitwall.start();
-    if let Some(control) = &booted.control {
-        control.start();
-    }
     let outbox = booted.location.data_dir.join("outbox");
     let write = match WriteSink::<IrClock>::new(&outbox, booted.pitwall.clone(), None, SPEC.id) {
         Ok(w) => w,
@@ -343,6 +394,48 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
         })
     };
     let mut pipe = Pipeline::new(TrackerSink::new(write), Box::new(WallClock::new()));
+
+    // What Pitwall can ask for is registered before the link starts: the live frame, the
+    // capture target, the actions and the telemetry stream.
+    let live = Arc::new(LiveBuffer::default());
+    let ring = Arc::new(Ring::default());
+    let session_key: SessionKeyCell = Arc::default();
+    let io_err = |e: stintmate_ipc::Error| e.to_string();
+    let served = (|| -> Result<Telemetry, String> {
+        let l = live.clone();
+        booted
+            .pitwall
+            .client
+            .method(
+                "connector.live_frame",
+                MethodOpts::default().inline(true),
+                move |_ctx, _params| l.answer(),
+            )
+            .map_err(io_err)?;
+        serve::install(&booted.pitwall, session_key.clone(), booted.started_at)?;
+        Telemetry::install(&booted.pitwall.client, ring.clone()).map_err(io_err)
+    })();
+    let telemetry = match served {
+        Ok(t) => t,
+        Err(e) => {
+            tracing::error!("Cannot register the methods Pitwall calls: {e}");
+            outbox_summary.close();
+            pipe.sink.write.close(CLOSE_DRAIN);
+            worker.close();
+            booted.pitwall.close();
+            if let Some(control) = &booted.control {
+                control.close();
+            }
+            return 1;
+        }
+    };
+    pipe.live = Some(live);
+    pipe.ring = Some(ring.clone());
+    booted.pitwall.start();
+    if let Some(control) = &booted.control {
+        control.start();
+    }
+    let mut key_seen: Option<String> = None;
     let mut watch = GameWatch::new(&SPEC.game);
     let mut input = StatusInput::default();
     let mut reader: Option<Reader> = None;
@@ -417,6 +510,13 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
             p.stint = sink.stint(local);
             p.session_id = sink.remote_id(local);
             sink.with_session_key(local, |k| input.session_key.assign(k));
+            if input.session_key.get() != key_seen.as_deref() {
+                // Changes with a session: the announcer's copy, off the per-row path.
+                key_seen = input.session_key.get().map(str::to_owned);
+                *session_key.lock().unwrap_or_else(|p| p.into_inner()) = key_seen.clone();
+            }
+            input.plain.telemetry = telemetry.subscribed();
+            ring.set_idle(reader.is_none());
             worker.submit(&input, first);
             first = false;
         }
@@ -439,6 +539,7 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
     pipe.sink.write.close(CLOSE_DRAIN);
     outbox_summary.close();
     drop(reader);
+    telemetry.close();
     worker.close();
     booted.pitwall.close();
     if let Some(control) = &booted.control {

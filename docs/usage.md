@@ -7,18 +7,39 @@ control app by hand.
 |---|---|
 | `iracing-connector-ui.exe` | The control app: a tray icon, the supervision of the recorder, the connector's own endpoint (`connector-iracing`) and the registration. |
 | `iracing-connector-window.exe` | The window with the Services, Options and Logs pages. The control app starts it on demand; one window at most. |
-| `iracing-recorder.exe` | The recorder, started hidden by the control app. It connects to Pitwall and reports whether iRacing runs. It reads no simulator data and records no laps yet. |
+| `iracing-recorder.exe` | The recorder, started hidden by the control app. It reads the simulator, records through Pitwall and answers Pitwall's live requests. |
 
 ## What the recorder does today
 
 - It connects to Pitwall, says hello as connector `iracing` and publishes the status
-  `connector.status` whenever it changes (it looks once a second).
+  `connector.status` whenever it changes (it looks twice a second).
 - `game_running` is true while the `iRacingSim64DX11.exe` process exists. The check opens the
   simulator's memory map by name without mapping it, and takes a process snapshot when the map
   appears, and at least every 60 seconds.
-- `phase` is `null` while the simulator is not running and `"menus"` while it runs. The message
-  is "Waiting for iRacing" or "iRacing is running; laps are not recorded by this version".
+- `phase` is `null` while the simulator is not running, `"menus"` while it runs and the player
+  is not in a car, `"garage"` in the garage and `"on_track"` while recording. The message is
+  "Waiting for iRacing", "iRacing is running: not in a car", "In the garage", "Recording" or
+  "Replay: not recording". `live` is true while a session is open and `telemetry` while Pitwall
+  is subscribed to the sample stream.
+- It records sessions, laps, setups, pit exits and the other cars' laps (see below).
 - It stops when the control app sets its stop event, and exits 0.
+
+### What Pitwall can ask of it
+
+The recorder registers these before it connects, and answers on its own threads: the sampling
+thread only copies the row into preallocated buffers.
+
+| Request | Answer |
+|---|---|
+| `connector.live_frame` | The live frame built from the last row: `phase` `"on_track"`, `"garage"`, `"menus"` or `"paused"` (no new row for one second), with the session, track, car, lap, splits, conditions and participants. The error `game_not_running` while the simulator is not running or no row arrived. |
+| `connector.capture_target` | `{hwnd, pid, title}` of the largest visible window of `iRacingSim64DX11.exe`; failing that, a window titled `iRacing.com Simulator` of class `SimWinClass` (observed on the simulator). The errors `game_not_running` (no such window) and `window_minimized`. |
+| `connector.telemetry` (stream) | One 32-byte sample per row, declared at 60 Hz. Nothing is produced while nobody is subscribed. The subscription option `rate_hz` (10 to 200) lowers the cap, a value above 60 gives 60, a value out of range is refused with `bad_request`. With no new row for 0.25 s the last sample is sent again with `FRESH` clear; its `game_state` says paused after a second, or not running once the simulator is gone. |
+| `connector.action` | `test.ping` (answers `pong` and says the radio check; `say: false` only answers) and `test.announce` (sends one announcement of the connector's catalog; a bad code, parameter or variant is `bad_request`). Any other code is `unknown_action`. |
+
+At every connection it also declares to Pitwall its announcement catalog (`connector.iracing`),
+its guidance for the engineer (at most 16 items) and the two actions. The features it declares
+are `setups`, `fuel`, `sectors`, `conditions`, `rivals`, `live_frame`, `lap_status`,
+`capture_target`, `brake_cues`, `guidance` and `actions`. It does not announce events yet.
 
 ## Options
 
