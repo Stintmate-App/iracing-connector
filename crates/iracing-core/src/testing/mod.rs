@@ -62,6 +62,7 @@ const SCALARS: &[(&str, VarType, &str)] = &[
     ("VelocityX", Float, "m/s"),
     ("VelocityY", Float, "m/s"),
     ("Yaw", Float, "rad"),
+    ("YawNorth", Float, "rad"),
     ("FuelLevel", Float, "l"),
     ("BrakeABSactive", Bool, ""),
     ("OnPitRoad", Bool, ""),

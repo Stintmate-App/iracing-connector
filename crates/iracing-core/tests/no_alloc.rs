@@ -103,6 +103,10 @@ fn filling_a_tick_and_feeding_the_lap_pieces_allocates_nothing() {
     assert_eq!(after - before, 0, "allocations on the hot path");
     assert_eq!(buffer.len(), rows.len());
     assert!(calls.is_empty());
+    // The rows carry velocity and a heading: the position was integrated inside the counted
+    // region.
+    assert!(buffer.present().position);
+    assert!(buffer.columns().z.iter().any(|v| *v != 0.0));
 }
 
 /// A sink that counts and keeps nothing.

@@ -342,7 +342,24 @@ impl Reader {
 
     fn resolve(&mut self) {
         self.vars = match Vars::resolve(self.live.sampler().vars()) {
-            Ok(v) => Some(v),
+            Ok(v) => {
+                let missing: Vec<_> = v.missing_optional().collect();
+                let has = |name: &str| !missing.contains(&name);
+                let velocity = has("VelocityX") && has("VelocityY");
+                let heading = if has("YawNorth") {
+                    Some("YawNorth")
+                } else if has("Yaw") {
+                    Some("Yaw")
+                } else {
+                    None
+                };
+                match heading {
+                    Some(h) if velocity => tracing::info!("Position: velocity and {h}"),
+                    Some(h) => tracing::info!("Position: speed and {h} (no VelocityX/VelocityY)"),
+                    None => tracing::info!("Position: none (no YawNorth or Yaw)"),
+                }
+                Some(v)
+            }
             Err(e) => {
                 tracing::error!("The simulator's variables are not usable: {e}");
                 None

@@ -64,7 +64,7 @@ fn conditions(c: &Conditions) -> Value {
 
 /// Name, length, first and last value and a checksum of every column.
 fn channels(c: &Columns) -> Value {
-    let all: [(&str, &Vec<f32>); 18] = [
+    let all: [(&str, &Vec<f32>); 20] = [
         ("t", &c.t),
         ("dist", &c.dist),
         ("speed", &c.speed),
@@ -83,6 +83,8 @@ fn channels(c: &Columns) -> Value {
         ("pit_mode", &c.pit_mode),
         ("ext_surface", &c.ext_surface),
         ("ext_incidents", &c.ext_incidents),
+        ("x", &c.x),
+        ("z", &c.z),
     ];
     let mut out = serde_json::Map::new();
     for (name, v) in all {

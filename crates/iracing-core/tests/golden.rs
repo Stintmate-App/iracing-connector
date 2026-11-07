@@ -945,3 +945,55 @@ fn golden_disconnect() {
         "the lap over the three second gap is kept; the session ends after the six second one"
     );
 }
+
+// ---- position ----------------------------------------------------------------------------
+
+/// The metres between a lap's row `i` and the line.
+fn from_line(lap: &iracing_core::io::FinishedLap, i: usize) -> f64 {
+    let c = lap.buffer.columns();
+    f64::from(c.x[i]).hypot(f64::from(c.z[i]))
+}
+
+#[test]
+fn laps_carry_a_position_anchored_at_the_line() {
+    let mut s = Scenario::new(YamlBuilder::new());
+    s.garage(5.0).to_stall().drive_out();
+    for _ in 0..3 {
+        s.lap(LapProfile::new(30.0));
+    }
+    s.drive_through();
+    s.lap(LapProfile::new(30.0));
+    s.pit_in();
+    s.to_garage();
+    let (sink, _, _) = run(&s);
+    // One row at the fastest speed is about 2.3 m.
+    let step = 5.0;
+    let mut checked = [0; 4];
+    for lap in sink.laps() {
+        let last = lap.buffer.len() - 1;
+        assert!(lap.buffer.present().position, "{:?}", lap.lap_type);
+        match (lap.lap_type.as_str(), lap.partial, lap.touched_pit) {
+            // From the stall to the line: the end anchor puts the line at the origin.
+            ("out", false, _) => {
+                assert!(from_line(lap, last) < step, "{}", from_line(lap, last));
+                checked[0] += 1;
+            }
+            // From the line to the line without the pits: closed, so it ends at the line too.
+            ("flying", false, false) => {
+                assert!(from_line(lap, 0) < step);
+                assert!(from_line(lap, last) < step, "{}", from_line(lap, last));
+                checked[1] += 1;
+            }
+            // Started at the line, ended in the pits or through them: start anchor only.
+            (_, _, true) => {
+                assert!(from_line(lap, 0) < step || lap.lap_type.as_str() == "out");
+                checked[2] += 1;
+            }
+            _ => checked[3] += 1,
+        }
+    }
+    assert!(
+        checked[0] >= 1 && checked[1] >= 2 && checked[2] >= 2,
+        "{checked:?}"
+    );
+}

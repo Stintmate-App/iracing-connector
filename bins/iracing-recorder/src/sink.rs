@@ -80,7 +80,7 @@ pub fn channels(cols: Columns, present: Present) -> Option<wire::LapChannels> {
     if cols.t.is_empty() {
         return None;
     }
-    let mut out: Vec<(Cow<'static, str>, Vec<f32>)> = Vec::with_capacity(18);
+    let mut out: Vec<(Cow<'static, str>, Vec<f32>)> = Vec::with_capacity(20);
     let mut add = |name: &'static str, keep: bool, col: Vec<f32>| {
         if keep {
             out.push((Cow::Borrowed(name), col));
@@ -104,6 +104,8 @@ pub fn channels(cols: Columns, present: Present) -> Option<wire::LapChannels> {
     add("pit_mode", true, cols.pit_mode);
     add("ext_surface", present.surface, cols.ext_surface);
     add("ext_incidents", present.incidents, cols.ext_incidents);
+    add("x", present.position, cols.x);
+    add("z", present.position, cols.z);
     Some(wire::LapChannels(out))
 }
 
