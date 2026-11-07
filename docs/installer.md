@@ -188,7 +188,7 @@ Uninstall: stop the connector, run `unins000.exe /VERYSILENT /SUPPRESSMSGBOXES /
 
 The install folder is `%LOCALAPPDATA%\Programs\Stintmate iRacing Connector\`; the installation's
 uninstaller and version are also under `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall`
-(AppId `{E3A94F7B-5C18-4D2E-9B60-81F5D3C7A204}`, `_is1`). The setup keeps nothing else in the
+(AppId `{2F61C8D0-4A97-4B3E-A5D2-9E08B7143C6F}; the development build's is `{B84F2A63-91D7-4E05-8C3B-5A60E7D1F928}``, `_is1`). The setup keeps nothing else in the
 registry.
 
 ## Building it

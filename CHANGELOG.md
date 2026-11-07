@@ -4,6 +4,8 @@ All notable changes to this project are written here.
 
 ## Unreleased
 
+- **Documentation.** Checked against the code; corrections: the version and the pinned runtime tag, the features the connector declares (five were missing), the installer's AppId, the position accuracy bound (2.7 m), one source reference, Pitwall named on first use.
+
 - **Installer.** `iRacing-Connector-<version>-setup.exe` (Inno Setup 6, per user, no
   administrator rights, unsigned) installs the three programs, the licence notices and `icon.png`
   next to the control app, and registers the connector with `iracing-connector-ui.exe --register`;
