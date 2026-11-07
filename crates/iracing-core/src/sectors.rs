@@ -83,6 +83,19 @@ impl SectorClock {
         }
     }
 
+    /// Places a lap that began away from the line: every start at or before `pct` counts as
+    /// passed (its sector stays untimed), so the live sector follows the car from the first row.
+    pub fn align(&mut self, pct: f64) {
+        if self.count == 0 {
+            return;
+        }
+        let behind = self.starts[..self.count]
+            .iter()
+            .take_while(|s| **s <= pct)
+            .count();
+        self.passed = behind.max(1);
+    }
+
     /// Index of the last sector start passed this lap, 0-based; `None` without sectors.
     pub fn current(&self) -> Option<u8> {
         (self.count > 0 && self.passed > 0).then(|| (self.passed - 1) as u8)
@@ -111,6 +124,14 @@ impl SectorClock {
     /// add up to the official time within [`ABORTED_SECTOR_TOLERANCE_S`], every sector is
     /// untimed.
     pub fn finish(&self, end_t: f64, official_s: Option<f32>) -> SectorTimes {
+        self.finish_lap(end_t, official_s, false)
+    }
+
+    /// As [`SectorClock::finish`]. `race_start` marks the first lap of a race after its start:
+    /// the simulator times it from the start, before the car reaches the line, so its official
+    /// time is longer than the sum of the sectors by the run to the line. That difference
+    /// belongs to the first sector and is added to it, instead of dropping every sector.
+    pub fn finish_lap(&self, end_t: f64, official_s: Option<f32>, race_start: bool) -> SectorTimes {
         if self.count == 0 {
             return SectorTimes::NONE;
         }
@@ -135,6 +156,12 @@ impl SectorClock {
         }
         if let Some(official) = official_s {
             let all = timed == self.count;
+            if race_start && all && official - sum > ABORTED_SECTOR_TOLERANCE_S {
+                if let Some(first) = out.times[0].as_mut() {
+                    *first += official - sum;
+                    sum = official;
+                }
+            }
             let off = if all {
                 (sum - official).abs() > ABORTED_SECTOR_TOLERANCE_S
             } else {
@@ -240,6 +267,35 @@ mod tests {
     fn more_than_sixteen_starts_are_cut() {
         let starts: Vec<f64> = (0..20).map(|i| f64::from(i) / 20.0).collect();
         assert_eq!(SectorClock::new(&starts).sector_count(), MAX_SECTORS);
+    }
+
+    #[test]
+    fn a_race_start_lap_adds_the_run_to_the_line_to_the_first_sector() {
+        let mut c = SectorClock::new(&STARTS);
+        c.start_lap(100.0, false);
+        let end = drive(&mut c, 100.0, 90.0, 0.05);
+        // The simulator timed the lap from the start, 2.5 s before the line.
+        let t = c.finish_lap(end, Some(92.5), true);
+        let s = t.as_slice();
+        assert!((s[0].unwrap() - 29.5).abs() < 1e-3);
+        assert!((s[1].unwrap() - 36.0).abs() < 1e-3);
+        assert!((s[2].unwrap() - 27.0).abs() < 1e-3);
+        // Any other lap with that mismatch loses its sectors, and a shorter official time too.
+        assert!(c.finish_lap(end, Some(92.5), false).as_slice().iter().all(Option::is_none));
+        assert!(c.finish_lap(end, Some(88.0), true).as_slice().iter().all(Option::is_none));
+    }
+
+    #[test]
+    fn align_counts_the_starts_behind_a_lap_begun_off_the_line() {
+        let mut c = SectorClock::new(&STARTS);
+        c.start_lap(0.0, true);
+        c.align(0.5);
+        assert_eq!(c.current(), Some(1));
+        c.step(0.69, 0.71, 2.0, 3.0);
+        assert_eq!(c.current(), Some(2));
+        c.start_lap(0.0, true);
+        c.align(0.05);
+        assert_eq!(c.current(), Some(0));
     }
 
     #[test]
