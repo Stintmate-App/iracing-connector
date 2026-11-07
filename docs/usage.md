@@ -23,7 +23,7 @@ control app by hand.
   is subscribed to the sample stream.
 - It records sessions, laps, setups, pit exits and the other cars' laps (see below). Each lap
   carries `x` and `z`, the car's position in metres (east and north, origin at the
-  start/finish line) by dead reckoning; Pitwall draws the track outline and the track maps
+  start/finish line) by dead reckoning; Pitwall (Stintmate's telemetry database) draws the track outline and the track maps
   from them. The position is approximate: within about 3 m on the laps checked (see
   [FINDINGS.md](FINDINGS.md#position-by-dead-reckoning)).
 - It stops when the control app sets its stop event, and exits 0.
@@ -42,7 +42,7 @@ thread only copies the row into preallocated buffers.
 
 At every connection it also declares to Pitwall its announcement catalog (`connector.iracing`),
 its guidance for the engineer (at most 16 items) and the two actions. The features it declares
-are `setups`, `fuel`, `sectors`, `conditions`, `rivals`, `live_frame`, `lap_status`,
+are `window`, `notices`, `translated_texts`, `remembered_services`, `options` (the five the control app provides), `setups`, `fuel`, `sectors`, `conditions`, `rivals`, `live_frame`, `lap_status`,
 `capture_target`, `brake_cues`, `guidance`, `actions`, `announcements` and `spotter`.
 
 While a session is open it announces flags, cautions, penalties, the finish, other cars'
@@ -52,7 +52,7 @@ any 60 seconds go out, and 120 of the spotter's; one over its limit is dropped, 
 ## Options
 
 The control app's command line is implemented by the shared connector runtime this repository
-pins (`Cargo.toml`, tag `v0.1.2`; `control/src/cli.rs` there):
+pins (`Cargo.toml`, tag `v0.1.3`; `control/src/cli.rs` there):
 
 | Option | Meaning |
 |---|---|

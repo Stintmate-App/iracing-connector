@@ -143,7 +143,7 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
 - **observed**: `TrackLength` is a number, a space and `km` (`4.2865 km`), and
   `TrackLengthOfficial` is written the same way (`4.33 km`). `TrackPitSpeedLimit` is a number, a
   space and `kph` (`49.97 kph`); `TrackPaceSpeed` is `72.40 kph`. The parser takes "n km" and
-  "n kph" (`crates/irsdk/src/session.rs:98`).
+  "n kph" (`crates/irsdk/src/session.rs:88`, `crates/irsdk/src/yaml/units.rs:14`).
 - **observed**: other units in the text: `TrackAltitude: 69.47 m`, `TrackLatitude: 53.180009 m`
   (the unit letter is iRacing's, the value is degrees), `TrackNorthOffset: 3.0267 rad`,
   `TrackAirPressure: 29.68 Hg`, `TrackSurfaceTemp: 27.11 C`, `WindSpeed: 11.27 km/h`. The live
@@ -484,8 +484,8 @@ Measured on 1427 driving rows above 15 m/s, on a clockwise circuit.
 
 ## Position by dead reckoning
 
-All of this is **observed** on four `.ibt` files of one track (Oulton Park, one car, 60 Hz),
-five full laps with no pit road and no incident, comparing against the file's `Lat` and `Lon`.
+All of this is **observed** on `.ibt` files of one track (Oulton Park, one car, 60 Hz); the table lists the five laps used, from three files,
+with no pit road and no incident, comparing against the file's `Lat` and `Lon`.
 
 - `VelocityX` is forward and **`VelocityY` is positive to the left** (car frame, m/s): with the
   sign as written a lap closes within 0.2 to 2.1 m; with the opposite sign it misses by 17 to

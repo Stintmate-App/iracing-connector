@@ -1,7 +1,7 @@
 # iracing-connector
 
 Stintmate's connector for iRacing: it reads the simulator's telemetry through the iRacing SDK and
-records laps, live data and race calls for Stintmate's race engineer. Written in Rust, for Windows.
+records laps, live data and race calls for Stintmate's race engineer (through Pitwall, Stintmate's telemetry database). Written in Rust, for Windows.
 Read-only: it never writes to the simulator.
 
 Not affiliated with or endorsed by iRacing.com Motorsport Simulations. Licensed under the Apache
@@ -9,7 +9,7 @@ License 2.0 ([LICENSE](LICENSE)).
 
 ## Status
 
-Version 0.1.2. What works, tested against synthetic sessions replayed into a test memory
+Version 0.1.4. What works, tested against synthetic sessions replayed into a test memory
 mapping and against one recorded offline session:
 
 - `irsdk` reads the simulator's shared memory (header, variables, rows, the session text) and
@@ -19,7 +19,7 @@ mapping and against one recorded offline session:
   live frame, the telemetry stream, the capture target and two actions, and announces flags,
   cautions, penalties, the finish, retirements, incidents and the spotter's calls.
 - Each lap carries its position as the channels `x` (east) and `z` (north) in metres,
-  dead-reckoned from the car's velocity and heading: within 2.6 m of the simulator's own
+  dead-reckoned from the car's velocity and heading: within 2.7 m of the simulator's own
   `Lat`/`Lon` on five laps of one track
   ([docs/FINDINGS.md](docs/FINDINGS.md#position-by-dead-reckoning)).
 - The recorder allocates nothing per row while no lap ends and no call fires; its measured cost

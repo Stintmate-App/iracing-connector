@@ -457,7 +457,7 @@ end;
 
 procedure DeinitializeSetup;
 begin
-  { a failure after the hold, a cancel, or a copy error rolled back: the old build comes back }
+  { a failure after the hold, a cancel, or a copy error stops the setup; nothing is rolled back (docs/installer.md) }
   ReleaseConnector;
   EmitDone;
 end;
