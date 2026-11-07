@@ -596,10 +596,11 @@ impl Tracker {
                 self.end_partial(now, false, false, sink);
                 return;
             } else if t.on_pit_road && !p.on_pit_road && stall && !p.in_stall {
-                // A reset to the pits: the car reappears in the stall.
+                // A reset to the pits: the car reappears in the stall. The lap it ends is a
+                // return to the pits, so `in`.
                 self.validity
                     .mark_tow(t.lap_dist, (now - self.lap.started_at_s) as f32);
-                self.end_partial(now, false, false, sink);
+                self.end_partial(now, true, false, sink);
                 self.start_lap(t, StartKind::PitStall, now);
                 self.visit = PitVisit {
                     was_in_stall: true,
@@ -1090,6 +1091,8 @@ mod tests {
         let lap = &sink.laps()[0];
         assert!(lap.partial && !lap.valid && lap.time_s.is_none());
         assert_eq!(lap.cause, Some(InvalidCause::Unknown));
+        // The menu's "return to pits" ends the lap as an in lap, not a flying one.
+        assert_eq!(lap.lap_type, LapType::In);
     }
 
     /// Drives `rows` rows at 60 Hz from `(time, pct, lap)` with `flags` up. From row `fall_from`

@@ -191,7 +191,7 @@
    "group": "race"
   },
   "chequered": {
-   "text": "Chequered flag. You finish {position}.",
+   "text": "Chequered flag. You finish {position}",
    "params": {
     "position": "ordinal"
    },
@@ -199,7 +199,7 @@
    "priority": "normal",
    "max_wait_s": 60,
    "kind": "announcement",
-   "note": "The player took the chequered flag. position: the finishing position.",
+   "note": "The player took the chequered flag. position: the finishing position. The text does not end with a full stop: in some languages the written ordinal carries its own (\"20.\"), and a second one would double it.",
    "group": "race"
   },
   "chequered_no_position": {
@@ -411,7 +411,7 @@
    "group": "penalties"
   },
   "incident": {
-   "text": "{points}x incident. {total} points now.",
+   "text": "Incident, points added: {points}. Total: {total}.",
    "params": {
     "points": "int",
     "total": "int"
@@ -420,7 +420,7 @@
    "priority": "high",
    "max_wait_s": 10,
    "kind": "announcement",
-   "note": "The player's incident count rose. points: the rise (merged within two seconds); total: the count now.",
+   "note": "The player's incident count rose. points: the rise (merged within two seconds); total: the count now. Both are spoken as bare numbers on purpose: no noun follows, so no plural agreement is needed (and no \"x\" is glued to the number).",
    "group": "penalties"
   },
   "incident_limit_warning": {
