@@ -2,9 +2,7 @@
 
 All notable changes to this project are written here.
 
-## Unreleased
-
-(Planned as 0.1.3.)
+## 0.1.3 (2026-11-07)
 
 - **Incident call.** The text no longer glues an "x" to the number ("1x incident"): it reads
   "Incident, points added: {points}. Total: {total}." with both numbers spoken bare, so no
