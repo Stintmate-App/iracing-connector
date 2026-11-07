@@ -243,6 +243,18 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
 - **observed**: `CarIdxPosition` and `PlayerCarPosition` were 0 until the first timed lap, then
   1 (one second after `LapLastLapTime` got its first value).
 
+- **observed** (offline race against AI): the first lap of a race carried no sector times: its
+  official lap time was longer than the sum of its sectors, so the sectors were dropped as not
+  adding up. The simulator times that lap from the start, before the car reaches the line, and
+  the connector times a lap from the line. **Handled**: on the first lap of a race that began at
+  the line, the difference is added to the first sector; elsewhere a mismatch still drops the
+  sectors. Which start (standing or rolling) shifted by how much is not observed separately.
+- **observed**: `CarIdxPosition`, `CarIdxClassPosition` and the session text's result positions
+  read 0 for every car until the first timed lap, so the player had no position on the out lap
+  and the first lap of a race. **Handled**: in a race, a car with no position from those sources
+  gets its running order, counted from the laps completed and the lap fraction of the real cars
+  in the world; outside a race it stays unknown.
+
 ## Player state: garage, stall, out of the car
 
 - **observed**: the values in each state (`IsOnTrack` / `IsOnTrackCar` / `IsInGarage` /
@@ -419,6 +431,21 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
   middle, outer): the order mirrors the car.
 - **observed**: none of these exist among the variables: brake temperature, live hot pressure,
   ride height, damage.
+- **observed** (offline race against AI): the live frame's wheels were empty for the whole race
+  while Test Drive filled them. The wheels come only from the readings taken when the car enters
+  its stall, and a race that starts on the grid has no stall entry until the first stop; no other
+  variable carries live tyre temperatures or wear. **Not handled**: the wheels stay absent until
+  the first stall entry.
+- **observed** (the same race): the pressure stayed 1.93 bar on all four wheels throughout, and
+  the tyre temperatures changed only in the pits. These are the simulator's own limits (pressure
+  is known only from the setup text after a garage visit), not faults of the connector.
+- **observed**: while the car stands in its pit box the live frame's `phase` stays `on_track`,
+  with `pit_mode` saying it is in the box. The protocol's phases are `menus`, `garage`,
+  `on_track` (the pit lane included) and `paused`; none says "in the pits", and a recorder
+  reads `on_track` as "driving", so the box is told apart by `pit_mode`.
+- **observed**: the player's own entry in the field's lap records took its validity from a rule
+  that knows only timed laps and pit road, so invalid laps (incidents, cuts) read as valid in a
+  classification. **Handled**: the player's rows take the lap tracker's validity for the same lap.
 - Assumed: in the live frame the three live temperatures of a wheel are shown as the tread
   temperatures (outer, middle, inner) and their mean as the carcass temperature, and a wheel's wear is
   one minus the mean of its three wear values; whether the live temperatures are tread or carcass

@@ -178,6 +178,8 @@ struct LapState {
     start_row_s: f64,
     /// Fraction of the lap driven forward since the lap started.
     driven: f64,
+    /// The first lap of a race that began at the line after the start.
+    race_start: bool,
 }
 
 impl LapState {
@@ -195,6 +197,7 @@ impl LapState {
         sim_lap: 0,
         start_row_s: f64::NEG_INFINITY,
         driven: 0.0,
+        race_start: false,
     };
 
     fn lap_type(&self, ended_on_pit_road: bool, garage_return: bool) -> LapType {
@@ -235,7 +238,11 @@ struct Pending {
     from_line: bool,
     /// The lap started mid-track: the simulator's time is not the time of what was recorded.
     mid_lap: bool,
+    race_start: bool,
 }
+
+/// How many resolved laps the tracker remembers the validity of.
+const RESOLVED_KEEP: usize = 8;
 
 /// The tracker. See the module documentation.
 pub struct Tracker {
@@ -268,6 +275,11 @@ pub struct Tracker {
     last_s: Option<f32>,
     pit_mode: u8,
     view: LapView,
+    /// The next lap that starts at the line is the first of the race.
+    race_start_open: bool,
+    /// The simulator's lap number and validity of the last laps sent, newest last.
+    resolved: [(i32, bool); RESOLVED_KEEP],
+    resolved_n: usize,
 }
 
 impl Tracker {
@@ -303,7 +315,21 @@ impl Tracker {
             last_s: None,
             pit_mode: 4,
             view: LapView::IDLE,
+            race_start_open: false,
+            resolved: [(0, false); RESOLVED_KEEP],
+            resolved_n: 0,
         }
+    }
+
+    /// Whether the player's lap ended by crossing the line, with the simulator's lap number
+    /// `sim_lap`, was valid, when it was sent recently. The rival rows of the player use it:
+    /// their own rule knows nothing of incidents or cut tracks.
+    pub fn lap_valid(&self, sim_lap: i32) -> Option<bool> {
+        let n = self.resolved_n.min(RESOLVED_KEEP);
+        (0..n)
+            .map(|k| self.resolved[(self.resolved_n - 1 - k) % RESOLVED_KEEP])
+            .find(|(l, _)| *l == sim_lap)
+            .map(|(_, v)| v)
     }
 
     /// The live state of the lap.
@@ -476,6 +502,8 @@ impl Tracker {
             self.last_fuel,
         );
         self.sectors = SectorClock::new(&meta.sector_starts);
+        self.race_start_open = meta.kind == SessionKind::Race;
+        self.resolved_n = 0;
         self.buffer.clear();
         self.buffer.set_length(length_m);
         self.incidents.reset();
@@ -741,13 +769,20 @@ impl Tracker {
             sim_lap: t.lap,
             start_row_s: t.session_time,
             driven: 0.0,
+            race_start: kind == StartKind::Line && self.race_start_open,
         };
+        if kind == StartKind::Line {
+            self.race_start_open = false;
+        }
         self.last_fuel = t.fuel_l;
         self.validity.reset();
         if kind == StartKind::Resume {
             self.validity.mark_mid_lap_start(t.lap_dist);
         }
         self.sectors.start_lap(at_s, kind != StartKind::Line);
+        if kind != StartKind::Line {
+            self.sectors.align(f64::from(t.lap_dist_pct));
+        }
         self.buffer.clear();
         self.buffer
             .begin_position(at_s, kind == StartKind::Line && !t.on_pit_road);
@@ -820,6 +855,7 @@ impl Tracker {
             crossed_at: crossed,
             from_line,
             mid_lap: self.lap.start_kind == StartKind::Resume,
+            race_start: self.lap.race_start,
         });
     }
 
@@ -910,8 +946,10 @@ impl Tracker {
                 p.lap.time_source = Some(TimeSource::Measured);
             }
         }
-        p.lap.sectors = p.sectors.finish(p.crossed_at, official);
+        p.lap.sectors = p.sectors.finish_lap(p.crossed_at, official, p.race_start);
         self.fill_validity(&mut p.lap, &p.validity);
+        self.resolved[self.resolved_n % RESOLVED_KEEP] = (p.lap.sim_lap, p.lap.valid);
+        self.resolved_n += 1;
         if let Some(t) = p.lap.time_s
             && p.lap.valid
         {
@@ -1240,6 +1278,58 @@ mod tests {
         let second = &sink.laps()[1];
         assert!(second.partial && second.buffer.present().position);
         assert!(second.buffer.columns().z[0].abs() < 1.0);
+    }
+
+    /// A session of `kind` with three sectors; the car starts 0.03 of a lap before the line
+    /// and the simulator times the first lap 2 s longer than the drive from the line.
+    fn first_lap_after_the_start(kind: &str) -> (Tracker, RecordingSink) {
+        let text = YamlBuilder::new()
+            .session(0, kind)
+            .sectors(3)
+            .build_cp1252();
+        let meta = Arc::new(meta::build(&SessionDoc::from_raw(1, &text), 0));
+        let mut sink = RecordingSink::new();
+        let mut tracker = Tracker::new(64);
+        let at = drive_rows(&mut tracker, &meta, &mut sink, (0.0, 0.97), 5180, -1.0);
+        drive_rows(&mut tracker, &meta, &mut sink, at, 100, 85.33 + 2.0);
+        (tracker, sink)
+    }
+
+    #[test]
+    fn tracker_the_first_race_lap_keeps_its_sectors_when_timed_from_the_start() {
+        let (tracker, sink) = first_lap_after_the_start("Race");
+        let lap = sink
+            .laps()
+            .iter()
+            .find(|l| l.time_s.is_some_and(|t| (t - 87.33).abs() < 0.01))
+            .expect("the race lap");
+        let s = lap.sectors.as_slice();
+        assert_eq!(s.len(), 3);
+        assert!(s.iter().all(Option::is_some), "{s:?}");
+        let sum: f32 = s.iter().flatten().sum();
+        assert!((sum - 87.33).abs() < 0.01, "{sum}");
+        assert!(tracker.lap_valid(lap.sim_lap).is_some());
+    }
+
+    #[test]
+    fn tracker_the_same_mismatch_outside_a_race_start_drops_the_sectors() {
+        let (_, sink) = first_lap_after_the_start("Lone Qualify");
+        let lap = sink
+            .laps()
+            .iter()
+            .find(|l| l.time_s.is_some_and(|t| (t - 87.33).abs() < 0.01))
+            .expect("the lap");
+        assert!(lap.sectors.as_slice().iter().all(Option::is_none));
+    }
+
+    #[test]
+    fn tracker_a_lap_started_mid_track_shows_the_sector_it_is_in() {
+        let text = YamlBuilder::new().sectors(3).build_cp1252();
+        let meta = Arc::new(meta::build(&SessionDoc::from_raw(1, &text), 0));
+        let mut sink = RecordingSink::new();
+        let mut tracker = Tracker::new(64);
+        drive_rows(&mut tracker, &meta, &mut sink, (0.0, 0.5), 30, -1.0);
+        assert_eq!(tracker.view().sector, Some(1));
     }
 
     #[test]

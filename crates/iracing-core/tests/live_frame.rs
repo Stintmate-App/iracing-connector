@@ -196,3 +196,25 @@ fn practice_gap_wraps_by_the_class_estimate() {
     assert_valid(&validator(), &f);
     assert_eq!(json!(f["splits"]["ahead_s"]), json!(4.0));
 }
+
+#[test]
+fn race_positions_before_the_first_timed_lap_come_from_the_running_order() {
+    let v = validator();
+    let mut s = snapshot(State::Track);
+    let mut m = meta();
+    m.results[5].position = 0;
+    s.tick.car_position = Some([0; 64]);
+    s.tick.car_lap_completed[3] = 0;
+    s.tick.car_lap_completed[5] = 0;
+    s.tick.car_pct[3] = 0.2;
+    s.tick.car_pct[5] = 0.25;
+    let f = frame_json(&s, Some(&m), 100.2, "2026-01-02T18:00:00.123+00:00");
+    assert_valid(&v, &f);
+    let parts = f["participants"].as_array().expect("array");
+    assert_eq!(parts[0]["position"], 2, "the player is behind the rival");
+    assert_eq!(parts[1]["position"], 1);
+    // Outside a race there is no order to count.
+    s.view.session_kind = SessionKind::Practice;
+    let f = frame_json(&s, Some(&m), 100.2, "2026-01-02T18:00:00.123+00:00");
+    assert!(f["participants"][0]["position"].is_null());
+}
