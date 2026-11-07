@@ -14,8 +14,8 @@ All notable changes to this project are written here.
 - **Return to pits.** A lap ended by the simulator menu's "return to pits" (the car reappears in
   its stall without driving the pit lane) is typed `in`, not `flying`.
 - **Icon.** The connector's 256 x 256 PNG icon is kept in `bins/iracing-connector-ui/assets/icon.png`
-  for the setup to install as `icon.png` next to the executables; the descriptor will name it
-  once the shared runtime that writes the `icon` key is adopted.
+  for the setup to install as `icon.png` next to the executables; the descriptor names it in the
+  optional `icon` key (shared runtime 0.1.3, now pinned).
 
 ## 0.1.2 (2026-11-07)
 
