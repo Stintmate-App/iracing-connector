@@ -33,6 +33,7 @@ been run against the running simulator except the read-only probe.
 
 ## Documentation
 
+- [docs/installer.md](docs/installer.md): the installer, its unattended mode and its contract.
 - [docs/usage.md](docs/usage.md): the programs, options, data folder, logs and registration.
 - [docs/architecture.md](docs/architecture.md): the recorder (threads, loop, serving side,
   announcements, performance) and how the `irsdk` reader works: the map, the event, the
@@ -40,6 +41,27 @@ been run against the running simulator except the read-only probe.
 - [docs/FINDINGS.md](docs/FINDINGS.md): what is known about the simulator's data, each fact marked
   documented, observed or not observed yet, and the list of assumed facts with what would confirm
   them.
+
+## Installing
+
+`iRacing-Connector-X.Y.Z-setup.exe` (a release asset, with its `.sha256` file in `sha256sum`
+format) installs the three programs for the current user, without administrator rights, into
+`%LOCALAPPDATA%\Programs\Stintmate iRacing Connector\`, and registers the connector for Stintmate
+(`%LOCALAPPDATA%\Stintmate\connectors\iracing.json`). Uninstall it from Windows' Installed apps;
+the logs, the outbox and the settings (in the workspace) stay. The unattended mode, the progress
+file and the exit statuses are in [docs/installer.md](docs/installer.md). To build it:
+`scripts\build-installer.ps1` (needs Inno Setup 6, cargo-deny and cargo-about).
+
+## Releases
+
+A release of tag `vX.Y.Z` carries two assets: `iRacing-Connector-X.Y.Z-setup.exe` and
+`iRacing-Connector-X.Y.Z-setup.exe.sha256`. The notes are the version's section of
+[`CHANGELOG.md`](CHANGELOG.md). A maintainer runs the `release` workflow by hand (Actions,
+`release`, Run workflow) from `main` with the tag: it must exist, be an ancestor of `main`, equal
+`v` + the workspace version and have its `## <version>` section in the changelog. The workflow
+builds the tag's tree, runs fmt, clippy, tests and cargo-deny, builds the installer
+(`scripts/build-installer.ps1`), uploads the assets to a draft, downloads them again and compares
+them. With `dry_run` (the default) the draft is deleted at the end; without it, it is published.
 
 ## Building and testing
 

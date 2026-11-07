@@ -2,6 +2,17 @@
 
 All notable changes to this project are written here.
 
+## Unreleased
+
+- **Installer.** `iRacing-Connector-<version>-setup.exe` (Inno Setup 6, per user, no
+  administrator rights, unsigned) installs the three programs, the licence notices and `icon.png`
+  next to the control app, and registers the connector with `iracing-connector-ui.exe --register`;
+  uninstalling unregisters it and never touches the data. Unattended mode, progress file and exit
+  statuses: [docs/installer.md](docs/installer.md). Built by `scripts/build-installer.ps1`.
+- **Release workflow.** A `release` workflow, run by hand, builds the tag's tree, checks it,
+  builds the installer and uploads it with its `.sha256` file to a draft release (a dry run by
+  default).
+
 ## 0.1.3 (2026-11-07)
 
 - **Incident call.** The text no longer glues an "x" to the number ("1x incident"): it reads
