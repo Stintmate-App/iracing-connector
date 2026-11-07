@@ -308,6 +308,27 @@ fn conditions(t: &Tick) -> Value {
     })
 }
 
+/// The running order of car `i` in a race, by laps completed and lap fraction among the real
+/// cars in the world. The simulator's own positions read 0 for every car until the first timed
+/// lap (the out lap and the first lap of a race), so this stands in until they are set; the
+/// order is only counted in a race, where it is the position.
+fn running_order(s: &LiveSnapshot, meta: &SessionMeta, i: usize) -> Option<i32> {
+    if s.view.session_kind != crate::codes::SessionKind::Race {
+        return None;
+    }
+    let t = &s.tick;
+    if t.car_loc[i] == LOC_NOT_IN_WORLD || t.car_lap_completed[i] < 0 {
+        return None;
+    }
+    let progress = |k: usize| f64::from(t.car_lap_completed[k]) + f64::from(t.car_pct[k]);
+    let mine = progress(i);
+    let ahead = (0..CARS)
+        .filter(|&k| k != i && real(meta, t, k) && t.car_lap_completed[k] >= 0)
+        .filter(|&k| progress(k) > mine)
+        .count();
+    i32::try_from(ahead + 1).ok()
+}
+
 fn participants(s: &LiveSnapshot, meta: &SessionMeta) -> Value {
     let t = &s.tick;
     let length = meta.track.length_m.unwrap_or(0.0) as f32;
@@ -329,7 +350,8 @@ fn participants(s: &LiveSnapshot, meta: &SessionMeta) -> Value {
             .car_position
             .map(|p| p[i])
             .filter(|p| *p > 0)
-            .or((result.position > 0).then_some(result.position));
+            .or((result.position > 0).then_some(result.position))
+            .or_else(|| running_order(s, meta, i));
         let pit_mode = if is_player {
             u32::from(s.view.pit_mode)
         } else if !active {

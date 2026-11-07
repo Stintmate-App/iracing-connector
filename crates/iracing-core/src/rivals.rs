@@ -331,6 +331,21 @@ impl RivalTracker {
     }
 }
 
+/// Replaces the validity of the player's rows with the lap tracker's: the field rule (a timed
+/// lap that touched no pit road) knows nothing of incidents, cut tracks or resets, which the
+/// tracker sees for the player's own car. `valid_of` gives the tracker's verdict for the
+/// simulator's lap number, `None` when it has none (the row keeps the field rule).
+pub fn apply_player_validity(
+    rows: &mut [ParticipantLap],
+    valid_of: impl Fn(i32) -> Option<bool>,
+) {
+    for r in rows.iter_mut().filter(|r| r.is_player) {
+        if let Some(v) = valid_of(r.lap) {
+            r.valid = v;
+        }
+    }
+}
+
 /// The session time at which a car crossed the line between two rows, interpolated when the
 /// lap fraction wrapped; the current time when it did not (a counter that rose elsewhere).
 fn crossing_time(prev_pct: f32, pct: f32, prev_t: f64, t: f64) -> f64 {
@@ -449,6 +464,35 @@ mod tests {
         assert_eq!(l.time_source, Some(TimeSource::Official));
         assert!(l.valid && !l.pit && !l.from_line);
         assert!(r.take_due(102.0, true).is_none());
+    }
+
+    #[test]
+    fn the_player_rows_take_the_trackers_validity() {
+        let (mut t, m) = setup();
+        let mut r = RivalTracker::new();
+        t.car_last = Some([-1.0; CARS]);
+        t.car_lap_completed[1] = 3;
+        t.car_lap_completed[2] = 3;
+        t.car_pct[1] = 0.99;
+        t.car_pct[2] = 0.99;
+        row(&mut t, 100.0);
+        r.step(&t, &m);
+        t.car_lap_completed[1] = 4;
+        t.car_lap_completed[2] = 4;
+        t.car_pct[1] = 0.01;
+        t.car_pct[2] = 0.01;
+        t.car_last.as_mut().unwrap()[1] = 80.0;
+        t.car_last.as_mut().unwrap()[2] = 81.0;
+        row(&mut t, 100.5);
+        r.step(&t, &m);
+        let mut rows = r.take_due(101.0, true).expect("rows");
+        let player = rows.iter().position(|l| l.is_player).expect("player row");
+        assert!(rows[player].valid, "the field rule alone calls it valid");
+        apply_player_validity(&mut rows, |lap| (lap == 4).then_some(false));
+        assert!(!rows[player].valid);
+        assert!(rows.iter().filter(|l| !l.is_player).all(|l| l.valid));
+        apply_player_validity(&mut rows, |_| None);
+        assert!(!rows[player].valid, "no verdict leaves the row as it was");
     }
 
     #[test]

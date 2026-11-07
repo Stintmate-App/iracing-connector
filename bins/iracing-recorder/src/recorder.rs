@@ -258,7 +258,10 @@ impl<S: Sink + NoteClock> Pipeline<S> {
         let laps = self.tracker.view().laps_recorded;
         let ended = laps != self.laps_seen;
         self.laps_seen = laps;
-        if let Some(rows) = self.rivals.take_due(self.tick.session_time, ended) {
+        if let Some(mut rows) = self.rivals.take_due(self.tick.session_time, ended) {
+            iracing_core::rivals::apply_player_validity(&mut rows, |lap| {
+                self.tracker.lap_valid(lap)
+            });
             self.sink.participants(local, rows);
         }
     }
