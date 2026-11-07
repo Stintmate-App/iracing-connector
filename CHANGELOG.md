@@ -16,6 +16,15 @@ All notable changes to this project are written here.
 - **Icon.** The connector's 256 x 256 PNG icon is kept in `bins/iracing-connector-ui/assets/icon.png`
   for the setup to install as `icon.png` next to the executables; the descriptor names it in the
   optional `icon` key (shared runtime 0.1.3, now pinned).
+- **First race lap sectors.** The simulator times a race's first lap from the start, before the
+  line, so its time was longer than its sectors and all of them were dropped. The run to the line
+  now goes to the first sector.
+- **Live sector after a start away from the line.** A lap that begins mid-track (a reset, a
+  tow, the grid) shows the sector the car is in, not the first.
+- **Position on the first laps.** While the simulator's positions are 0 (the out lap and a race's
+  first lap), a race's participants get their running order by laps completed and lap fraction.
+- **Invalid laps of the player in the field records.** The player's rows take the lap tracker's
+  validity (incidents, cuts, resets), so a classification counts them.
 
 ## 0.1.2 (2026-11-07)
 
