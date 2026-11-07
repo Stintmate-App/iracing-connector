@@ -455,6 +455,44 @@ Measured on 1427 driving rows above 15 m/s, on a clockwise circuit.
   `SteeringWheelAngle` was 7.0049 rad**: the maximum is lock to lock, so full lock on one side is
   half of it.
 
+## Position by dead reckoning
+
+All of this is **observed** on four `.ibt` files of one track (Oulton Park, one car, 60 Hz),
+five full laps with no pit road and no incident, comparing against the file's `Lat` and `Lon`.
+
+- `VelocityX` is forward and **`VelocityY` is positive to the left** (car frame, m/s): with the
+  sign as written a lap closes within 0.2 to 2.1 m; with the opposite sign it misses by 17 to
+  31 m.
+- `Yaw` is counter-clockwise positive. **`YawNorth` is a compass heading, clockwise from north,
+  equal to a constant per track minus `Yaw`** (`Yaw + YawNorth` was constant on every sample; the
+  constant was 173.4 degrees in all four files). `YawNorth` is a live variable too.
+- `SessionTime` steps are 16.67 ms, but one file has a repeated row (0 ms) and a 33.3 ms step:
+  the step of the integration comes from `SessionTime`.
+- **Accuracy.** `crates/iracing-core/tests/real_fixtures.rs`, test `real_ibt_outline` (ignored;
+  run it with `IRSDK_FIXTURES` set to a folder whose `ibt` subfolder holds the files). It cuts
+  each file's laps at the `LapDistPct` wrap, integrates `VelocityX`, `VelocityY` and `YawNorth`
+  with the code above, applies the closure, projects `Lat` and `Lon` equirectangularly about the
+  lap's crossing of the line (east = delta lon x R x cos lat, north = delta lat x R,
+  R = 6 378 137 m) and compares row by row, with no rotation and no fit:
+
+| Lap | Closure | Max deviation, no closure | Max deviation | Mean deviation | Path | `Lat`/`Lon` path |
+|---|---|---|---|---|---|---|
+| file 1, lap 1 | 2.02 m | 1.67 m | 2.60 m | 1.61 m | 4290.2 m | 4285.3 m |
+| file 2, lap 1 | 0.38 m | 1.75 m | 1.56 m | 0.69 m | 4292.0 m | 4286.7 m |
+| file 3, lap 1 | 0.44 m | 1.71 m | 1.77 m | 0.81 m | 4290.5 m | 4285.3 m |
+| file 3, lap 2 | 1.08 m | 1.74 m | 2.28 m | 1.18 m | 4288.3 m | 4283.1 m |
+| file 3, lap 3 | 1.58 m | 1.74 m | 2.62 m | 1.45 m | 4288.9 m | 4283.6 m |
+
+  The dead-reckoned path is 0.1 % longer than the `Lat`/`Lon` path. The closure is measured
+  between the interpolated line crossings. Part of it is real: the car does not cross the line
+  at the same point across the track on every lap, and the point `Lat`/`Lon` name is about a
+  metre from the point the velocity belongs to; spreading it adds up to a metre to the maximum
+  on this track (and it is what keeps a long lap closed). The lap with a mean of 1.61 m has the
+  largest closure of the five. One track, one car and five laps: the figures say nothing about
+  other tracks.
+- Without the velocity, `Speed` along the heading (no sideslip) gave 9.7 to 15 m maximum
+  deviation on the same laps (measured once, with a script outside this repository).
+
 ## Disk telemetry
 
 - **observed**: after the session `app.ini`, section `[Misc]`, held `irsdkEnableDisk=1`,
@@ -470,9 +508,8 @@ Measured on 1427 driving rows above 15 m/s, on a clockwise circuit.
   (surface temperatures), `pressure`, `rideHeight` and `speed`, plus `BrakeABScutPct`: **28
   variables that exist on disk only** (the live map has none of them). The files lack 77 live-only
   variables: every `CarIdx*` array, `IsInGarage`, `IsReplayPlaying`, `CarLeftRight`, `RaceLaps`
-  and the 360 Hz variables. The session text in a file is that of the whole weekend. Dead
-  reckoning from `VelocityX`, `VelocityY` and `Yaw` closes a lap within 2.5 m of the position
-  from `Lat` and `Lon`.
+  and the 360 Hz variables. The session text in a file is that of the whole weekend. The
+  accuracy of dead reckoning against `Lat` and `Lon` is under "Position by dead reckoning".
 
 ## Not observed yet
 

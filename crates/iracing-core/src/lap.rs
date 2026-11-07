@@ -3,6 +3,7 @@
 use irsdk::defs::surface_class;
 
 use crate::codes::surface_code;
+use crate::position::{DeadReckoner, PosEnd, finish};
 use crate::tick::Tick;
 
 /// Rows reserved for each column when a buffer is made: 2 min 16 s at 60 Hz. A longer lap grows
@@ -40,6 +41,8 @@ pub struct Present {
     pub surface: bool,
     /// The session's incident count.
     pub incidents: bool,
+    /// The position (`x` and `z`): every row could be integrated and the lap has an anchor.
+    pub position: bool,
 }
 
 impl Present {
@@ -49,6 +52,7 @@ impl Present {
         abs: true,
         surface: true,
         incidents: true,
+        position: true,
     };
 }
 
@@ -95,10 +99,14 @@ pub struct Columns {
     pub ext_surface: Vec<f32>,
     /// The session's incident count.
     pub ext_incidents: Vec<f32>,
+    /// Metres east of the start/finish line, by dead reckoning.
+    pub x: Vec<f32>,
+    /// Metres north of the start/finish line, by dead reckoning.
+    pub z: Vec<f32>,
 }
 
 impl Columns {
-    fn all_mut(&mut self) -> [&mut Vec<f32>; 18] {
+    fn all_mut(&mut self) -> [&mut Vec<f32>; 20] {
         [
             &mut self.t,
             &mut self.dist,
@@ -118,6 +126,8 @@ impl Columns {
             &mut self.pit_mode,
             &mut self.ext_surface,
             &mut self.ext_incidents,
+            &mut self.x,
+            &mut self.z,
         ]
     }
 }
@@ -129,6 +139,7 @@ pub struct LapBuffer {
     present: Present,
     length_m: f32,
     last_surface: f32,
+    dr: DeadReckoner,
 }
 
 impl LapBuffer {
@@ -148,6 +159,7 @@ impl LapBuffer {
             present: Present::ALL,
             length_m: f32::INFINITY,
             last_surface: 0.0,
+            dr: DeadReckoner::new(),
         }
     }
 
@@ -167,6 +179,45 @@ impl LapBuffer {
         }
         self.present = Present::ALL;
         self.last_surface = 0.0;
+        self.dr.reset();
+    }
+
+    /// Starts the position of a lap at session time `at_s`. `anchored_start`: the lap starts at
+    /// the line on the track.
+    pub fn begin_position(&mut self, at_s: f64, anchored_start: bool) {
+        self.dr.begin(at_s, anchored_start);
+    }
+
+    /// Anchors the lap's `x` and `z` (see [`crate::position::finish`]). `crossed`: the session
+    /// time the lap ended at the line on the track, `None` when it ended elsewhere.
+    /// `closure`: whether a lap from the line to the line may be closed (not after a pit visit);
+    /// without it such a lap keeps its start anchor only.
+    pub fn finish_position(&mut self, crossed: Option<f64>, closure: bool) {
+        if !self.dr.ok() {
+            self.present.position = false;
+            return;
+        }
+        let start = self.dr.start_anchored();
+        let (end, path_total) = match crossed {
+            Some(c) if closure || !start => match self.dr.end_point(c) {
+                Some((e, n)) => {
+                    let (pe, pn) = self.dr.pos();
+                    (
+                        PosEnd::AtLine { e, n },
+                        self.dr.path_m() + (e - pe).hypot(n - pn),
+                    )
+                }
+                None => {
+                    self.present.position = false;
+                    return;
+                }
+            },
+            _ => (PosEnd::NotAtLine, self.dr.path_m()),
+        };
+        let c = &mut self.cols;
+        if !finish(&mut c.x, &mut c.z, start, end, self.length_m, path_total) {
+            self.present.position = false;
+        }
     }
 
     /// Rows recorded.
@@ -234,6 +285,10 @@ impl LapBuffer {
         c.ext_surface.push(self.last_surface);
         self.present.incidents &= t.incidents.is_some();
         c.ext_incidents.push(t.incidents.map_or(0.0, |v| v as f32));
+        let (x, z) = self.dr.step(t);
+        c.x.push(x);
+        c.z.push(z);
+        self.present.position &= self.dr.ok();
     }
 }
 
@@ -286,6 +341,7 @@ mod tests {
         t.abs_active = Some(true);
         t.surface = Some(15); // grass
         t.incidents = Some(4);
+        t.yaw_north = Some(0.0);
         let mut b = LapBuffer::new();
         b.set_length(4000.0);
         b.push(&t, &point(), 2);
@@ -383,5 +439,79 @@ mod tests {
         assert!(b.is_empty());
         assert_eq!(b.capacity(), cap);
         assert!(LapBuffer::new().capacity() >= RESERVE_ROWS);
+    }
+}
+
+#[cfg(test)]
+mod position_tests {
+    use super::*;
+
+    fn point() -> LapPoint {
+        LapPoint {
+            timed: true,
+            lap_clock_s: 0.0,
+            valid: true,
+        }
+    }
+
+    /// A straight line north at 50 m/s, a row every 0.1 s from `0.0`.
+    fn straight(b: &mut LapBuffer, rows: usize) {
+        for k in 0..rows {
+            let mut t = Tick::new();
+            t.session_time = k as f64 * 0.1;
+            t.speed = 50.0;
+            t.yaw_north = Some(0.0);
+            b.push(&t, &point(), 0);
+        }
+    }
+
+    #[test]
+    fn a_lap_without_a_heading_has_no_position() {
+        let mut b = LapBuffer::new();
+        b.push(&Tick::new(), &point(), 0);
+        assert!(!b.present().position);
+        assert_eq!((b.columns().x.len(), b.columns().z.len()), (1, 1));
+    }
+
+    #[test]
+    fn the_end_anchor_puts_the_line_at_the_origin() {
+        let mut b = LapBuffer::new();
+        b.begin_position(0.0, false);
+        straight(&mut b, 11);
+        // The line was crossed 0.05 s after the last row: 2.5 m further.
+        b.finish_position(Some(1.05), true);
+        assert!(b.present().position);
+        let z = &b.columns().z;
+        assert!((z[10] + 2.5).abs() < 1e-4, "{}", z[10]);
+        assert!((z[0] + 52.5).abs() < 1e-3);
+    }
+
+    #[test]
+    fn a_pit_visit_keeps_the_start_anchor_and_skips_the_closure() {
+        let mut b = LapBuffer::new();
+        b.begin_position(0.0, true);
+        straight(&mut b, 11);
+        b.finish_position(Some(1.0), false);
+        assert!(b.present().position);
+        assert!((b.columns().z[10] - 50.0).abs() < 1e-4);
+    }
+
+    #[test]
+    fn a_lap_with_neither_end_at_the_line_has_no_position() {
+        let mut b = LapBuffer::new();
+        b.begin_position(0.0, false);
+        straight(&mut b, 5);
+        b.finish_position(None, false);
+        assert!(!b.present().position);
+    }
+
+    #[test]
+    fn a_closure_beyond_the_guard_drops_the_position() {
+        let mut b = LapBuffer::new();
+        b.set_length(4000.0);
+        b.begin_position(0.0, true);
+        straight(&mut b, 11);
+        b.finish_position(Some(1.0), true);
+        assert!(!b.present().position);
     }
 }

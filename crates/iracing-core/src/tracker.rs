@@ -586,7 +586,7 @@ impl Tracker {
                     self.late = None;
                 } else if now - l.crossed >= LATE_CROSSING_HOLD_S {
                     self.late = None;
-                    self.end_at_line(t, l.crossed, sink);
+                    self.end_at_line(t, l.crossed, true, sink);
                     self.start_lap(t, StartKind::Line, l.crossed);
                 }
             }
@@ -657,7 +657,7 @@ impl Tracker {
                         });
                     } else {
                         self.finished = t.session_flags & session_flags::CHECKERED != 0;
-                        self.end_at_line(t, crossed, sink);
+                        self.end_at_line(t, crossed, false, sink);
                         self.start_lap(t, StartKind::Line, crossed);
                     }
                 }
@@ -748,6 +748,8 @@ impl Tracker {
         }
         self.sectors.start_lap(at_s, kind != StartKind::Line);
         self.buffer.clear();
+        self.buffer
+            .begin_position(at_s, kind == StartKind::Line && !t.on_pit_road);
     }
 
     fn take_buffer(&mut self) -> LapBuffer {
@@ -790,7 +792,9 @@ impl Tracker {
     }
 
     /// A lap ended at the line at session time `crossed`. It waits for the simulator's time.
-    fn end_at_line(&mut self, t: &Tick, crossed: f64, sink: &mut dyn Sink) {
+    /// `late`: the lap ends ten seconds after its crossing (a crossing after the finish), so
+    /// its rows do not end at the line.
+    fn end_at_line(&mut self, t: &Tick, crossed: f64, late: bool, sink: &mut dyn Sink) {
         self.resolve_pending(t.lap_last_time, sink);
         let duration = crossed - self.lap.started_at_s;
         if self.lap.start_kind != StartKind::Line && duration < MIN_PARTIAL_LAP_S {
@@ -800,6 +804,10 @@ impl Tracker {
         if self.lap.touched_pit {
             self.validity.mark_pit_road();
         }
+        self.buffer.finish_position(
+            (!late && !t.on_pit_road).then_some(crossed),
+            !self.lap.touched_pit,
+        );
         let lap_type = self.lap.lap_type(t.on_pit_road, false);
         let from_line = self.lap.start_kind == StartKind::Line;
         let lap = self.base_lap(crossed, lap_type, false);
@@ -838,6 +846,7 @@ impl Tracker {
         if self.lap.touched_pit {
             self.validity.mark_pit_road();
         }
+        self.buffer.finish_position(None, false);
         let lap_type = self.lap.lap_type(ended_on_pit_road, garage_return);
         let mut lap = self.base_lap(end_s, lap_type, true);
         self.fill_validity(&mut lap, &self.validity.clone());
@@ -1033,6 +1042,7 @@ mod tests {
         t.lap_dist_pct = pct;
         t.lap_dist = pct * 4010.0;
         t.speed = 50.0;
+        t.yaw_north = Some(0.0);
         t.fuel_l = 30.0;
         t.track_loc = 3;
         t
@@ -1219,6 +1229,26 @@ mod tests {
             "the official time is not this trace's time"
         );
         assert_eq!(tracker.view().best_s, None);
+        // It began mid-track and ended at the line: the end anchor puts the line at the origin.
+        assert!(first.buffer.present().position);
+        let c = first.buffer.columns();
+        assert!(c.x[c.x.len() - 1].hypot(c.z[c.z.len() - 1]) < 1.0);
+        // The next lap began at the line and was cut short: the start anchor is kept.
+        let second = &sink.laps()[1];
+        assert!(second.partial && second.buffer.present().position);
+        assert!(second.buffer.columns().z[0].abs() < 1.0);
+    }
+
+    #[test]
+    fn tracker_a_lap_with_neither_end_at_the_line_has_no_position() {
+        let (meta, mut sink) = (meta(), RecordingSink::new());
+        let mut tracker = Tracker::new(64);
+        drive_rows(&mut tracker, &meta, &mut sink, (0.0, 0.5), 900, -1.0);
+        tracker.finish_open_lap(&mut sink);
+        let lap = &sink.laps()[0];
+        assert!(lap.partial);
+        assert!(!lap.buffer.present().position);
+        assert_eq!(lap.buffer.columns().x.len(), lap.buffer.len());
     }
 
     #[test]

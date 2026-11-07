@@ -4,6 +4,21 @@ All notable changes to this project are written here.
 
 ## Unreleased
 
+## 0.1.2 (2026-11-07)
+
+- **Track outline.** Each lap now carries `x` (east) and `z` (north) in metres, dead-reckoned
+  from `VelocityX`, `VelocityY` and `YawNorth` at the simulator's 60 Hz, with the origin at the
+  start/finish line and the closure of a lap from the line to the line spread along the lap by
+  path length. Pitwall draws the track outline and the track maps of iRacing layouts from them.
+  Checked against the `Lat`/`Lon` of four `.ibt` files of one track (five clean laps, no
+  rotation and no fit): maximum deviation 1.6 to 2.6 m, mean 0.7 to 1.6 m (the
+  `real_ibt_outline` test; figures in `docs/FINDINGS.md`).
+- Without `VelocityX`/`VelocityY` the speed is used (about ten metres worse); without a heading no
+  position is sent. A lap that starts away from the line and reaches it is shifted so the line is
+  the origin; a lap with neither end at the line, a gap of more than 0.25 s between rows, or a
+  closure error over `max(10 m, 0.5 % of the layout length)` sends none.
+- The recorder logs which position inputs it has when it attaches.
+
 ## 0.1.1 (2026-11-07)
 
 Fixes for what a second recording session on the simulator showed (a five-lap offline race with

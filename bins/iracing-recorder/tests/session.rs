@@ -40,6 +40,10 @@ fn a_replayed_session_reaches_pitwall_and_is_kept_open_on_stop() {
     assert!(first_catalog < first_start, "the catalog goes first");
     let lap = calls.iter().find(|c| c.method.ends_with(".lap")).unwrap();
     assert_eq!(to_json(&lap.params)["channels"]["speed"]["encoding"], "f32");
+    // The position, dead-reckoned from the velocity and the heading, is written with the lap.
+    for name in ["x", "z"] {
+        assert_eq!(to_json(&lap.params)["channels"][name]["encoding"], "f32");
+    }
     assert!(lap.ik.as_deref().unwrap().contains("/lap/"));
     drop(replay);
     // Stopping while the simulator runs and a session is open keeps the session open.

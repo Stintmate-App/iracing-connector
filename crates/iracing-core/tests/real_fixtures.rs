@@ -284,3 +284,204 @@ fn real_ibt_laps() {
         );
     }
 }
+
+/// Reads one variable of a row as a double.
+type Reader = Box<dyn Fn(&Row) -> f64>;
+
+/// Reads a scalar `Lat`/`Lon` variable of the file, as a double or a float.
+fn degrees(table: &VarTable, name: &str) -> Option<Reader> {
+    if let Ok(v) = table.find::<f64>(name) {
+        return Some(Box::new(move |r| v.read(r)));
+    }
+    table
+        .find::<f32>(name)
+        .ok()
+        .map(|v| Box::new(move |r: &Row| f64::from(v.read(r))) as Reader)
+}
+
+/// Statistics of one lap's position against the file's `Lat`/`Lon`.
+struct OutlineLap {
+    closure_m: f64,
+    max_raw_m: f64,
+    mean_raw_m: f64,
+    max_m: f64,
+    mean_m: f64,
+    path_m: f64,
+    latlon_m: f64,
+}
+
+#[test]
+#[ignore = "needs the probe's recordings"]
+fn real_ibt_outline() {
+    use iracing_core::position::{DeadReckoner, PosEnd, finish};
+
+    const EARTH_M: f64 = 6_378_137.0;
+    let ibts = root().map(|r| files(&r, "ibt", ".ibt")).unwrap_or_default();
+    if skip(
+        "real_ibt_outline",
+        "at least one ibt/*.ibt",
+        !ibts.is_empty(),
+    ) {
+        return;
+    }
+    let mut laps: Vec<(String, OutlineLap)> = Vec::new();
+    for path in ibts {
+        let name = path.file_name().unwrap().to_string_lossy().into_owned();
+        let ibt =
+            irsdk::ibt::Ibt::open(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        let vars =
+            Vars::resolve_file(ibt.vars()).expect("the recorder's variables are in the file");
+        let (Some(lat), Some(lon)) = (degrees(ibt.vars(), "Lat"), degrees(ibt.vars(), "Lon"))
+        else {
+            println!("{name}: no Lat/Lon, skipped");
+            continue;
+        };
+        let length_m = meta::build(&ibt.session(), 0)
+            .track
+            .length_m
+            .map_or(0.0, |l| l as f32);
+
+        // Ground truth is the file's Lat/Lon; the recorder never reads them.
+        let mut rows: Vec<(Box<Tick>, f64, f64)> = Vec::new();
+        for bytes in ibt.rows() {
+            let row = Row::from_slice(bytes);
+            let mut t = Tick::new();
+            t.fill(&vars, &row);
+            rows.push((t, lat(&row), lon(&row)));
+        }
+        // The rows at which the lap distance wraps: the first row of a new lap.
+        let wraps: Vec<usize> = (1..rows.len())
+            .filter(|&i| rows[i - 1].0.lap_dist_pct > 0.5 && rows[i].0.lap_dist_pct < 0.5)
+            .collect();
+        let mut lap_no = 0;
+        for w in wraps.windows(2) {
+            lap_no += 1;
+            let (i0, i1) = (w[0], w[1]);
+            // A clean lap: no pit road and no new incident, from one crossing to the next.
+            let clean = rows[i0..i1].iter().all(|r| !r.0.on_pit_road)
+                && rows[i1].0.incidents == rows[i0].0.incidents
+                && rows[i0..=i1].iter().all(|r| r.0.session_time > 0.0);
+            if !clean {
+                continue;
+            }
+            // The crossing between rows `i - 1` and `i`, as the tracker interpolates it.
+            let crossing = |i: usize| {
+                let (a, b) = (
+                    f64::from(rows[i - 1].0.lap_dist_pct),
+                    f64::from(rows[i].0.lap_dist_pct),
+                );
+                let total = (1.0 - a) + b;
+                let frac = if total > 0.0 { (1.0 - a) / total } else { 1.0 };
+                let (ta, tb) = (rows[i - 1].0.session_time, rows[i].0.session_time);
+                (ta + frac * (tb - ta), frac)
+            };
+            let (t0, f0) = crossing(i0);
+            let (t1, _) = crossing(i1);
+            let at = |i: usize, f: f64| {
+                let (a, b) = (&rows[i - 1], &rows[i]);
+                (a.1 + f * (b.1 - a.1), a.2 + f * (b.2 - a.2))
+            };
+            let (lat0, lon0) = at(i0, f0);
+            let cos0 = lat0.to_radians().cos();
+            let project = |lat: f64, lon: f64| {
+                (
+                    (lon - lon0).to_radians() * EARTH_M * cos0,
+                    (lat - lat0).to_radians() * EARTH_M,
+                )
+            };
+
+            let mut dr = DeadReckoner::new();
+            dr.begin(t0, true);
+            let (mut x, mut z) = (Vec::new(), Vec::new());
+            for r in &rows[i0..i1] {
+                let (e, n) = dr.step(&r.0);
+                x.push(e);
+                z.push(n);
+            }
+            if !dr.ok() {
+                println!("{name} lap {lap_no}: position dropped (gap or no heading)");
+                continue;
+            }
+            let (e, n) = dr.end_point(t1).expect("end within a step");
+            let (pe, pn) = dr.pos();
+            let path_total = dr.path_m() + (e - pe).hypot(n - pn);
+            let truth: Vec<(f64, f64)> = rows[i0..i1].iter().map(|r| project(r.1, r.2)).collect();
+            let deviation = |x: &[f32], z: &[f32]| -> (f64, f64) {
+                let d: Vec<f64> = x
+                    .iter()
+                    .zip(z)
+                    .zip(&truth)
+                    .map(|((&x, &z), t)| (f64::from(x) - t.0).hypot(f64::from(z) - t.1))
+                    .collect();
+                (
+                    d.iter().cloned().fold(0.0, f64::max),
+                    d.iter().sum::<f64>() / d.len() as f64,
+                )
+            };
+            let (max_raw_m, mean_raw_m) = deviation(&x, &z);
+            assert!(
+                finish(
+                    &mut x,
+                    &mut z,
+                    true,
+                    PosEnd::AtLine { e, n },
+                    length_m,
+                    path_total
+                ),
+                "{name} lap {lap_no}: the closure was refused"
+            );
+            let (max_m, mean_m) = deviation(&x, &z);
+            let polyline = |p: &[(f64, f64)]| -> f64 {
+                p.windows(2)
+                    .map(|w| (w[1].0 - w[0].0).hypot(w[1].1 - w[0].1))
+                    .sum()
+            };
+            let mine: Vec<(f64, f64)> = x
+                .iter()
+                .zip(&z)
+                .map(|(&x, &z)| (f64::from(x), f64::from(z)))
+                .collect();
+            laps.push((
+                format!("{name} lap {lap_no}"),
+                OutlineLap {
+                    closure_m: e.hypot(n),
+                    max_raw_m,
+                    mean_raw_m,
+                    max_m,
+                    mean_m,
+                    path_m: polyline(&mine),
+                    latlon_m: polyline(&truth),
+                },
+            ));
+        }
+    }
+    assert!(!laps.is_empty(), "no clean lap in the files");
+    println!("lap | closure m | max raw m | mean raw m | max m | mean m | path m | Lat/Lon m");
+    for (name, l) in &laps {
+        println!(
+            "{name} | {:.2} | {:.2} | {:.2} | {:.2} | {:.2} | {:.1} | {:.1}",
+            l.closure_m, l.max_raw_m, l.mean_raw_m, l.max_m, l.mean_m, l.path_m, l.latlon_m
+        );
+    }
+    let mut failures = Vec::new();
+    for (name, l) in &laps {
+        if l.closure_m > 3.0 {
+            failures.push(format!("{name}: closure {:.2} m", l.closure_m));
+        }
+        if l.max_m > 3.5 {
+            failures.push(format!("{name}: max deviation {:.2} m", l.max_m));
+        }
+        // The spread closure adds part of the line-crossing offset to every point: the worst lap
+        // measured is 1.61 m mean with the closure and 1.02 m without it.
+        if l.mean_m > 2.0 {
+            failures.push(format!("{name}: mean deviation {:.2} m", l.mean_m));
+        }
+        if (l.path_m - l.latlon_m).abs() > 0.005 * l.latlon_m {
+            failures.push(format!(
+                "{name}: path {:.1} m against {:.1} m",
+                l.path_m, l.latlon_m
+            ));
+        }
+    }
+    assert!(failures.is_empty(), "{failures:#?}");
+}

@@ -83,6 +83,7 @@ macro_rules! variables {
                 vel_x: f32 = "VelocityX",
                 vel_y: f32 = "VelocityY",
                 yaw: f32 = "Yaw",
+                yaw_north: f32 = "YawNorth",
                 abs_active: bool = "BrakeABSactive",
                 in_pit_stall: bool = "PlayerCarInPitStall",
                 // Observed: true with the garage screen open, also when `IsInGarage` is false.
