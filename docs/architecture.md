@@ -91,7 +91,7 @@ The records go to a sink that counts them; the pipe to Pitwall, the writer threa
 simulator itself are not part of the measurement. Allocations are counted on the sampling thread
 only, with a counting global allocator.
 
-**How it was measured.** On 2026-11-06, one run of
+**How it was measured.** On 2026-11-07, one run of
 `target\release\iracing-measure.exe --synthetic 600 --cars 64 --subscribe`, built with
 `cargo build --release -p iracing-measure` (the workspace's release profile: thin LTO, one
 codegen unit) with rustc 1.99.1, on Windows 11 Pro, an Intel Core i7-10700K at 3.8 GHz (8 cores,
@@ -102,11 +102,11 @@ over runs; the figures will differ on another machine.
 
 | Figure | Result |
 |---|---|
-| Step per row, from the wait returning to the row published (tracker, rivals, detectors, spotter, live frame, telemetry sample) | p50 8.8 us, p99 52.3 us, max 493.1 us |
-| Sum of the steps | 0.482 s over 608.3 s, 0.08 % of one core |
-| CPU of every thread of the process except the feeder (the loop, the session text and description threads, the drain thread) | 1.828 s over 608.3 s, 0.30 % of one core |
-| Allocations on the sampling thread | 2496 in 36499 rows; 36459 rows allocated nothing; the 40 that did (the session opening, the laps ending, the rivals' rows, the first description) allocated at most 253 times in one row |
-| Working set of the process | 133.4 MiB before the loop, 135.1 MiB after, peak 135.2 MiB; 121.7 MiB of it is the replayed rows, held in memory by the tool, so the loop's growth is 1.7 MiB |
+| Step per row, from the wait returning to the row published (tracker, rivals, detectors, spotter, live frame, telemetry sample) | p50 6.7 us, p99 27.6 us, max 490.0 us |
+| Sum of the steps | 0.304 s over 608.3 s, 0.05 % of one core |
+| CPU of every thread of the process except the feeder (the loop, the session text and description threads, the drain thread) | 1.766 s over 608.3 s, 0.29 % of one core |
+| Allocations on the sampling thread | 2514 in 36499 rows; 36459 rows allocated nothing; the 40 that did (the session opening, the laps ending, the rivals' rows, the first description) allocated at most 253 times in one row |
+| Working set of the process | 136.3 MiB before the loop, 137.1 MiB after, peak 137.2 MiB; 121.7 MiB of it is the replayed rows, held in memory by the tool, so the loop's growth is 0.8 MiB |
 | Torn copies, resets | 0, 0 |
 
 The system accounts a thread's CPU time in clock ticks of about 15.6 ms: the process figure is
@@ -237,6 +237,39 @@ fails its section) and a budget sized for a session text of a few hundred KB
 parser and gives the key facts (track, session ids, the player's car) even when the typed parse
 of a section failed. `SectionHashes` lets a consumer tell which section changed between two
 documents.
+
+## Position (dead reckoning)
+
+The simulator publishes no world position, so each lap carries its own `x` (east) and `z`
+(north) channels in metres, computed in `crates/iracing-core/src/position.rs`. The channel `y`
+is not sent.
+
+- **Method.** Every row integrates the car's velocity over `SessionTime` (trapezoid, `f64`
+  accumulators; the step is the difference of `SessionTime`, never a fixed 1/60 s). The heading
+  is `YawNorth`, a compass heading, so the top-down view comes out north-up with no fitting. The
+  velocity is `VelocityX` (forward) and `VelocityY` (left) rotated by the heading. Without
+  `VelocityX` or `VelocityY` the lap uses `Speed` along the heading (no sideslip, about ten
+  metres worse over a lap); without `YawNorth` it uses `Yaw` (compass heading `pi/2 - Yaw`, an
+  arbitrary but fixed north); without any heading the lap has no position. The method is
+  decided from the first row of the lap, and a lap that changes it is dropped. The recorder logs
+  which inputs it has when it attaches.
+- **Anchors.** The origin is where the car crossed the start/finish line, at the crossing time
+  interpolated between two rows. A lap that started at the line (on the track, not on pit road)
+  starts at `(0, 0)`. A lap that started elsewhere (the stall, the garage, a resume) and reaches
+  the line is shifted so the line is `(0, 0)`.
+- **Closure.** A lap from the line to the line that never touched pit road has its closure
+  error (where dead reckoning puts the line at the end of the lap, against `(0, 0)`) spread over
+  the lap in proportion to the path driven. A lap that touched pit road keeps its start anchor
+  only, because the pit lane meets the line away from the racing line.
+- **What is dropped.** A lap sends no `x`/`z` when: a row had no heading; two rows were more
+  than 0.25 s apart; it neither started nor ended at the line; or its closure error exceeds
+  `max(10 m, 0.5 % of the layout length)`.
+- **Cost.** One `sin_cos` and a few multiplications per row, two pushes into reserved columns;
+  nothing allocates (`crates/iracing-core/tests/no_alloc.rs` runs it with the velocity and the
+  heading on the rows). The anchor and the closure run once per lap, in place.
+
+The accuracy, measured against the `Lat` and `Lon` of recorded `.ibt` files, is in
+[FINDINGS.md](FINDINGS.md#position-by-dead-reckoning).
 
 ## `.ibt` files
 

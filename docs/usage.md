@@ -21,7 +21,11 @@ control app by hand.
   "Waiting for iRacing", "iRacing is running: not in a car", "In the garage", "Recording" or
   "Replay: not recording". `live` is true while a session is open and `telemetry` while Pitwall
   is subscribed to the sample stream.
-- It records sessions, laps, setups, pit exits and the other cars' laps (see below).
+- It records sessions, laps, setups, pit exits and the other cars' laps (see below). Each lap
+  carries `x` and `z`, the car's position in metres (east and north, origin at the
+  start/finish line) by dead reckoning; Pitwall draws the track outline and the track maps
+  from them. The position is approximate: within about 3 m on the laps checked (see
+  [FINDINGS.md](FINDINGS.md#position-by-dead-reckoning)).
 - It stops when the control app sets its stop event, and exits 0.
 
 ### What Pitwall can ask of it
