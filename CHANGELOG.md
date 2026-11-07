@@ -4,6 +4,19 @@ All notable changes to this project are written here.
 
 ## Unreleased
 
+(Planned as 0.1.3.)
+
+- **Incident call.** The text no longer glues an "x" to the number ("1x incident"): it reads
+  "Incident, points added: {points}. Total: {total}." with both numbers spoken bare, so no
+  plural agreement is needed in any language.
+- **Chequered call.** The text no longer ends with a full stop after the position, because a
+  written ordinal can carry its own in some languages and the two made "20..".
+- **Return to pits.** A lap ended by the simulator menu's "return to pits" (the car reappears in
+  its stall without driving the pit lane) is typed `in`, not `flying`.
+- **Icon.** The connector's 256 x 256 PNG icon is kept in `bins/iracing-connector-ui/assets/icon.png`
+  for the setup to install as `icon.png` next to the executables; the descriptor will name it
+  once the shared runtime that writes the `icon` key is adopted.
+
 ## 0.1.2 (2026-11-07)
 
 - **Track outline.** Each lap now carries `x` (east) and `z` (north) in metres, dead-reckoned
