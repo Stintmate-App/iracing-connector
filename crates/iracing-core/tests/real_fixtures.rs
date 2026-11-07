@@ -471,7 +471,9 @@ fn real_ibt_outline() {
         if l.max_m > 3.5 {
             failures.push(format!("{name}: max deviation {:.2} m", l.max_m));
         }
-        if l.mean_m > 1.5 {
+        // The spread closure adds part of the line-crossing offset to every point: the worst lap
+        // measured is 1.61 m mean with the closure and 1.02 m without it.
+        if l.mean_m > 2.0 {
             failures.push(format!("{name}: mean deviation {:.2} m", l.mean_m));
         }
         if (l.path_m - l.latlon_m).abs() > 0.005 * l.latlon_m {
