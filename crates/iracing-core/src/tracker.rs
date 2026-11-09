@@ -353,8 +353,11 @@ impl Tracker {
     }
 
     /// The game went away: the open lap closes, the session ends.
+    ///
+    /// The game going away is an interruption, not a return to the pits: a lap open on the
+    /// track stays what its last row says (flying unless it was on the pit road).
     pub fn on_off(&mut self, sink: &mut dyn Sink, clock: &dyn Clock) {
-        self.close_session(true, true, sink, clock);
+        self.close_session(true, true, false, sink, clock);
         self.state = State::Off;
         self.prev = None;
         self.off_since = None;
@@ -366,7 +369,7 @@ impl Tracker {
     /// as a partial one, and sending it here as well would write it twice.
     pub fn stop(&mut self, keep_open: bool, sink: &mut dyn Sink, clock: &dyn Clock) {
         if keep_open {
-            self.close_session(false, false, sink, clock);
+            self.close_session(false, false, false, sink, clock);
             self.state = State::Off;
             self.prev = None;
             self.view = LapView::IDLE;
@@ -420,7 +423,9 @@ impl Tracker {
                 || m.is_some_and(|m| m.identity_hash != open.key.meta_identity)
         });
         if changed {
-            self.close_session(true, true, sink, clock);
+            // The simulator ended or replaced the session under the car: the car was removed
+            // from the track, so a lap open on it is a return to the pits.
+            self.close_session(true, true, true, sink, clock);
         } else if let (Some(open), Some(m)) = (&mut self.open, m)
             && !Arc::ptr_eq(&open.meta, m)
         {
@@ -529,16 +534,25 @@ impl Tracker {
     /// Closes the open lap and sends everything pending. `end` sends `end_session`.
     /// Closes the open session. `send_lap`: the open lap goes out as a partial lap; otherwise it
     /// is dropped.
-    fn close_session(&mut self, end: bool, send_lap: bool, sink: &mut dyn Sink, clock: &dyn Clock) {
+    /// `removed`: the simulator took the car off the track (the session ended or changed); the
+    /// lap it interrupts is typed `in` when it was driven on the track.
+    fn close_session(
+        &mut self,
+        end: bool,
+        send_lap: bool,
+        removed: bool,
+        sink: &mut dyn Sink,
+        clock: &dyn Clock,
+    ) {
         let Some(local) = self.open.as_ref().map(|o| o.local) else {
             return;
         };
         if send_lap {
             let end_s = self.prev.map_or(self.lap.started_at_s, |p| p.time);
-            // An interrupted lap is not a garage return: it is `in` only if the last row was on
-            // the pit road.
+            // An interrupted lap is `in` if the last row was on the pit road or the car was
+            // removed from the track; a game that goes away leaves it as it was.
             let on_pit_road = self.prev.is_some_and(|p| p.on_pit_road);
-            self.end_partial(end_s, on_pit_road, false, sink);
+            self.end_partial(end_s, on_pit_road, removed, sink);
         } else {
             self.buffer.clear();
         }
@@ -649,7 +663,8 @@ impl Tracker {
                 if moved > limit {
                     self.validity
                         .mark_tow(t.lap_dist, (now - self.lap.started_at_s) as f32);
-                    self.end_partial(now, false, false, sink);
+                    // A jump that lands on the pit road is a return to the pits.
+                    self.end_partial(now, t.on_pit_road && !p.on_pit_road, false, sink);
                     self.start_lap(t, StartKind::Resume, now);
                     self.visit.was_in_stall = stall;
                 } else if !fell {
@@ -1131,6 +1146,79 @@ mod tests {
         assert_eq!(lap.cause, Some(InvalidCause::Unknown));
         // The menu's "return to pits" ends the lap as an in lap, not a flying one.
         assert_eq!(lap.lap_type, LapType::In);
+    }
+
+    /// A line crossing, then 19 s of flying lap; returns the clock and the lap count so far.
+    fn crossing_then_driving(
+        tracker: &mut Tracker,
+        meta: &Arc<SessionMeta>,
+        sink: &mut RecordingSink,
+    ) -> (f64, f32, i32) {
+        let none = (0, usize::MAX);
+        let at = drive_flagged(tracker, meta, sink, (0.0, 0.5, 3), 2600, none);
+        drive_flagged(tracker, meta, sink, at, 1140, none)
+    }
+
+    #[test]
+    fn tracker_session_ending_under_a_car_on_track_types_the_lap_in() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let (time, pct, _) = crossing_then_driving(&mut tracker, &meta, &mut sink);
+        // The menu's return to pits at the end of the session: the next session's identity
+        // arrives and the car is out of the world in the same row.
+        let mut t = driving(time + 0.02, pct);
+        t.session_unique_id = 2;
+        t.is_on_track = false;
+        t.is_on_track_car = false;
+        tracker.step(&t, Some(&meta), &mut sink, &clock);
+        let laps = sink.laps();
+        assert_eq!(laps.len(), 2, "the crossing and the interrupted lap");
+        assert_eq!(laps[0].lap_type, LapType::Flying, "a real crossing is unchanged");
+        assert!(!laps[0].partial);
+        assert!(laps[1].partial && !laps[1].valid);
+        assert_eq!(laps[1].lap_type, LapType::In);
+    }
+
+    #[test]
+    fn tracker_leaving_the_car_mid_lap_types_the_lap_in() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let (time, pct, _) = crossing_then_driving(&mut tracker, &meta, &mut sink);
+        let mut t = driving(time + 0.02, pct);
+        t.is_on_track = false;
+        t.is_on_track_car = false;
+        t.is_in_garage = true;
+        tracker.step(&t, Some(&meta), &mut sink, &clock);
+        let laps = sink.laps();
+        assert_eq!(laps.len(), 2);
+        assert_eq!(laps[1].lap_type, LapType::In);
+    }
+
+    #[test]
+    fn tracker_jump_onto_the_pit_road_types_the_lap_in() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let (time, _, _) = crossing_then_driving(&mut tracker, &meta, &mut sink);
+        // The car reappears on the pit road, not in the stall.
+        let mut t = driving(time + 0.1, 0.02);
+        t.on_pit_road = true;
+        t.track_loc = 2;
+        tracker.step(&t, Some(&meta), &mut sink, &clock);
+        let laps = sink.laps();
+        assert_eq!(laps.len(), 2);
+        assert_eq!(laps[1].lap_type, LapType::In);
+    }
+
+    #[test]
+    fn tracker_the_game_going_away_mid_lap_leaves_the_lap_as_driven() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        crossing_then_driving(&mut tracker, &meta, &mut sink);
+        tracker.on_off(&mut sink, &clock);
+        let laps = sink.laps();
+        assert_eq!(laps.len(), 2);
+        assert!(laps[1].partial);
+        assert_eq!(laps[1].lap_type, LapType::Flying);
     }
 
     /// Drives `rows` rows at 60 Hz from `(time, pct, lap)` with `flags` up. From row `fall_from`
