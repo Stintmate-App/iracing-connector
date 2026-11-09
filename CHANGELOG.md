@@ -6,7 +6,8 @@ All notable changes to this project are written here.
 
 No behaviour or protocol change.
 
-- Source formatting (`cargo fmt`), so the release checks pass.
+- Source formatting (`cargo fmt`) and two clippy findings (a collapsible `if`, a test type alias), so
+  the release checks pass.
 - Hooks in `.githooks/`: the formatting check before a commit and clippy before a push (enabled
   with `git config core.hooksPath .githooks`).
 

@@ -156,11 +156,13 @@ impl SectorClock {
         }
         if let Some(official) = official_s {
             let all = timed == self.count;
-            if race_start && all && official - sum > ABORTED_SECTOR_TOLERANCE_S {
-                if let Some(first) = out.times[0].as_mut() {
-                    *first += official - sum;
-                    sum = official;
-                }
+            if race_start
+                && all
+                && official - sum > ABORTED_SECTOR_TOLERANCE_S
+                && let Some(first) = out.times[0].as_mut()
+            {
+                *first += official - sum;
+                sum = official;
             }
             let off = if all {
                 (sum - official).abs() > ABORTED_SECTOR_TOLERANCE_S

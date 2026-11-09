@@ -1240,7 +1240,10 @@ mod tests {
 
     /// One row of the reset sequence: (pct, speed, lap, completed, on track, on pit road, in
     /// stall, track surface).
-    fn reset_row(time: f64, r: (f32, f32, i32, i32, bool, bool, bool, i32)) -> Box<Tick> {
+    type ResetRow = (f32, f32, i32, i32, bool, bool, bool, i32);
+
+    /// A [`ResetRow`] as a tick at `time`.
+    fn reset_row(time: f64, r: ResetRow) -> Box<Tick> {
         let mut t = driving(time, r.0);
         t.speed = r.1;
         t.lap = r.2;
@@ -1255,7 +1258,7 @@ mod tests {
 
     // Rows from an iRacing .ibt (60 Hz), a reset to the pits at session time 1061.5:
     // the car is out of the world for one row, then in the stall.
-    const REAL_ROWS: [(f32, f32, i32, i32, bool, bool, bool, i32); 4] = [
+    const REAL_ROWS: [ResetRow; 4] = [
         (0.1067, 0.0001, 6, 5, true, false, false, 3),
         (0.0, 0.0, 0, 0, true, false, false, -1),
         (0.0313, 0.0485, 6, 5, true, true, true, 1),
