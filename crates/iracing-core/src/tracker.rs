@@ -9,9 +9,12 @@
 //! - Both lap counters drop to 0 when the player leaves the car and `Lap` goes to 1 again on
 //!   re-entry in the stall without a crossing. The counters are taken again whenever driving
 //!   starts and when a counter falls; neither is a lap end.
-//! - A reset to the pits shows the car in the stall in one row (`OnPitRoad` and
-//!   `PlayerCarInPitStall` rise together) with the lap fraction jumping to the stall's. That is
-//!   tested before the wrap of the lap fraction, which it would otherwise pass.
+//! - A reset to the pits takes two rows at 60 Hz (seen in an `.ibt`; a probe sampling at about
+//!   1 Hz had seen one): first the car out of the world (`PlayerTrackSurface` -1, the lap
+//!   fraction 0, both counters 0), then in the stall (`OnPitRoad` and `PlayerCarInPitStall`
+//!   rise together, the lap fraction jumps to the stall's). The out-of-world row ends the lap as
+//!   a return to the pits; the stall row is tested before the wrap of the lap fraction, which
+//!   it would otherwise pass.
 //! - `LapLastLapTime` of -1 means the lap was not timed.
 //! - Out of the car, with a session loaded, is the garage, also before the first drive; the
 //!   live replay the simulator shows then is not a menu. The garage screen is `IsInGarage` or
@@ -64,6 +67,7 @@ pub const DRIVE_START_QUIET_S: f64 = 1.0;
 /// end a lap that started at the line.
 pub const WRAP_MIN_DRIVEN: f64 = 0.5;
 
+const TRK_LOC_NOT_IN_WORLD: i32 = -1;
 const TRK_LOC_IN_PIT_STALL: i32 = 1;
 const SESSION_STATE_PARADE: i32 = 3;
 
@@ -663,8 +667,11 @@ impl Tracker {
                 if moved > limit {
                     self.validity
                         .mark_tow(t.lap_dist, (now - self.lap.started_at_s) as f32);
-                    // A jump that lands on the pit road is a return to the pits.
-                    self.end_partial(now, t.on_pit_road && !p.on_pit_road, false, sink);
+                    // A jump that lands on the pit road is a return to the pits, and so is a
+                    // row with the car out of the world (the reset's first row).
+                    let to_pits =
+                        (t.on_pit_road && !p.on_pit_road) || t.track_loc == TRK_LOC_NOT_IN_WORLD;
+                    self.end_partial(now, to_pits, false, sink);
                     self.start_lap(t, StartKind::Resume, now);
                     self.visit.was_in_stall = stall;
                 } else if !fell {
@@ -1173,7 +1180,11 @@ mod tests {
         tracker.step(&t, Some(&meta), &mut sink, &clock);
         let laps = sink.laps();
         assert_eq!(laps.len(), 2, "the crossing and the interrupted lap");
-        assert_eq!(laps[0].lap_type, LapType::Flying, "a real crossing is unchanged");
+        assert_eq!(
+            laps[0].lap_type,
+            LapType::Flying,
+            "a real crossing is unchanged"
+        );
         assert!(!laps[0].partial);
         assert!(laps[1].partial && !laps[1].valid);
         assert_eq!(laps[1].lap_type, LapType::In);
@@ -1207,6 +1218,101 @@ mod tests {
         let laps = sink.laps();
         assert_eq!(laps.len(), 2);
         assert_eq!(laps[1].lap_type, LapType::In);
+    }
+
+    /// 20 s of driving at 60 Hz on lap 6 (counter 5), ending at the lap fraction of the real rows.
+    fn drive_to_the_reset(
+        tracker: &mut Tracker,
+        meta: &Arc<SessionMeta>,
+        sink: &mut RecordingSink,
+    ) -> f64 {
+        let clock = FixedClock::default();
+        let mut time = 1041.4833;
+        for i in 0..1200 {
+            time += 1.0 / 60.0;
+            let mut t = driving(time, 0.1067 * (i + 1) as f32 / 1200.0);
+            t.lap = 6;
+            t.lap_completed = 5;
+            tracker.step(&t, Some(meta), sink, &clock);
+        }
+        time
+    }
+
+    /// One row of the reset sequence: (pct, speed, lap, completed, on track, on pit road, in
+    /// stall, track surface).
+    fn reset_row(time: f64, r: (f32, f32, i32, i32, bool, bool, bool, i32)) -> Box<Tick> {
+        let mut t = driving(time, r.0);
+        t.speed = r.1;
+        t.lap = r.2;
+        t.lap_completed = r.3;
+        t.is_on_track = r.4;
+        t.is_on_track_car = r.4;
+        t.on_pit_road = r.5;
+        t.in_pit_stall = Some(r.6);
+        t.track_loc = r.7;
+        t
+    }
+
+    // Rows from an iRacing .ibt of 2026-11-09 (60 Hz), a reset to the pits at session time 1061.5:
+    // the car is out of the world for one row, then in the stall.
+    const REAL_ROWS: [(f32, f32, i32, i32, bool, bool, bool, i32); 4] = [
+        (0.1067, 0.0001, 6, 5, true, false, false, 3),
+        (0.0, 0.0, 0, 0, true, false, false, -1),
+        (0.0313, 0.0485, 6, 5, true, true, true, 1),
+        (0.0313, 0.0743, 6, 5, true, true, true, 1),
+    ];
+
+    #[test]
+    fn tracker_reset_through_an_out_of_world_row_types_the_lap_in() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let time = drive_to_the_reset(&mut tracker, &meta, &mut sink);
+        for (i, r) in REAL_ROWS.iter().enumerate() {
+            let t = reset_row(time + (i + 1) as f64 / 60.0, *r);
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+        }
+        let laps = sink.laps();
+        assert_eq!(
+            laps.len(),
+            1,
+            "one lap, the tiny one the reset opens is dropped"
+        );
+        assert!(laps[0].partial);
+        assert_eq!(laps[0].lap_type, LapType::In);
+        // The next lap starts from the stall.
+        let mut at = time + 5.0 / 60.0;
+        for _ in 0..600 {
+            at += 1.0 / 60.0;
+            let mut t = reset_row(at, (0.0313, 30.0, 6, 5, true, false, false, 3));
+            t.lap_dist_pct += 0.0001;
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+        }
+        tracker.on_off(&mut sink, &clock);
+        let laps = sink.laps();
+        assert_eq!(laps.len(), 2);
+        assert_eq!(laps[1].lap_type, LapType::Out);
+    }
+
+    #[test]
+    fn tracker_out_of_world_row_then_the_garage_types_one_lap_in() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let time = drive_to_the_reset(&mut tracker, &meta, &mut sink);
+        let rows = [
+            REAL_ROWS[0],
+            REAL_ROWS[1],
+            (0.0, 0.0, 0, 0, false, false, false, -1),
+            (0.0, 0.0, 0, 0, false, false, false, -1),
+        ];
+        for (i, r) in rows.iter().enumerate() {
+            let mut t = reset_row(time + (i + 1) as f64 / 60.0, *r);
+            t.is_in_garage = i >= 2;
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+        }
+        let laps = sink.laps();
+        assert_eq!(laps.len(), 1);
+        assert!(laps[0].partial);
+        assert_eq!(laps[0].lap_type, LapType::In);
     }
 
     #[test]

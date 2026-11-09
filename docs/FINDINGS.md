@@ -224,10 +224,17 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
   crossing. A reset to the pits (the teleport of Test Drive) kept both counters. A reader must
   re-baseline the counters when the player starts driving and read a counter that falls as a
   new baseline, not as a lap.
-- **observed**: a reset to the pits changed `OnPitRoad` and `PlayerCarInPitStall` from 0 to 1
-  in one row and `LapDistPct` jumped to 0.0313 (from 0.839 and from 0.232 in the two resets
-  seen); `PlayerCarTowTime` stayed 0. A reset from late in the lap would pass a "wrapped past
-  the line" test, so the stall reappearance has to be tested first.
+- **observed**: a reset to the pits ends with `OnPitRoad` and `PlayerCarInPitStall` at 1 and
+  `LapDistPct` at 0.0313 (from 0.839 and from 0.232 in the two resets seen);
+  `PlayerCarTowTime` stayed 0. A reset from late in the lap would pass a "wrapped past the
+  line" test, so the stall reappearance has to be tested first. Method: the first sightings
+  came from a probe sampling at about 1 Hz, which saw the change as one step. A 60 Hz `.ibt`
+  recorded by iRacing (a reset at session time 1061.5) shows it takes two rows: one row with
+  the car out of the world (`PlayerTrackSurface` -1, `LapDistPct` 0, `Speed` 0, `Lap` and
+  `LapCompleted` 0, `OnPitRoad` and `PlayerCarInPitStall` still 0), then the row in the stall
+  (`PlayerTrackSurface` 1, `OnPitRoad` and `PlayerCarInPitStall` 1, `Lap` and `LapCompleted`
+  back at their values). A reader that waits for the stall row has already seen the lap
+  jump; the out-of-world row is the sign of the return to the pits.
 - **observed**: `LapLastLapTime` and `LapCurrentLapTime` change together, at most one sample
   (1.02 s) after `Lap` increments. In 6 of 10 crossings the row where `Lap` had already
   increased still showed the old lap clock, up to 0.66 s past the line; in the other 4 both had

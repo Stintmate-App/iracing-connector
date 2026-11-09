@@ -2,6 +2,15 @@
 
 All notable changes to this project are written here.
 
+## 0.1.6 (2026-11-09)
+
+- **Lap type on return to the pits, mid-lap.** A lap left through the menu's return to the pits
+  or to the garage while the car was moving on the track was recorded as a flying lap. The
+  simulator takes the car out of the world for one row before it appears in the stall, and
+  that row is now read as the return to the pits: the lap is an in lap (still partial), and the
+  next lap starts from the stall as an out lap. Laps ended by a real line crossing, out laps
+  and formation laps are unchanged.
+
 ## 0.1.5 (2026-11-09)
 
 - **Lap type on return to the pits.** A lap cut short because the simulator removed the car from
