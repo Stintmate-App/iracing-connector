@@ -218,3 +218,67 @@ fn race_positions_before_the_first_timed_lap_come_from_the_running_order() {
     let f = frame_json(&s, Some(&m), 100.2, "2026-01-02T18:00:00.123+00:00");
     assert!(f["participants"][0]["position"].is_null());
 }
+
+/// A race where the player stopped: the simulator's positions still hold the order of the last
+/// line crossing (the player first), while on the road he is behind two cars and ahead of one.
+fn after_a_stop() -> (LiveSnapshot, SessionMeta) {
+    let mut s = snapshot(State::Track);
+    let mut m = meta();
+    m.results[5].position = 0;
+    m.roster[6] = Some(entry("Slow", "porsche"));
+    m.roster[8] = Some(entry("Leader", "porsche"));
+    let t = &mut s.tick;
+    for (i, completed, pct, est, pos) in [
+        (3, 3, 0.5, 50.0, 1),
+        (5, 3, 0.9, 90.0, 2),
+        (6, 3, 0.2, 20.0, 3),
+        (8, 4, 0.1, 10.0, 4),
+    ] {
+        t.car_loc[i] = 3;
+        t.car_lap_completed[i] = completed;
+        t.car_pct[i] = pct;
+        t.car_est.as_mut().expect("set")[i] = est;
+        t.car_position.as_mut().expect("set")[i] = pos;
+    }
+    t.car_f2 = Some([0.0; 64]);
+    (s, m)
+}
+
+#[test]
+fn race_position_and_gaps_follow_the_road_after_a_stop() {
+    let (mut s, m) = after_a_stop();
+    let f = frame_json(&s, Some(&m), 100.2, "2026-01-02T18:00:00.123+00:00");
+    assert_valid(&validator(), &f);
+    let pos = |f: &Value, i: i64| {
+        f["participants"]
+            .as_array()
+            .expect("array")
+            .iter()
+            .find(|p| p["index"] == i)
+            .expect("car")["position"]
+            .clone()
+    };
+    assert_eq!(pos(&f, 3), 3, "the player is third on the road, not first");
+    assert_eq!((pos(&f, 8), pos(&f, 5), pos(&f, 6)), (json!(1), json!(2), json!(4)));
+    assert_eq!(f["splits"]["ahead_s"], 40.0, "the car ahead on the road");
+    assert_eq!(f["splits"]["behind_s"], 30.0, "the car behind on the road");
+
+    // The nearest car ahead is a lap up: the gap adds the whole lap at the class estimate.
+    s.tick.car_lap_completed[5] = 4;
+    s.tick.car_pct[5] = 0.4;
+    s.tick.car_est.as_mut().expect("set")[5] = 40.0;
+    let f = frame_json(&s, Some(&m), 100.2, "2026-01-02T18:00:00.123+00:00");
+    assert_eq!(f["splits"]["ahead_s"], 60.0);
+
+    // Before the green flag the simulator's positions stand.
+    let (mut s, m) = after_a_stop();
+    s.tick.session_state = 3;
+    let f = frame_json(&s, Some(&m), 100.2, "2026-01-02T18:00:00.123+00:00");
+    assert_eq!(pos(&f, 3), 1);
+
+    // Outside a race they stand too.
+    let (mut s, m) = after_a_stop();
+    s.view.session_kind = SessionKind::Practice;
+    let f = frame_json(&s, Some(&m), 100.2, "2026-01-02T18:00:00.123+00:00");
+    assert_eq!(pos(&f, 3), 1);
+}

@@ -261,7 +261,18 @@ fn splits(s: &LiveSnapshot, meta: &SessionMeta, player: &DriverEntry) -> Option<
         .ok()
         .filter(|i| *i < CARS)?;
     let gap = |x: f32| (x.is_finite() && x > 0.0).then(|| round(x, 2));
-    let (ahead, behind) = if s.view.session_kind == crate::codes::SessionKind::Race {
+    let on_road = if racing(s) {
+        player
+            .class_est_lap_s
+            .filter(|l| *l > 0.0)
+            .zip(t.car_est)
+            .and_then(|(lap_s, est)| road_neighbours(s, meta, me, lap_s as f32, est))
+    } else {
+        None
+    };
+    let (ahead, behind) = if let Some(n) = on_road {
+        n
+    } else if s.view.session_kind == crate::codes::SessionKind::Race {
         let (pos, f2) = (t.car_position?, t.car_f2?);
         let p = pos[me];
         let by_pos = |want: i32| {
@@ -297,6 +308,59 @@ fn splits(s: &LiveSnapshot, meta: &SessionMeta, player: &DriverEntry) -> Option<
         "ahead_s": ahead.and_then(gap),
         "behind_s": behind.and_then(gap),
     }))
+}
+
+/// Whether the race is under way (the green flag up, not yet the chequered flag): the
+/// simulator's positions change only at the line, so from here on the order is counted on the
+/// road.
+fn racing(s: &LiveSnapshot) -> bool {
+    s.view.session_kind == crate::codes::SessionKind::Race && s.tick.session_state == STARTED_FROM
+}
+
+/// The gaps to the cars next to car `me` on the road: the nearest real car in the world that is
+/// ahead by laps completed plus lap fraction, and the nearest behind. The gap is the
+/// difference of the cars' estimated times at their places, plus the whole laps between them
+/// at the class lap estimate; when the neighbour is also the adjacent car in the simulator's
+/// own order (nothing changed since the last line crossing) that order's time behind the
+/// leader is used instead. `None` when the player has no running order.
+fn road_neighbours(
+    s: &LiveSnapshot,
+    meta: &SessionMeta,
+    me: usize,
+    lap_s: f32,
+    est: [f32; CARS],
+) -> Option<(Option<f32>, Option<f32>)> {
+    let t = &s.tick;
+    running_order(s, meta, me)?;
+    let progress = |k: usize| f64::from(t.car_lap_completed[k]) + f64::from(t.car_pct[k]);
+    let mine = progress(me);
+    let mut ahead: Option<(f64, usize)> = None;
+    let mut behind: Option<(f64, usize)> = None;
+    for k in (0..CARS).filter(|&k| k != me && real(meta, t, k) && t.car_lap_completed[k] >= 0) {
+        let p = progress(k);
+        if p > mine && ahead.is_none_or(|(b, _)| p < b) {
+            ahead = Some((p, k));
+        } else if p < mine && behind.is_none_or(|(b, _)| p > b) {
+            behind = Some((p, k));
+        }
+    }
+    let laps = |k: usize| (t.car_lap_completed[k] - t.car_lap_completed[me]) as f32 * lap_s;
+    let adjacent = |k: usize, step: i32| {
+        t.car_position
+            .zip(t.car_f2)
+            .filter(|(pos, _)| pos[me] > 0 && pos[k] == pos[me] + step)
+            .map(|(_, f2)| f2)
+    };
+    Some((
+        ahead.map(|(_, k)| match adjacent(k, -1) {
+            Some(f2) => f2[me] - f2[k],
+            None => est[k] - est[me] + laps(k),
+        }),
+        behind.map(|(_, k)| match adjacent(k, 1) {
+            Some(f2) => f2[k] - f2[me],
+            None => est[me] - est[k] - laps(k),
+        }),
+    ))
 }
 
 fn conditions(t: &Tick) -> Value {
@@ -346,11 +410,17 @@ fn participants(s: &LiveSnapshot, meta: &SessionMeta) -> Value {
             continue;
         }
         let active = t.car_loc[i] != LOC_NOT_IN_WORLD;
-        let position = t
-            .car_position
-            .map(|p| p[i])
-            .filter(|p| *p > 0)
-            .or((result.position > 0).then_some(result.position))
+        // In a race the order on the road wins over the simulator's, which holds the order of
+        // the last line crossing (stale after a stop); elsewhere the simulator's stands.
+        let position = racing(s)
+            .then(|| running_order(s, meta, i))
+            .flatten()
+            .or_else(|| {
+                t.car_position
+                    .map(|p| p[i])
+                    .filter(|p| *p > 0)
+                    .or((result.position > 0).then_some(result.position))
+            })
             .or_else(|| running_order(s, meta, i));
         let pit_mode = if is_player {
             u32::from(s.view.pit_mode)
