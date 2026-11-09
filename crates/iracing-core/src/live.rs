@@ -252,8 +252,10 @@ fn real(meta: &SessionMeta, t: &Tick, i: usize) -> bool {
         && t.car_loc[i] != LOC_NOT_IN_WORLD
 }
 
-/// The time gaps to the cars ahead and behind. In a race, the difference of the cars' times
-/// behind the leader by overall position; otherwise the on-track gap to the nearest car by lap
+/// The time gaps to the cars ahead and behind. While a race is under way, those of the nearest
+/// cars on the road (see `road_neighbours`); in a race otherwise (before the green flag, after
+/// the chequered flag), the difference of the cars' times behind the leader by overall
+/// position; elsewhere the on-track gap to the nearest car by lap
 /// fraction, wrapped by the class lap estimate.
 fn splits(s: &LiveSnapshot, meta: &SessionMeta, player: &DriverEntry) -> Option<Value> {
     let t = &s.tick;
@@ -374,8 +376,9 @@ fn conditions(t: &Tick) -> Value {
 
 /// The running order of car `i` in a race, by laps completed and lap fraction among the real
 /// cars in the world. The simulator's own positions read 0 for every car until the first timed
-/// lap (the out lap and the first lap of a race), so this stands in until they are set; the
-/// order is only counted in a race, where it is the position.
+/// lap (the out lap and the first lap of a race), so this stands in until they are set; while
+/// a race is under way it is the position outright (the simulator's order is stale between
+/// line crossings). The order is only counted in a race.
 fn running_order(s: &LiveSnapshot, meta: &SessionMeta, i: usize) -> Option<i32> {
     if s.view.session_kind != crate::codes::SessionKind::Race {
         return None;

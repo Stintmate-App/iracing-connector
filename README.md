@@ -1,8 +1,8 @@
 # iracing-connector
 
 Stintmate's connector for iRacing: it reads the simulator's telemetry through the iRacing SDK and
-records laps, live data and race calls for Stintmate's race engineer (through Pitwall, Stintmate's telemetry database). Written in Rust, for Windows.
-Read-only: it never writes to the simulator.
+records laps, live data and race calls for Stintmate's race engineer, through Pitwall, Stintmate's
+telemetry database. Written in Rust, for Windows. Read-only: it never writes to the simulator.
 
 Not affiliated with or endorsed by iRacing.com Motorsport Simulations. Licensed under the Apache
 License 2.0 ([LICENSE](LICENSE)).
@@ -10,7 +10,7 @@ License 2.0 ([LICENSE](LICENSE)).
 ## Status
 
 Version 0.1.6. What works, tested against synthetic sessions replayed into a test memory
-mapping and against one recorded offline session:
+mapping and against recorded offline sessions:
 
 - `irsdk` reads the simulator's shared memory (header, variables, rows, the session text) and
   `.ibt` files.
@@ -25,11 +25,12 @@ mapping and against one recorded offline session:
 - The recorder allocates nothing per row while no lap ends and no call fires; its measured cost
   is in [docs/architecture.md](docs/architecture.md#performance).
 
-Not observed yet: everything that needs a race or other cars (the flags, penalties, cautions, the
-finish, retirements, the spotter's `CarLeftRight` values, the rivals' classification online), a
-second layout or event, a pause, a replay, spectating and a virtual-reality mirror. The defaults
-used for them are listed in [docs/FINDINGS.md](docs/FINDINGS.md#assumed-to-confirm). Nothing has
-been run against the running simulator except the read-only probe.
+Not observed yet: online sessions and what needs other cars alongside (some flags, penalties,
+cautions, the finish, retirements, the spotter's `CarLeftRight` values, the rivals' classification
+online), a second layout or event, a pause, a replay, spectating and a virtual-reality mirror. The
+defaults used for them are listed in [docs/FINDINGS.md](docs/FINDINGS.md#assumed-to-confirm); the
+sessions seen so far (offline practice and offline races against AI cars) are described in
+[docs/FINDINGS.md](docs/FINDINGS.md).
 
 ## Documentation
 

@@ -1253,7 +1253,7 @@ mod tests {
         t
     }
 
-    // Rows from an iRacing .ibt of 2026-11-09 (60 Hz), a reset to the pits at session time 1061.5:
+    // Rows from an iRacing .ibt (60 Hz), a reset to the pits at session time 1061.5:
     // the car is out of the world for one row, then in the stall.
     const REAL_ROWS: [(f32, f32, i32, i32, bool, bool, bool, i32); 4] = [
         (0.1067, 0.0001, 6, 5, true, false, false, 3),

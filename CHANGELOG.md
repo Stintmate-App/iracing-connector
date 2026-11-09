@@ -2,6 +2,16 @@
 
 All notable changes to this project are written here.
 
+## 0.1.6+docs.1 (2026-11-09)
+
+### Documentation
+
+- The documents and the doc comments were checked against the code again. Corrected: the
+  installer's AppId line, the list of declared features, which sessions the findings come from
+  (offline practice and offline races against AI cars were seen, nothing online), the gap and
+  position doc comments after the race-position change, and the README's wording on Pitwall.
+  Behaviour is unchanged.
+
 ## 0.1.6 (2026-11-09)
 
 - **Lap type on return to the pits, mid-lap.** A lap left through the menu's return to the pits
