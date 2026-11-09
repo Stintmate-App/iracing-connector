@@ -335,10 +335,7 @@ impl RivalTracker {
 /// lap that touched no pit road) knows nothing of incidents, cut tracks or resets, which the
 /// tracker sees for the player's own car. `valid_of` gives the tracker's verdict for the
 /// simulator's lap number, `None` when it has none (the row keeps the field rule).
-pub fn apply_player_validity(
-    rows: &mut [ParticipantLap],
-    valid_of: impl Fn(i32) -> Option<bool>,
-) {
+pub fn apply_player_validity(rows: &mut [ParticipantLap], valid_of: impl Fn(i32) -> Option<bool>) {
     for r in rows.iter_mut().filter(|r| r.is_player) {
         if let Some(v) = valid_of(r.lap) {
             r.valid = v;

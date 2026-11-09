@@ -8,7 +8,8 @@ Every fact has one of three marks:
   implemented in the code at the place named. A fact marked only as documented has not been
   checked against a running simulator.
 - **observed**: seen on a real machine, with what was observed and how. Unless a fact says
-  otherwise, the observation is the one session described next.
+  otherwise, the observation is the first session described next; facts from later sessions
+  (a second probe run, an offline race against AI cars, offline practice) name theirs.
 - **not observed yet**: a fact the code assumes, or one that is still open.
 
 The observed session: iRacing build 2026.11.02.01 (members build), an offline Test Drive
@@ -16,8 +17,9 @@ The observed session: iRacing build 2026.11.02.01 (members build), an offline Te
 layout, one player and no other car, 30 minutes read with `iracing-probe` at 60 Hz (107890 rows,
 none torn). The probe also wrote a state sample about once a second; the facts about states and
 counters below come from those samples, so a time shorter than a second cannot be told from
-them. Nothing here was seen in a race session, online or with other cars (see
-[Not observed yet](#not-observed-yet)).
+them. That session had no race and no other car; a race with other cars was seen only offline,
+against AI cars, in the later sessions named where they are used. Nothing here was seen online
+(see [Not observed yet](#not-observed-yet)).
 
 ## Assumed, to confirm
 
@@ -273,7 +275,7 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
 - **observed** (offline race, 5 laps, 20 cars): after a pit stop the live position and the cars
   "ahead" and "behind" were stale on the out lap: position 8 with gaps of 0.3 s and 1.7 s while
   the cars around the player on the road were the last two (distance estimates 55 s and 64 s);
-  the classification had him 19th. `CarIdxPosition` and `CarIdxClassPosition` change only at a
+  the classification had the player 19th. `CarIdxPosition` and `CarIdxClassPosition` change only at a
   car's own crossing of the line, so mid-lap they keep the order of the previous crossing.
   **Handled**: while a race is under way (`SessionState` 4), every car's position is its running
   order (laps completed plus lap fraction, real cars in the world) and the cars ahead and behind

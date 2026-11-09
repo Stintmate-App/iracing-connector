@@ -2,6 +2,23 @@
 
 All notable changes to this project are written here.
 
+## 0.1.7 (2026-11-10)
+
+No behaviour or protocol change.
+
+- Source formatting (`cargo fmt`) and two clippy findings (a collapsible `if`, a test type alias), so
+  the release checks pass.
+- Hooks in `.githooks/`: the formatting check before a commit and clippy before a push (enabled
+  with `git config core.hooksPath .githooks`).
+
+### Documentation
+
+- The documents and the doc comments were checked against the code again. Corrected: the
+  installer's AppId line, the list of declared features, which sessions the findings come from
+  (offline practice and offline races against AI cars were seen, nothing online), the gap and
+  position doc comments after the race-position change, and the README's wording on Pitwall.
+  Behaviour is unchanged.
+
 ## 0.1.6 (2026-11-09)
 
 - **Lap type on return to the pits, mid-lap.** A lap left through the menu's return to the pits
