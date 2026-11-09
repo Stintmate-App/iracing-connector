@@ -2,7 +2,13 @@
 
 All notable changes to this project are written here.
 
-## 0.1.6+docs.1 (2026-11-09)
+## 0.1.7 (2026-11-10)
+
+No behaviour or protocol change.
+
+- Source formatting (`cargo fmt`), so the release checks pass.
+- Hooks in `.githooks/`: the formatting check before a commit and clippy before a push (enabled
+  with `git config core.hooksPath .githooks`).
 
 ### Documentation
 

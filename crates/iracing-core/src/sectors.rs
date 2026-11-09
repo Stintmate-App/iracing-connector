@@ -281,8 +281,18 @@ mod tests {
         assert!((s[1].unwrap() - 36.0).abs() < 1e-3);
         assert!((s[2].unwrap() - 27.0).abs() < 1e-3);
         // Any other lap with that mismatch loses its sectors, and a shorter official time too.
-        assert!(c.finish_lap(end, Some(92.5), false).as_slice().iter().all(Option::is_none));
-        assert!(c.finish_lap(end, Some(88.0), true).as_slice().iter().all(Option::is_none));
+        assert!(
+            c.finish_lap(end, Some(92.5), false)
+                .as_slice()
+                .iter()
+                .all(Option::is_none)
+        );
+        assert!(
+            c.finish_lap(end, Some(88.0), true)
+                .as_slice()
+                .iter()
+                .all(Option::is_none)
+        );
     }
 
     #[test]

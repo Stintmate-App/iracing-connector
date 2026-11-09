@@ -259,7 +259,10 @@ fn race_position_and_gaps_follow_the_road_after_a_stop() {
             .clone()
     };
     assert_eq!(pos(&f, 3), 3, "the player is third on the road, not first");
-    assert_eq!((pos(&f, 8), pos(&f, 5), pos(&f, 6)), (json!(1), json!(2), json!(4)));
+    assert_eq!(
+        (pos(&f, 8), pos(&f, 5), pos(&f, 6)),
+        (json!(1), json!(2), json!(4))
+    );
     assert_eq!(f["splits"]["ahead_s"], 40.0, "the car ahead on the road");
     assert_eq!(f["splits"]["behind_s"], 30.0, "the car behind on the road");
 

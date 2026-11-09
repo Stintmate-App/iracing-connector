@@ -1,3 +1,5 @@
 * text=auto
 # Corpus files keep their exact bytes (code page 1252, NULs, CRLF).
 crates/irsdk/tests/corpus/** -text
+# Git hooks run under sh: LF only
+.githooks/* text eol=lf

@@ -9,7 +9,7 @@ License 2.0 ([LICENSE](LICENSE)).
 
 ## Status
 
-Version 0.1.6. What works, tested against synthetic sessions replayed into a test memory
+Version 0.1.7. What works, tested against synthetic sessions replayed into a test memory
 mapping and against recorded offline sessions:
 
 - `irsdk` reads the simulator's shared memory (header, variables, rows, the session text) and
@@ -78,7 +78,9 @@ cargo deny check licenses advisories bans sources
 The tests that read recordings from a real machine are ignored; see
 [docs/FINDINGS.md](docs/FINDINGS.md) for how to run them.
 
-CI runs by hand only (Actions, `ci`); run the checks above locally before a merge.
+CI runs by hand only (Actions, `ci`); run the checks above locally before a merge. The repository's
+hooks run the first two before each commit and push; enable them once per clone with
+`git config core.hooksPath .githooks`.
 
 ## Licence and notices
 
