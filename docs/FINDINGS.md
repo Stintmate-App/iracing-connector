@@ -242,6 +242,15 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
   `Lap` in testing.
 - **observed**: `CarIdxPosition` and `PlayerCarPosition` were 0 until the first timed lap, then
   1 (one second after `LapLastLapTime` got its first value).
+- **observed** (offline practice, last minutes): a lap in which the player used the menu's
+  return to pits, 19 s after a line crossing, was recorded as a flying lap: the end of the
+  session replaced the session identity and took the car out of the world in the same row, so
+  the open lap was closed as interrupted with the car last seen on the track. **Handled**: a lap
+  open on the track when the simulator ends or replaces the session, when the car leaves the
+  world for the garage, or when the car reappears on the pit road in one jump, is typed `in`.
+  A game that goes away is an interruption, not a return to the pits: its open lap keeps the type
+  its last row gave (flying, unless on the pit road). Out laps and formation laps keep their
+  type; a lap ended by a real crossing is unchanged.
 
 - **observed** (offline race against AI): the first lap of a race carried no sector times: its
   official lap time was longer than the sum of its sectors, so the sectors were dropped as not
@@ -254,6 +263,17 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
   and the first lap of a race. **Handled**: in a race, a car with no position from those sources
   gets its running order, counted from the laps completed and the lap fraction of the real cars
   in the world; outside a race it stays unknown.
+- **observed** (offline race, 5 laps, 20 cars): after a pit stop the live position and the cars
+  "ahead" and "behind" were stale on the out lap: position 8 with gaps of 0.3 s and 1.7 s while
+  the cars around the player on the road were the last two (distance estimates 55 s and 64 s);
+  the classification had him 19th. `CarIdxPosition` and `CarIdxClassPosition` change only at a
+  car's own crossing of the line, so mid-lap they keep the order of the previous crossing.
+  **Handled**: while a race is under way (`SessionState` 4), every car's position is its running
+  order (laps completed plus lap fraction, real cars in the world) and the cars ahead and behind
+  are the nearest on the road by that measure; the gap is the difference of `CarIdxEstTime`
+  plus the whole laps between the cars at the class lap estimate (the time behind the leader is
+  kept where the neighbour is also the adjacent car in the simulator's order). Before the green
+  flag, after the chequered flag and outside a race the simulator's positions stand.
 
 ## Player state: garage, stall, out of the car
 

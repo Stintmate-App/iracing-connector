@@ -2,6 +2,19 @@
 
 All notable changes to this project are written here.
 
+## 0.1.5 (2026-11-09)
+
+- **Lap type on return to the pits.** A lap cut short because the simulator removed the car from
+  the track (the menu's return to the pits, most visibly at the very end of a session, or the
+  session ending under the car) is now an in lap. It used to be recorded as a flying lap. Laps
+  ended by a real line crossing, out laps and formation laps are unchanged, and so is a lap
+  interrupted by the game closing.
+- **Race position after a stop.** In a race, the live position and the gaps to the cars ahead
+  and behind now follow the order on the road (laps completed and place on the lap). The
+  simulator updates its positions only at the line, so after a pit stop they stayed at the
+  order from before it until the next crossing. Practice and qualifying keep the simulator's
+  positions.
+
 ## 0.1.4 (2026-11-07)
 
 - **Documentation.** Checked against the code; corrections: the version and the pinned runtime tag, the features the connector declares (five were missing), the installer's AppId, the position accuracy bound (2.7 m), one source reference, Pitwall named on first use.
