@@ -2,7 +2,13 @@
 
 All notable changes to this project are written here.
 
-## 0.1.9 (2026-11-10)
+## 0.1.10 (2026-11-11)
+
+- **The readings in the pits are sent as simulator data.** Each new set of tyre readings goes as a `sim_data` record of the kind `stall_tyres`, and the connector describes the kind to Pitwall field by field (`sim_data_kinds`), instead of the `tyre_readings` message of 0.1.9, which was never released. Same moments, same values: the change detection, the occasions and the order (after the lap that ended before it, before the stop's `pit_exit`) are as in 0.1.9.
+- The connector declares the feature `sim_data` instead of `tyre_readings`. The connector runtime is now pinned at v0.3.0.
+- Needs a Pitwall that implements simulator data: an older one refuses the two messages and the connector drops them.
+
+## 0.1.9 (2026-11-10, tagged, never released)
 
 - **Tyre readings at stops.** iRacing gives its tyre temperatures and tread remaining only in the pits (a stop, a reset to the pits, getting into the car), so the connector now sends each new set as a `tyre_readings` message, which needs a Pitwall that implements it (an older Pitwall refuses the message and the connector drops it). A set is new when the readings on a row with the car on the pit road or in its stall differ from the ones last sent in the session; the first driving row of a session only sets the baseline (unless the car is in its stall, which sends it as `car_entry`). The `occasion` is `pit_stop`, `reset` or `car_entry`. Readings that change in the same visit are sent again, and an entry that carries no new values sends nothing. The message comes after the lap that ended before it and before the stop's `pit_exit`. Carcass temperatures and tread remaining are sent per wheel and edge (`in` is the edge towards the car's centreline, 1 is a new tyre); iRacing gives no surface temperature or hot pressure at a stop, so those are left out.
 - The connector declares the feature `tyre_readings`. The connector runtime is now pinned at v0.2.2, which provides the message and lists the feature.

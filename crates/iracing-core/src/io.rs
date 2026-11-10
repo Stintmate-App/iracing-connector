@@ -258,7 +258,7 @@ pub enum StallOccasion {
 }
 
 impl StallOccasion {
-    /// The write API's `occasion` value.
+    /// The `occasion` of the `stall_tyres` simulator data kind.
     pub fn as_str(self) -> &'static str {
         match self {
             StallOccasion::PitStop => "pit_stop",
@@ -273,7 +273,7 @@ impl StallOccasion {
 ///
 /// The simulator updates its live readings only in the pits (a stop, a reset, getting into the
 /// car), so these are the readings of that moment. They are shown in the live frame and sent as
-/// a `tyre_readings` write.
+/// a `stall_tyres` simulator data record.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct StallTyres {
     /// Session time of the row that carried them.

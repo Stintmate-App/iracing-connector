@@ -13,6 +13,8 @@ use iracing_core::io::{
 use iracing_core::lap::{Columns, Present};
 use iracing_core::meta::SessionMeta;
 use iracing_core::resume::{IrClock, identity_of};
+use iracing_core::sim_data::STALL_TYRES;
+use serde_json::{Map, Value, json};
 use stintmate_connector_link::sink::{SessionOpen, WriteSink};
 use stintmate_connector_wire::messages as wire;
 
@@ -117,10 +119,11 @@ fn reading(value: f32, places: i32, min: f64, max: f64) -> Option<f64> {
     (v.is_finite() && (min..=max).contains(&v)).then_some(v)
 }
 
-/// The `tyre_readings` message of a new set of readings. The simulator's left and right readings
-/// are the tyre's own, so on a left wheel left is the car's outside; `in` is the edge towards the
-/// car's centreline. iRacing gives no surface temperature or hot pressure at a stop.
-pub fn tyre_readings_message(at: &str, t: &StallTyres) -> Option<wire::TyreReadings> {
+/// The `data` of a `stall_tyres` record for a new set of readings. The simulator's left and right
+/// readings are the tyre's own, so on a left wheel left is the car's outside; `in` is the edge
+/// towards the car's centreline. iRacing gives no surface temperature or hot pressure at a stop.
+/// Fields are described by [`iracing_core::sim_data::kinds`]. None when no wheel has a value.
+pub fn stall_tyres_data(t: &StallTyres) -> Option<Map<String, Value>> {
     let wheel = |i: usize| {
         let [l, m, r] = t.temp_c[i];
         let [wl, wm, wr] = t.wear[i];
@@ -129,42 +132,35 @@ pub fn tyre_readings_message(at: &str, t: &StallTyres) -> Option<wire::TyreReadi
         let (w_in, w_out) = if left_wheel { (wr, wl) } else { (wl, wr) };
         let c = |v: f32| reading(v, 2, -50.0, 500.0);
         let w = |v: f32| reading(v, 4, 0.0, 1.0);
-        let wheel = wire::TyreWheel {
-            carcass_in_c: c(c_in),
-            carcass_mid_c: c(m),
-            carcass_out_c: c(c_out),
-            tread_in: w(w_in),
-            tread_mid: w(wm),
-            tread_out: w(w_out),
-            ..wire::TyreWheel::default()
-        };
-        // A wheel with every value dropped is left out: the schema wants at least one.
-        let any = [
-            wheel.carcass_in_c,
-            wheel.carcass_mid_c,
-            wheel.carcass_out_c,
-            wheel.tread_in,
-            wheel.tread_mid,
-            wheel.tread_out,
-        ]
-        .iter()
-        .any(Option::is_some);
-        any.then_some(wheel)
+        let mut wheel = Map::new();
+        // A value out of range is left out; a wheel with none left is left out too.
+        for (key, v) in [
+            ("carcass_in_c", c(c_in)),
+            ("carcass_mid_c", c(m)),
+            ("carcass_out_c", c(c_out)),
+            ("tread_in", w(w_in)),
+            ("tread_mid", w(wm)),
+            ("tread_out", w(w_out)),
+        ] {
+            if let Some(v) = v {
+                wheel.insert(key.to_owned(), json!(v));
+            }
+        }
+        (!wheel.is_empty()).then_some(Value::Object(wheel))
     };
-    let wheels = wire::TyreWheels {
-        fl: wheel(0),
-        fr: wheel(1),
-        rl: wheel(2),
-        rr: wheel(3),
-    };
-    if wheels.fl.is_none() && wheels.fr.is_none() && wheels.rl.is_none() && wheels.rr.is_none() {
+    let mut wheels = Map::new();
+    for (key, i) in [("fl", 0), ("fr", 1), ("rl", 2), ("rr", 3)] {
+        if let Some(w) = wheel(i) {
+            wheels.insert(key.to_owned(), w);
+        }
+    }
+    if wheels.is_empty() {
         return None;
     }
-    Some(wire::TyreReadings {
-        taken_at: at.to_owned(),
-        occasion: t.occasion.as_str().to_owned(),
-        wheels,
-    })
+    let mut data = Map::new();
+    data.insert("occasion".to_owned(), json!(t.occasion.as_str()));
+    data.insert("wheels".to_owned(), Value::Object(wheels));
+    Some(data)
 }
 
 /// The `lap` message of a finished lap. Consumes the lap: its columns are moved.
@@ -263,8 +259,8 @@ impl CoreSink for TrackerSink {
     }
 
     fn stall_tyres(&mut self, local: u64, at: &str, tyres: &StallTyres) {
-        if let Some(m) = tyre_readings_message(at, tyres) {
-            self.write.tyre_readings(local, m);
+        if let Some(data) = stall_tyres_data(tyres) {
+            self.write.sim_data(local, STALL_TYRES, at, data);
         }
     }
 

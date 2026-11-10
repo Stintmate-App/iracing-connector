@@ -32,7 +32,7 @@ pub struct WheelReadings {
 /// `LastTempsOMI` is read as outer, middle, inner and `LastTempsIMO` as inner, middle, outer and
 /// reversed, so [`WheelReadings::temps_c`] always starts at the outside. The readings are shown in
 /// the live frame only; they are not part of a setup message (the readings taken in the pits go in
-/// their own `tyre_readings` message).
+/// their own `stall_tyres` simulator data records).
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct TyreReadings {
     /// One entry per wheel.

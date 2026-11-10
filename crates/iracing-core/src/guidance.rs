@@ -30,7 +30,7 @@ pub fn items() -> &'static Value {
                 "id": "tyres_at_stops",
                 "topic": "tyres",
                 "when": "you talk about tyre temperatures, pressures or wear",
-                "text": "iRacing gives tyre temperatures and wear only in the pits (a pit stop, a reset or getting into the car), not live while driving, and they are not reset when the tyres are changed. The readings of each new set are stored per stop, which is what the tyre report's stop readings show. Hot pressures are given only after a visit to the garage. Laps carry no tyre channels. The live frame's wheels are the readings of the last set; a wheel is missing until the car has been in the pits once.",
+                "text": "iRacing gives tyre temperatures and wear only in the pits (a pit stop, a reset or getting into the car), not live while driving, and they are not reset when the tyres are changed. The readings of each new set are stored as simulator data, kind `stall_tyres` (read them with get_sim_data; the tyre report points at them). Hot pressures are given only after a visit to the garage. Laps carry no tyre channels. The live frame's wheels are the readings of the last set; a wheel is missing until the car has been in the pits once.",
             },
             {
                 "id": "lap_validity",

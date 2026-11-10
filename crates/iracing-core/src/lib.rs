@@ -21,6 +21,7 @@ pub mod resume;
 pub mod rivals;
 pub mod sectors;
 pub mod setup;
+pub mod sim_data;
 pub mod telemetry;
 #[cfg(feature = "testing")]
 pub mod testing;
@@ -70,7 +71,7 @@ pub static SPEC: ConnectorSpec = ConnectorSpec {
         "actions",
         "announcements",
         "spotter",
-        "tyre_readings",
+        "sim_data",
     ],
     ui_catalog: include_str!("../locales/en.json"),
     glyph: Glyph::I,

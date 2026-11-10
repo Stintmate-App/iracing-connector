@@ -63,7 +63,7 @@ fn register_writes_the_descriptor() {
             "actions",
             "announcements",
             "spotter",
-            "tyre_readings"
+            "sim_data"
         ])
     );
     assert_eq!(d["endpoint"], "connector-iracing");

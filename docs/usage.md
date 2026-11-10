@@ -21,7 +21,7 @@ control app by hand.
   "Waiting for iRacing", "iRacing is running: not in a car", "In the garage", "Recording" or
   "Replay: not recording". `live` is true while a session is open and `telemetry` while Pitwall
   is subscribed to the sample stream.
-- It records sessions, laps, setups, pit exits, the tyre readings taken at stops and the other
+- It records sessions, laps, setups, pit exits, the tyre readings taken at stops (simulator data, kind `stall_tyres`) and the other
   cars' laps (see below). Each lap
   carries `x` and `z`, the car's position in metres (east and north, origin at the
   start/finish line) by dead reckoning; Pitwall draws the track outline and the track maps
@@ -45,7 +45,17 @@ At every connection it also declares to Pitwall its announcement catalog (`conne
 its guidance for the engineer (at most 16 items) and the two actions. The features it declares
 are `window`, `notices`, `translated_texts`, `remembered_services` and `options` (the five the
 control app provides), then `setups`, `fuel`, `sectors`, `conditions`, `rivals`, `live_frame`,
-`lap_status`, `capture_target`, `brake_cues`, `guidance`, `actions`, `announcements`, `spotter` and `tyre_readings`.
+`lap_status`, `capture_target`, `brake_cues`, `guidance`, `actions`, `announcements`, `spotter` and `sim_data`.
+
+Simulator data: the tyre temperatures and tread remaining iRacing gives only in the pits (a pit stop,
+a reset to the pits, getting into the car) are sent as `sim_data` records of the kind `stall_tyres`, one per
+new set (a set is new when its values differ from the last one sent in the session). A record carries
+`occasion` (`pit_stop`, `reset` or `car_entry`) and `wheels` (`fl`, `fr`, `rl`, `rr`), each with the carcass
+temperatures `carcass_in_c`, `carcass_mid_c`, `carcass_out_c` in degrees C and the tread remaining `tread_in`,
+`tread_mid`, `tread_out` as a fraction (1 is new); `in` is the edge towards the car's centreline. A value out
+of range is left out. At every connection the connector also sends a `sim_data_kinds` message that describes
+each field, so a reader needs no other source. Both messages need a Pitwall that implements simulator data;
+an older one refuses them and the connector drops them.
 
 While a session is open it announces flags, cautions, penalties, the finish, other cars'
 retirements, incidents and the spotter's calls through `pitwall.announce`. At most 10 messages in
@@ -88,7 +98,7 @@ options. The recorder accepts:
 Any other option is exit 2, because only the control app starts the recorder.
 
 The recorder reads the simulator's shared memory and sends sessions, laps, setups, pit exits,
-tyre readings and the other cars' laps to Pitwall through an outbox in `connectors\iracing\outbox\`. When it stops
+tyre readings (simulator data) and the other cars' laps to Pitwall through an outbox in `connectors\iracing\outbox\`. When it stops
 while the simulator runs with a session open, it keeps the session open
 (`connectors\iracing\session-resume.json`), and a recorder started later in the same session
 continues it with the same session key.
