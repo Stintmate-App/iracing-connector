@@ -485,3 +485,54 @@ fn real_ibt_outline() {
     }
     assert!(failures.is_empty(), "{failures:#?}");
 }
+
+/// The `stall_tyres` calls (occasion) the tracker makes over a whole `.ibt` file.
+fn tyre_occasions(path: &Path) -> Vec<String> {
+    use iracing_core::ibt_source::IbtSource;
+    use iracing_core::io::{Source, SourceEvent};
+    use iracing_core::testing::{FixedClock, RecordingSink};
+    use iracing_core::tracker::Tracker;
+
+    let ibt = irsdk::ibt::Ibt::open(path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let mut src = IbtSource::new(ibt).expect("the recorder's variables are in the file");
+    let meta = std::sync::Arc::clone(src.meta().expect("the file's session text"));
+    let (mut tracker, mut sink, clock) = (
+        Tracker::new(1024),
+        RecordingSink::new(),
+        FixedClock::default(),
+    );
+    let mut tick = Tick::new();
+    while src.next(&mut tick) == SourceEvent::Row {
+        tracker.step(&tick, Some(&meta), &mut sink, &clock);
+    }
+    tracker.finish_open_lap(&mut sink);
+    sink.calls("stall_tyres")
+        .iter()
+        .map(|c| c["occasion"].as_str().expect("occasion").to_owned())
+        .collect()
+}
+
+/// New tyre readings in the pits of the recorded sessions: one per new set, none for an entry
+/// that carried no new values. The expected lists come from the files' own 60 Hz rows.
+#[test]
+#[ignore = "needs the probe's recordings"]
+fn real_ibt_tyre_readings() {
+    let Some(r) = root() else {
+        skip("real_ibt_tyre_readings", "ibt/*.ibt", false);
+        return;
+    };
+    let expected: [(&str, &[&str]); 4] = [
+        ("2026-11-07 11-45-56", &["pit_stop"]),
+        ("2026-11-09 17-57-35", &["pit_stop"]),
+        ("2026-11-09 17-54-57", &["reset"]),
+        ("2026-11-09 23-12-34", &["car_entry", "reset", "reset"]),
+    ];
+    let all = files(&r, "ibt", ".ibt");
+    for (stem, want) in expected {
+        let Some(path) = all.iter().find(|p| p.to_string_lossy().contains(stem)) else {
+            println!("SKIP real_ibt_tyre_readings: no file for {stem}");
+            continue;
+        };
+        assert_eq!(tyre_occasions(path), want, "{stem}");
+    }
+}

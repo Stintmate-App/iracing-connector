@@ -9,13 +9,13 @@ License 2.0 ([LICENSE](LICENSE)).
 
 ## Status
 
-Version 0.1.8. What works, tested against synthetic sessions replayed into a test memory
+Version 0.1.9. What works, tested against synthetic sessions replayed into a test memory
 mapping and against recorded offline sessions:
 
 - `irsdk` reads the simulator's shared memory (header, variables, rows, the session text) and
   `.ibt` files.
 - The recorder records sessions, laps with their channels, sectors and validity, setups, pit
-  exits and the other cars' laps through Pitwall, resumes a session after a restart, answers the
+  exits, the tyre readings taken at stops and the other cars' laps through Pitwall, resumes a session after a restart, answers the
   live frame, the telemetry stream, the capture target and two actions, and announces flags,
   cautions, penalties, the finish, retirements, incidents and the spotter's calls.
 - Each lap carries its position as the channels `x` (east) and `z` (north) in metres,

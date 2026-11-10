@@ -306,6 +306,7 @@ fn golden_pit_stop() {
     s.garage(1.0).to_stall().drive_out();
     s.lap(LapProfile::new(30.1));
     s.lap(LapProfile::new(30.2).fuel(3.0));
+    s.tyres_on_arrival(80.0, 0.98);
     s.pit_in();
     s.stop(6.0, 25.0, Some(TyreReadings::default()));
     s.drive_out(); // the in lap crosses the line in the pit lane
@@ -996,4 +997,114 @@ fn laps_carry_a_position_anchored_at_the_line() {
         checked[0] >= 1 && checked[1] >= 2 && checked[2] >= 2,
         "{checked:?}"
     );
+}
+
+// ---- tyre readings -----------------------------------------------------------------------
+
+/// The `stall_tyres` and `lap` calls and the exits, in the order the sink got them.
+fn tyre_order(sink: &RecordingSink) -> Vec<String> {
+    sink.to_json()
+        .as_array()
+        .expect("calls")
+        .iter()
+        .filter_map(|e| match e["call"].as_str()? {
+            "stall_tyres" => Some(format!("tyres:{}", e["occasion"].as_str()?)),
+            c @ ("lap" | "pit_exit") => Some(c.to_owned()),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_stop_sends_its_new_readings_once_before_the_exit() {
+    let mut s = Scenario::new(YamlBuilder::new());
+    s.garage(1.0).to_stall().drive_out();
+    s.lap(LapProfile::new(30.1));
+    s.tyres_on_arrival(80.0, 0.98);
+    s.pit_in();
+    s.stop(6.0, 25.0, None);
+    s.drive_out();
+    s.lap(LapProfile::new(30.3));
+    let (sink, tracker, _) = run(&s);
+    let order = tyre_order(&sink);
+    let at = order
+        .iter()
+        .position(|c| c == "tyres:pit_stop")
+        .expect("the stop's readings");
+    assert_eq!(order.iter().filter(|c| c.starts_with("tyres:")).count(), 2);
+    assert_eq!(order[0], "tyres:car_entry");
+    assert!(
+        order[at + 1..].contains(&"pit_exit".to_owned()),
+        "the stop's exit comes after its readings"
+    );
+    assert_eq!(order[at - 1], "lap", "after the lap that ended before them");
+    let call = sink.calls("stall_tyres")[1];
+    assert_eq!(call["temp_c"][0][0], 80.0);
+    assert!(call["at"].as_str().is_some());
+    assert_eq!(
+        tracker.stall_tyres().expect("live frame readings").wear[0][0],
+        0.98
+    );
+}
+
+#[test]
+fn a_stop_with_the_readings_unchanged_sends_nothing() {
+    let mut s = Scenario::new(YamlBuilder::new());
+    s.garage(1.0).to_stall().drive_out();
+    s.lap(LapProfile::new(30.1));
+    s.pit_in();
+    s.stop(6.0, 25.0, None);
+    s.drive_out();
+    s.lap(LapProfile::new(30.3));
+    let (sink, _, _) = run(&s);
+    assert_eq!(
+        sink.calls("stall_tyres").len(),
+        1,
+        "only the entry into the car"
+    );
+}
+
+#[test]
+fn values_changing_twice_in_one_visit_send_twice() {
+    let mut s = Scenario::new(YamlBuilder::new());
+    s.garage(1.0).to_stall().drive_out();
+    s.lap(LapProfile::new(30.1));
+    s.tyres_on_arrival(80.0, 0.98);
+    s.pit_in();
+    s.tyres(70.0, 0.99);
+    s.stop(6.0, 25.0, None);
+    s.drive_out();
+    s.lap(LapProfile::new(30.3));
+    let (sink, _, _) = run(&s);
+    let occasions: Vec<_> = sink
+        .calls("stall_tyres")
+        .iter()
+        .map(|c| c["temp_c"][0][0].as_f64().expect("temp"))
+        .collect();
+    assert_eq!(occasions, [75.0, 80.0, 70.0]);
+}
+
+#[test]
+fn a_reset_to_the_pits_sends_its_readings_as_a_reset() {
+    let mut s = Scenario::new(YamlBuilder::new());
+    s.garage(1.0).to_stall().drive_out();
+    s.lap(LapProfile::new(30.1));
+    s.tyres_on_arrival(66.0, 0.97);
+    s.reset_to_stall();
+    s.drive_out();
+    s.lap(LapProfile::new(30.2));
+    let (sink, _, _) = run(&s);
+    let calls = sink.calls("stall_tyres");
+    let occasions: Vec<_> = calls
+        .iter()
+        .map(|c| c["occasion"].as_str().expect("occasion"))
+        .collect();
+    assert_eq!(occasions, ["car_entry", "reset"]);
+    assert_eq!(calls[1]["temp_c"][0][0], 66.0);
+    let order = tyre_order(&sink);
+    let at = order
+        .iter()
+        .position(|c| c == "tyres:reset")
+        .expect("reset readings");
+    assert_eq!(order[at - 1], "lap", "after the partial lap");
 }

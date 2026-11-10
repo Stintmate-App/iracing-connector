@@ -61,9 +61,11 @@
     "setup_update": 1
   },
   {
+    "at": "2026-01-01T00:00:00Z",
     "at_s": 1.017,
     "call": "stall_tyres",
     "local": 1,
+    "occasion": "car_entry",
     "temp_c": [
       [
         54.9,
@@ -280,9 +282,11 @@
     "valid": false
   },
   {
+    "at": "2026-01-01T00:00:00Z",
     "at_s": 73.767,
     "call": "stall_tyres",
     "local": 1,
+    "occasion": "pit_stop",
     "temp_c": [
       [
         56.0,
@@ -495,9 +499,11 @@
     "valid": false
   },
   {
+    "at": "2026-01-01T00:00:00Z",
     "at_s": 85.783,
     "call": "stall_tyres",
     "local": 1,
+    "occasion": "reset",
     "temp_c": [
       [
         58.8,
@@ -1020,9 +1026,11 @@
     "valid": false
   },
   {
+    "at": "2026-01-01T00:00:00Z",
     "at_s": 229.55,
     "call": "stall_tyres",
     "local": 1,
+    "occasion": "car_entry",
     "temp_c": [
       [
         71.8,
@@ -1239,9 +1247,11 @@
     "valid": false
   },
   {
+    "at": "2026-01-01T00:00:00Z",
     "at_s": 301.8,
     "call": "stall_tyres",
     "local": 1,
+    "occasion": "pit_stop",
     "temp_c": [
       [
         71.3,

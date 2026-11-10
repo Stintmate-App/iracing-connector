@@ -61,9 +61,11 @@
     "setup_update": 1
   },
   {
+    "at": "2026-01-01T00:00:00Z",
     "at_s": 1.017,
     "call": "stall_tyres",
     "local": 1,
+    "occasion": "car_entry",
     "temp_c": [
       [
         75.0,
@@ -435,51 +437,53 @@
     "valid": true
   },
   {
+    "at": "2026-01-01T00:00:00Z",
     "at_s": 174.833,
     "call": "stall_tyres",
     "local": 1,
+    "occasion": "pit_stop",
     "temp_c": [
       [
-        75.0,
-        75.0,
-        75.0
+        80.0,
+        80.0,
+        80.0
       ],
       [
-        75.0,
-        75.0,
-        75.0
+        80.0,
+        80.0,
+        80.0
       ],
       [
-        75.0,
-        75.0,
-        75.0
+        80.0,
+        80.0,
+        80.0
       ],
       [
-        75.0,
-        75.0,
-        75.0
+        80.0,
+        80.0,
+        80.0
       ]
     ],
     "wear": [
       [
-        1.0,
-        1.0,
-        1.0
+        0.98,
+        0.98,
+        0.98
       ],
       [
-        1.0,
-        1.0,
-        1.0
+        0.98,
+        0.98,
+        0.98
       ],
       [
-        1.0,
-        1.0,
-        1.0
+        0.98,
+        0.98,
+        0.98
       ],
       [
-        1.0,
-        1.0,
-        1.0
+        0.98,
+        0.98,
+        0.98
       ]
     ]
   },
@@ -491,122 +495,122 @@
       "abs": {
         "first": 0.0,
         "last": 0.0,
-        "len": 6897,
+        "len": 6900,
         "sum": 0.0
       },
       "brake": {
         "first": 0.0,
         "last": 0.0,
-        "len": 6897,
+        "len": 6900,
         "sum": 0.0
       },
       "clutch": {
         "first": 1.0,
         "last": 1.0,
-        "len": 6897,
-        "sum": 6897.0
+        "len": 6900,
+        "sum": 6900.0
       },
       "dist": {
         "first": 0.466,
         "last": 4009.9,
-        "len": 6897,
-        "sum": 15467873.966
+        "len": 6900,
+        "sum": 15479663.865
       },
       "ext_incidents": {
         "first": 0.0,
         "last": 0.0,
-        "len": 6897,
+        "len": 6900,
         "sum": 0.0
       },
       "ext_surface": {
         "first": 0.0,
         "last": 0.0,
-        "len": 6897,
+        "len": 6900,
         "sum": 0.0
       },
       "fuel": {
         "first": 74.575,
         "last": 99.575,
-        "len": 6897,
-        "sum": 524304.57
+        "len": 6900,
+        "sum": 524528.294
       },
       "g_lat": {
         "first": -0.002,
         "last": 0.0,
-        "len": 6897,
-        "sum": 331.69
+        "len": 6900,
+        "sum": 332.767
       },
       "g_long": {
         "first": 0.0,
         "last": 0.0,
-        "len": 6897,
+        "len": 6900,
         "sum": 0.0
       },
       "g_vert": {
         "first": 0.999,
         "last": 0.999,
-        "len": 6897,
-        "sum": 6892.323
+        "len": 6900,
+        "sum": 6895.321
       },
       "gear": {
         "first": 6.0,
         "last": 2.0,
-        "len": 6897,
+        "len": 6900,
         "sum": 23844.0
       },
       "invalid": {
         "first": 0.0,
         "last": 0.0,
-        "len": 6897,
+        "len": 6900,
         "sum": 0.0
       },
       "pit_mode": {
         "first": 0.0,
         "last": 3.0,
-        "len": 6897,
-        "sum": 2309.0
+        "len": 6900,
+        "sum": 2312.0
       },
       "rpm": {
         "first": 8966.888,
         "last": 2320.0,
-        "len": 6897,
-        "sum": 21338926.888
+        "len": 6900,
+        "sum": 21341926.888
       },
       "speed": {
         "first": 478.013,
         "last": 79.2,
-        "len": 6897,
+        "len": 6900,
         "sum": 866515.61
       },
       "steer": {
         "first": -0.0,
         "last": 0.0,
-        "len": 6897,
-        "sum": 46.468
+        "len": 6900,
+        "sum": 46.619
       },
       "t": {
         "first": 0.004,
-        "last": 114.937,
-        "len": 6897,
-        "sum": 396371.823
+        "last": 114.987,
+        "len": 6900,
+        "sum": 396716.733
       },
       "throttle": {
         "first": 0.7,
         "last": 0.7,
-        "len": 6897,
+        "len": 6900,
         "sum": 4554.9
       },
       "x": {
         "first": 0.0,
         "last": -0.087,
-        "len": 6897,
-        "sum": 3860902.777
+        "len": 6900,
+        "sum": 3860917.481
       },
       "z": {
         "first": 0.466,
         "last": 0.794,
-        "len": 6897,
-        "sum": -120956.905
+        "len": 6900,
+        "sum": -121193.148
       }
     },
     "conditions": {
@@ -615,24 +619,24 @@
       "track_c": 30.0,
       "wind_speed_ms": 2.0
     },
-    "ended_at_s": 184.955,
+    "ended_at_s": 185.005,
     "fuel_start_l": 74.575,
     "fuel_used_l": 0.0,
     "invalid_at_m": null,
     "invalid_at_s": null,
     "local": 1,
     "max_speed_kmh": 478.013,
-    "measured_time_s": 114.941,
+    "measured_time_s": 114.991,
     "on_track": true,
     "partial": false,
     "sectors": [
       33.408,
       33.417,
-      48.116
+      48.166
     ],
     "sim_lap": 3,
     "started_at_s": 70.013,
-    "time_s": 114.941,
+    "time_s": 114.991,
     "time_source": "measured",
     "touched_pit": true,
     "type": "in",
@@ -785,7 +789,7 @@
       "track_c": 30.0,
       "wind_speed_ms": 2.0
     },
-    "ended_at_s": 219.823,
+    "ended_at_s": 219.873,
     "fuel_start_l": 99.575,
     "fuel_used_l": 2.424,
     "invalid_at_m": null,
@@ -801,7 +805,7 @@
       null
     ],
     "sim_lap": 4,
-    "started_at_s": 184.955,
+    "started_at_s": 185.005,
     "time_s": 30.3,
     "time_source": "official",
     "touched_pit": true,
@@ -940,7 +944,7 @@
       "track_c": 30.0,
       "wind_speed_ms": 2.0
     },
-    "ended_at_s": 328.241,
+    "ended_at_s": 328.291,
     "fuel_start_l": 97.149,
     "fuel_used_l": 0.0,
     "invalid_at_m": null,
@@ -956,7 +960,7 @@
       41.61
     ],
     "sim_lap": 5,
-    "started_at_s": 219.823,
+    "started_at_s": 219.873,
     "time_s": 108.419,
     "time_source": "measured",
     "touched_pit": true,
@@ -1110,7 +1114,7 @@
       "track_c": 30.0,
       "wind_speed_ms": 2.0
     },
-    "ended_at_s": 363.203,
+    "ended_at_s": 363.253,
     "fuel_start_l": 97.149,
     "fuel_used_l": 2.425,
     "invalid_at_m": null,
@@ -1126,7 +1130,7 @@
       10.133
     ],
     "sim_lap": 6,
-    "started_at_s": 328.241,
+    "started_at_s": 328.291,
     "time_s": 34.962,
     "time_source": "measured",
     "touched_pit": true,

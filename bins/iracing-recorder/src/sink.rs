@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use iracing_core::catalog::{cars_only, session_catalog};
 use iracing_core::io::{
-    FinishedLap, ParticipantLap, SessionOpenInfo, SetupReason, Sink as CoreSink,
+    FinishedLap, ParticipantLap, SessionOpenInfo, SetupReason, Sink as CoreSink, StallTyres,
 };
 use iracing_core::lap::{Columns, Present};
 use iracing_core::meta::SessionMeta;
@@ -109,6 +109,48 @@ pub fn channels(cols: Columns, present: Present) -> Option<wire::LapChannels> {
     Some(wire::LapChannels(out))
 }
 
+/// `value` rounded to `places` decimals, or none when it is not a number within `min..=max`
+/// (a reading outside the schema's range is left out, never clamped).
+fn reading(value: f32, places: i32, min: f64, max: f64) -> Option<f64> {
+    let scale = 10f64.powi(places);
+    let v = (f64::from(value) * scale).round() / scale;
+    (v.is_finite() && (min..=max).contains(&v)).then_some(v)
+}
+
+/// The `tyre_readings` message of a new set of readings. The simulator's left and right readings
+/// are the tyre's own, so on a left wheel left is the car's outside; `in` is the edge towards the
+/// car's centreline. iRacing gives no surface temperature or hot pressure at a stop.
+pub fn tyre_readings_message(at: &str, t: &StallTyres) -> wire::TyreReadings {
+    let wheel = |i: usize| {
+        let [l, m, r] = t.temp_c[i];
+        let [wl, wm, wr] = t.wear[i];
+        let left_wheel = i.is_multiple_of(2);
+        let (c_in, c_out) = if left_wheel { (r, l) } else { (l, r) };
+        let (w_in, w_out) = if left_wheel { (wr, wl) } else { (wl, wr) };
+        let c = |v: f32| reading(v, 2, -50.0, 500.0);
+        let w = |v: f32| reading(v, 4, 0.0, 1.0);
+        wire::TyreWheel {
+            carcass_in_c: c(c_in),
+            carcass_mid_c: c(m),
+            carcass_out_c: c(c_out),
+            tread_in: w(w_in),
+            tread_mid: w(wm),
+            tread_out: w(w_out),
+            ..wire::TyreWheel::default()
+        }
+    };
+    wire::TyreReadings {
+        taken_at: at.to_owned(),
+        occasion: t.occasion.as_str().to_owned(),
+        wheels: wire::TyreWheels {
+            fl: Some(wheel(0)),
+            fr: Some(wheel(1)),
+            rl: Some(wheel(2)),
+            rr: Some(wheel(3)),
+        },
+    }
+}
+
 /// The `lap` message of a finished lap. Consumes the lap: its columns are moved.
 pub fn lap_message(f: FinishedLap) -> wire::Lap {
     let timed = f.time_s.filter(|t| *t > 0.0 && t.is_finite());
@@ -202,6 +244,11 @@ impl CoreSink for TrackerSink {
 
     fn pit_exit(&mut self, local: u64, at: &str, fuel_l: Option<f64>) {
         self.write.pit_exit(local, at, fuel_l);
+    }
+
+    fn stall_tyres(&mut self, local: u64, at: &str, tyres: &StallTyres) {
+        self.write
+            .tyre_readings(local, tyre_readings_message(at, tyres));
     }
 
     fn participants(&mut self, local: u64, rows: Vec<ParticipantLap>) {

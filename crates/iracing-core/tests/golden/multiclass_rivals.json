@@ -89,9 +89,11 @@
     "setup_update": 1
   },
   {
+    "at": "2026-01-01T00:00:00Z",
     "at_s": 1.017,
     "call": "stall_tyres",
     "local": 1,
+    "occasion": "car_entry",
     "temp_c": [
       [
         75.0,

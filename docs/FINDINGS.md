@@ -450,6 +450,18 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
   entry. Their values are the readings at that moment (`LFtempCM` read 42.05, 54.89, 58.81,
   71.79 and 71.30 at successive entries). They do not reset when the tyres are changed: after
   the stop `LFwearM` kept the old tyre's value until the next entry.
+- **observed** (the same files at 60 Hz, iRacing's own telemetry files): the readings change in a
+  single row, and that row comes before `PlayerCarInPitStall` rises. On a stop the row is the one
+  where `PlayerTrackSurface` goes from 2 (pit road) to 1 (stall area) with `OnPitRoad` already 1;
+  the stall flag and `PitstopActive` rise 19 rows (0.32 s) later. On a reset the readings change
+  in the out-of-world row (`PlayerTrackSurface` -1, `OnPitRoad` 0), one row before the stall row.
+  One entry carried no new values: after the stall flag rose, it toggled between 1 and 0 five
+  times in five seconds (the car shuffling in its box) and the readings did not change to the end
+  of the file. So a stall entry does not always bring new readings, and the flag can rise several
+  times in one visit; a reader has to compare with the values it last took. The `wear` variables
+  say `%` in the file header, but the values are fractions of tread remaining, 1 being new.
+  **Handled**: the tracker compares the readings on rows on the pit road or in the stall with the
+  last ones sent and sends each new set as a `tyre_readings` message ([usage](usage.md)).
 - **observed**: the session text's tyre readings (`CarSetup` `LastHotPressure`, `LastTemps*`,
   `TreadRemaining`) changed only at a visit to the garage (`UpdateCount` 1 to 2 to 3), never at
   a stop or a reset, and `TreadRemaining` read `100%, 100%, 100%` to the end while the live wear
