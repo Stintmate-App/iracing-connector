@@ -1,10 +1,12 @@
-//! The `tyre_readings` message the recorder builds validates against the write API schema, with
-//! the left and right readings mapped to the edge towards the car's centreline.
+//! The `stall_tyres` simulator data the recorder builds passes the runtime's checks, matches
+//! the kind's description field by field, and maps the left and right readings to the edge
+//! towards the car's centreline.
 
 use iracing_core::io::{StallOccasion, StallTyres};
-use iracing_recorder::sink::tyre_readings_message;
-use serde_json::{Value, json};
-use stintmate_connector_wire::schema_check::{PROTOCOL_SCHEMA, WRITE_API_SCHEMA, definition};
+use iracing_core::sim_data::{STALL_TYRES, kinds};
+use iracing_recorder::sink::stall_tyres_data;
+use serde_json::{Map, Value};
+use stintmate_connector_wire::sim_data::{check_data, check_kinds};
 
 fn tyres(occasion: StallOccasion) -> StallTyres {
     // Rows of a real stop: left, middle and right reading of each wheel (left front, right
@@ -27,21 +29,66 @@ fn tyres(occasion: StallOccasion) -> StallTyres {
     }
 }
 
-fn message(t: &StallTyres) -> Value {
-    let m = tyre_readings_message("2026-11-07T11:52:41.512+01:00", t).expect("a message");
-    let mut v = serde_json::to_value(&m).expect("json");
-    let o = v.as_object_mut().expect("object");
-    o.insert("type".into(), json!("tyre_readings"));
-    o.insert("session_id".into(), json!(1));
-    v
+fn data(t: &StallTyres) -> Value {
+    Value::Object(stall_tyres_data(t).expect("data"))
 }
 
 fn validate(v: &Value) -> Result<(), String> {
-    let docs: Vec<Value> = [WRITE_API_SCHEMA, PROTOCOL_SCHEMA]
-        .iter()
-        .map(|s| serde_json::from_str(s).expect("schema"))
-        .collect();
-    definition(&docs, "tyre_readings", v)
+    let map: &Map<String, Value> = v.as_object().expect("object");
+    check_data(STALL_TYRES, map).map_err(|e| e.to_string())
+}
+
+/// Every leaf of `v` as a field path, with array/object keys as they are.
+fn leaf_paths(prefix: &str, v: &Value, out: &mut Vec<String>) {
+    match v {
+        Value::Object(m) => {
+            for (k, child) in m {
+                let p = if prefix.is_empty() {
+                    k.clone()
+                } else {
+                    format!("{prefix}.{k}")
+                };
+                leaf_paths(&p, child, out);
+            }
+        }
+        _ => out.push(prefix.to_owned()),
+    }
+}
+
+/// Whether a concrete path matches a declared one (`*` stands for any one segment).
+fn matches(declared: &str, path: &str) -> bool {
+    let (d, p): (Vec<_>, Vec<_>) = (declared.split('.').collect(), path.split('.').collect());
+    d.len() == p.len() && d.iter().zip(&p).all(|(d, p)| *d == "*" || d == p)
+}
+
+#[test]
+fn the_kind_description_passes_the_checks() {
+    assert_eq!(check_kinds(&kinds()), Ok(()));
+    assert_eq!(kinds()[0].kind, STALL_TYRES);
+}
+
+#[test]
+fn every_leaf_of_a_full_record_is_a_declared_field() {
+    let k = &kinds()[0];
+    let v = data(&tyres(StallOccasion::PitStop));
+    let mut leaves = Vec::new();
+    leaf_paths("", &v, &mut leaves);
+    // occasion + 4 wheels x 6 values.
+    assert_eq!(leaves.len(), 25);
+    for leaf in &leaves {
+        assert!(
+            k.fields.keys().any(|d| matches(d, leaf)),
+            "{leaf} is not described"
+        );
+    }
+    // And every described leaf field appears in a full record.
+    for d in k.fields.keys().filter(|d| !matches_container(d)) {
+        assert!(leaves.iter().any(|l| matches(d, l)), "{d} never sent");
+    }
+}
+
+fn matches_container(path: &str) -> bool {
+    path == "wheels"
 }
 
 #[test]
@@ -51,7 +98,7 @@ fn every_occasion_validates() {
         StallOccasion::Reset,
         StallOccasion::CarEntry,
     ] {
-        let v = message(&tyres(o));
+        let v = data(&tyres(o));
         assert_eq!(validate(&v), Ok(()), "{v}");
         assert_eq!(v["occasion"], o.as_str());
     }
@@ -59,7 +106,7 @@ fn every_occasion_validates() {
 
 #[test]
 fn inner_is_towards_the_centreline_on_each_side() {
-    let v = message(&tyres(StallOccasion::PitStop));
+    let v = data(&tyres(StallOccasion::PitStop));
     // Left wheel: the right reading is the inner one.
     assert_eq!(v["wheels"]["fl"]["carcass_out_c"], 73.9);
     assert_eq!(v["wheels"]["fl"]["carcass_in_c"], 74.1);
@@ -80,7 +127,7 @@ fn a_value_outside_its_range_is_left_out_not_clamped() {
     t.temp_c[0][1] = 900.0;
     t.wear[1][0] = 1.5;
     t.wear[2][2] = f32::NAN;
-    let v = message(&t);
+    let v = data(&t);
     assert_eq!(validate(&v), Ok(()), "{v}");
     assert!(v["wheels"]["fl"].get("carcass_mid_c").is_none());
     assert!(v["wheels"]["fr"].get("tread_in").is_none());
@@ -92,7 +139,7 @@ fn a_wheel_with_every_value_dropped_is_left_out() {
     let mut t = tyres(StallOccasion::PitStop);
     t.temp_c[1] = [900.0; 3];
     t.wear[1] = [f32::NAN; 3];
-    let v = message(&t);
+    let v = data(&t);
     assert_eq!(validate(&v), Ok(()), "{v}");
     assert!(v["wheels"].get("fr").is_none());
     assert!(v["wheels"].get("fl").is_some());
@@ -103,5 +150,5 @@ fn no_message_when_no_wheel_is_left() {
     let mut t = tyres(StallOccasion::PitStop);
     t.temp_c = [[900.0; 3]; 4];
     t.wear = [[f32::NAN; 3]; 4];
-    assert!(tyre_readings_message("2026-11-07T11:52:41.512+01:00", &t).is_none());
+    assert!(stall_tyres_data(&t).is_none());
 }

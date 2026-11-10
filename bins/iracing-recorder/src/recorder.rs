@@ -477,7 +477,8 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
         }
     );
     let outbox = booted.location.data_dir.join("outbox");
-    let write = match WriteSink::<IrClock>::new(&outbox, booted.pitwall.clone(), None, SPEC.id) {
+    let mut write = match WriteSink::<IrClock>::new(&outbox, booted.pitwall.clone(), None, SPEC.id)
+    {
         Ok(w) => w,
         Err(e) => {
             tracing::error!("Cannot open the outbox {}: {e}", outbox.display());
@@ -488,6 +489,8 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
             return 1;
         }
     };
+    // The descriptions of the simulator data kinds; the runtime resends them for every session.
+    write.sim_data_kinds(iracing_core::sim_data::kinds());
     let worker = StatusWorker::new(booted.status);
     // The sampling thread never takes the outbox lock (it is held while a lap is written to the
     // disk): the summary is read on a thread of its own, and the loop copies the last one.

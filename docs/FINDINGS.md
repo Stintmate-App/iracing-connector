@@ -461,7 +461,7 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
   times in one visit; a reader has to compare with the values it last took. The `wear` variables
   say `%` in the file header, but the values are fractions of tread remaining, 1 being new.
   **Handled**: the tracker compares the readings on rows on the pit road or in the stall with the
-  last ones sent and sends each new set as a `tyre_readings` message ([usage](usage.md)).
+  last ones sent and sends each new set as a `stall_tyres` simulator data record ([usage](usage.md)).
 - **observed**: the session text's tyre readings (`CarSetup` `LastHotPressure`, `LastTemps*`,
   `TreadRemaining`) changed only at a visit to the garage (`UpdateCount` 1 to 2 to 3), never at
   a stop or a reset, and `TreadRemaining` read `100%, 100%, 100%` to the end while the live wear
