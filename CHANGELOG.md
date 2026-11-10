@@ -2,8 +2,9 @@
 
 All notable changes to this project are written here.
 
-## Unreleased
+## 0.1.8 (2026-11-10)
 
+- **The official icon everywhere.** The three programs (`iracing-connector-ui.exe`, `iracing-connector-window.exe`, `iracing-recorder.exe`) carry the official Stintmate iRacing connector icon in their file properties, and the tray and the connector window show it instead of the drawn letter "I" (the tray with the level badge in its corner, the window alone). The installer uses it for the setup and for the entry in Windows' Installed apps. The shared runtime is now pinned at v0.2.0, which provides the artwork support.
 - **CI on pull requests.** The `ci` workflow runs on every pull request to `main` (and by hand). No code change.
 
 ## 0.1.7 (2026-11-10)

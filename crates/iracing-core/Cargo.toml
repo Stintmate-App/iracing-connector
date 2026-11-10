@@ -27,3 +27,4 @@ iracing-core = { path = ".", features = ["testing"] }
 irsdk = { workspace = true, features = ["testing"] }
 jsonschema = { version = "0.60.2", default-features = false }
 stintmate-connector-control.workspace = true
+stintmate-connector-resources = { workspace = true, features = ["artwork"] }

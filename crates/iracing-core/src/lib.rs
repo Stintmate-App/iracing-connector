@@ -30,7 +30,7 @@ pub mod validity;
 pub mod vars;
 
 use stintmate_connector_platform::spec::{ConnectorSpec, GameSpec};
-use stintmate_connector_resources::Glyph;
+use stintmate_connector_resources::{ConnectorIcon, Glyph};
 
 /// What this connector is: its identity, the simulator it reads, the names of its executables
 /// and kernel objects, the features it declares and its English UI catalog.
@@ -73,6 +73,10 @@ pub static SPEC: ConnectorSpec = ConnectorSpec {
     ],
     ui_catalog: include_str!("../locales/en.json"),
     glyph: Glyph::I,
+    icon: Some(ConnectorIcon {
+        png_32: include_bytes!("../../../bins/iracing-connector-ui/assets/icon_32.png"),
+        png_64: include_bytes!("../../../bins/iracing-connector-ui/assets/icon_64.png"),
+    }),
     dev_env_aliases: &[],
 };
 
@@ -84,6 +88,13 @@ pub use io::{
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn spec_artwork_decodes() {
+        let icon = SPEC.icon.expect("the official artwork is embedded");
+        assert!(icon.rgba(32).is_ok());
+        assert!(icon.rgba(64).is_ok());
+    }
 
     #[test]
     fn spec_is_valid() {
