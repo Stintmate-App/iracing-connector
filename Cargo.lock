@@ -2796,8 +2796,8 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stintmate-connector-control"
-version = "0.2.1"
-source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.1#1cad8df50a2c063a1977d7b9b4ca534b76a77601"
+version = "0.2.2"
+source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.2#d1e7bc22e72fe6ad1fb6f81da4cbbb39d97efb4a"
 dependencies = [
  "rmp-serde",
  "serde_json",
@@ -2812,8 +2812,8 @@ dependencies = [
 
 [[package]]
 name = "stintmate-connector-i18n"
-version = "0.2.1"
-source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.1#1cad8df50a2c063a1977d7b9b4ca534b76a77601"
+version = "0.2.2"
+source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.2#d1e7bc22e72fe6ad1fb6f81da4cbbb39d97efb4a"
 dependencies = [
  "hex",
  "serde_json",
@@ -2823,8 +2823,8 @@ dependencies = [
 
 [[package]]
 name = "stintmate-connector-link"
-version = "0.2.1"
-source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.1#1cad8df50a2c063a1977d7b9b4ca534b76a77601"
+version = "0.2.2"
+source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.2#d1e7bc22e72fe6ad1fb6f81da4cbbb39d97efb4a"
 dependencies = [
  "rmp-serde",
  "serde",
@@ -2837,8 +2837,8 @@ dependencies = [
 
 [[package]]
 name = "stintmate-connector-platform"
-version = "0.2.1"
-source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.1#1cad8df50a2c063a1977d7b9b4ca534b76a77601"
+version = "0.2.2"
+source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.2#d1e7bc22e72fe6ad1fb6f81da4cbbb39d97efb4a"
 dependencies = [
  "serde",
  "serde_json",
@@ -2853,16 +2853,16 @@ dependencies = [
 
 [[package]]
 name = "stintmate-connector-resources"
-version = "0.2.1"
-source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.1#1cad8df50a2c063a1977d7b9b4ca534b76a77601"
+version = "0.2.2"
+source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.2#d1e7bc22e72fe6ad1fb6f81da4cbbb39d97efb4a"
 dependencies = [
  "png",
 ]
 
 [[package]]
 name = "stintmate-connector-testing"
-version = "0.2.1"
-source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.1#1cad8df50a2c063a1977d7b9b4ca534b76a77601"
+version = "0.2.2"
+source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.2#d1e7bc22e72fe6ad1fb6f81da4cbbb39d97efb4a"
 dependencies = [
  "serde_json",
  "stintmate-connector-platform",
@@ -2874,8 +2874,8 @@ dependencies = [
 
 [[package]]
 name = "stintmate-connector-window"
-version = "0.2.1"
-source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.1#1cad8df50a2c063a1977d7b9b4ca534b76a77601"
+version = "0.2.2"
+source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.2#d1e7bc22e72fe6ad1fb6f81da4cbbb39d97efb4a"
 dependencies = [
  "eframe",
  "serde_json",
@@ -2889,8 +2889,8 @@ dependencies = [
 
 [[package]]
 name = "stintmate-connector-wire"
-version = "0.2.1"
-source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.1#1cad8df50a2c063a1977d7b9b4ca534b76a77601"
+version = "0.2.2"
+source = "git+https://github.com/Stintmate-App/connector-runtime?tag=v0.2.2#d1e7bc22e72fe6ad1fb6f81da4cbbb39d97efb4a"
 dependencies = [
  "hex",
  "serde",

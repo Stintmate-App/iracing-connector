@@ -45,7 +45,7 @@ At every connection it also declares to Pitwall its announcement catalog (`conne
 its guidance for the engineer (at most 16 items) and the two actions. The features it declares
 are `window`, `notices`, `translated_texts`, `remembered_services` and `options` (the five the
 control app provides), then `setups`, `fuel`, `sectors`, `conditions`, `rivals`, `live_frame`,
-`lap_status`, `capture_target`, `brake_cues`, `guidance`, `actions`, `announcements` and `spotter`.
+`lap_status`, `capture_target`, `brake_cues`, `guidance`, `actions`, `announcements`, `spotter` and `tyre_readings`.
 
 While a session is open it announces flags, cautions, penalties, the finish, other cars'
 retirements, incidents and the spotter's calls through `pitwall.announce`. At most 10 messages in

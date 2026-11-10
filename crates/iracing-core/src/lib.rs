@@ -70,6 +70,7 @@ pub static SPEC: ConnectorSpec = ConnectorSpec {
         "actions",
         "announcements",
         "spotter",
+        "tyre_readings",
     ],
     ui_catalog: include_str!("../locales/en.json"),
     glyph: Glyph::I,

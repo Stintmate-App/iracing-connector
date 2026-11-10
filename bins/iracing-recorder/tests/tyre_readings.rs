@@ -28,7 +28,7 @@ fn tyres(occasion: StallOccasion) -> StallTyres {
 }
 
 fn message(t: &StallTyres) -> Value {
-    let m = tyre_readings_message("2026-11-07T11:52:41.512+01:00", t);
+    let m = tyre_readings_message("2026-11-07T11:52:41.512+01:00", t).expect("a message");
     let mut v = serde_json::to_value(&m).expect("json");
     let o = v.as_object_mut().expect("object");
     o.insert("type".into(), json!("tyre_readings"));
@@ -85,4 +85,23 @@ fn a_value_outside_its_range_is_left_out_not_clamped() {
     assert!(v["wheels"]["fl"].get("carcass_mid_c").is_none());
     assert!(v["wheels"]["fr"].get("tread_in").is_none());
     assert!(v["wheels"]["rl"].get("tread_in").is_none());
+}
+
+#[test]
+fn a_wheel_with_every_value_dropped_is_left_out() {
+    let mut t = tyres(StallOccasion::PitStop);
+    t.temp_c[1] = [900.0; 3];
+    t.wear[1] = [f32::NAN; 3];
+    let v = message(&t);
+    assert_eq!(validate(&v), Ok(()), "{v}");
+    assert!(v["wheels"].get("fr").is_none());
+    assert!(v["wheels"].get("fl").is_some());
+}
+
+#[test]
+fn no_message_when_no_wheel_is_left() {
+    let mut t = tyres(StallOccasion::PitStop);
+    t.temp_c = [[900.0; 3]; 4];
+    t.wear = [[f32::NAN; 3]; 4];
+    assert!(tyre_readings_message("2026-11-07T11:52:41.512+01:00", &t).is_none());
 }
