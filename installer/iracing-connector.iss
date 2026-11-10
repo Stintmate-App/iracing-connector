@@ -11,6 +11,10 @@
 #ifndef Version
   #error Version is not defined (build with scripts/build-installer.ps1)
 #endif
+; The setup icon is the official one (the executables embed the same file); /DSetupIcon overrides it.
+#ifndef SetupIcon
+  #define SetupIcon "..\bins\iracing-connector-ui\assets\icon.ico"
+#endif
 #ifndef VersionInfo
   #define VersionInfo "0.0.0.0"
 #endif
@@ -58,9 +62,7 @@ OutputBaseFilename={#OutName}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
-#ifdef SetupIcon
 SetupIconFile={#SetupIcon}
-#endif
 UninstallDisplayIcon={app}\iracing-connector-ui.exe
 UninstallDisplayName={#AppName}
 ; The setup closes nothing by itself: the [Code] below does it (and never with /MANAGED).

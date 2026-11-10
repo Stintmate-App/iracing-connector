@@ -111,17 +111,10 @@ try {
     }
     if (-not (Test-Path (Join-Path $stage 'THIRD-PARTY-NOTICES.txt'))) { Fail 'THIRD-PARTY-NOTICES.txt was not generated' }
 
-    # The setup's icon is the control app's: build.rs generates app.ico into the build's OUT_DIR
-    # (the newest one is this build's).
-    $icon = Get-ChildItem (Join-Path $release 'build\iracing-connector-ui-*\out\app.ico') -ErrorAction SilentlyContinue |
-        Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    if (-not $icon) { Fail 'the control app''s app.ico was not found under target\release\build' }
-
     # ---- 4. Inno Setup ----
     Step 'Inno Setup'
     $isccArgs = @('/Q', "/DVersion=$version", "/DVersionInfo=$versionInfo", "/DStage=$stage", "/DOutDir=$dist", "/DOutName=$setupName")
     if ($Dev) { $isccArgs += '/DDev' }
-    if ($icon) { $isccArgs += "/DSetupIcon=$($icon.FullName)" }
     $isccArgs += (Join-Path $root 'installer\iracing-connector.iss')
     Run 'ISCC' { & $iscc @isccArgs }
 

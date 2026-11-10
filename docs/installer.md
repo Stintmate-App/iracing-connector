@@ -11,7 +11,7 @@ itself checks nothing about where it came from.
 
 - Installs into `%LOCALAPPDATA%\Programs\Stintmate iRacing Connector\` (the folder is fixed; for
   tests, `/DIR="<folder>"` overrides it): the three programs, `LICENSE`, `NOTICE`,
-  `THIRD-PARTY-NOTICES.txt`, `THIRD-PARTY-NOTICES-irsdk.txt`, a short `README.txt` and `icon.png` (the control app's icon: the registration names it in its optional `icon` key). It has its own entry in Windows' Installed
+  `THIRD-PARTY-NOTICES.txt`, `THIRD-PARTY-NOTICES-irsdk.txt`, a short `README.txt` and `icon.png` (the control app's icon: the registration names it in its optional `icon` key); the setup and the uninstall entry use the official icon, `bins/iracing-connector-ui/assets/icon.ico`, which the three executables also embed (`/DSetupIcon=<file.ico>` overrides it). It has its own entry in Windows' Installed
   apps, a Start menu shortcut named like the connector (no desktop icon) and an uninstall entry
   in the Start menu; the uninstaller removes both.
 - **The shortcut never starts a connector.** Stintmate starts and supervises it; a connector
