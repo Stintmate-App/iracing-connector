@@ -163,6 +163,11 @@ struct Sim {
     position: i32,
     pits_open: bool,
     car_lr: i32,
+    /// The live tyre readings of every wheel: carcass temperature (all three positions) and
+    /// tread remaining.
+    tyres: (f32, f32),
+    /// Readings that appear on the row before the stall flag rises (or at a tow's stall row).
+    tyres_on_arrival: Option<(f32, f32)>,
     pending_last: Option<(u32, f32)>,
     official: Option<(f32, u32)>,
     events: Vec<Event>,
@@ -198,6 +203,8 @@ impl Sim {
             position: 1,
             pits_open: true,
             car_lr: 1,
+            tyres: (75.0, 1.0),
+            tyres_on_arrival: None,
             pending_last: None,
             official: None,
             events: Vec::new(),
@@ -418,12 +425,47 @@ impl Scenario {
         self.hold(1.0);
         let sim = &mut self.sim;
         sim.tow = 0.0;
+        if let Some(new) = sim.tyres_on_arrival.take() {
+            sim.tyres = new;
+        }
         sim.pct = STALL_PCT;
         sim.in_stall = true;
         sim.on_pit_road = true;
         sim.loc = IN_STALL;
         sim.speed = 0.0;
         self.hold(0.5)
+    }
+
+    /// Sets the live tyre readings from the next row on (carcass temperature, tread remaining).
+    pub fn tyres(&mut self, temp_c: f32, wear: f32) -> &mut Self {
+        self.sim.tyres = (temp_c, wear);
+        self
+    }
+
+    /// The simulator gives these readings when the car next reaches its stall: on a stop, on the
+    /// pit road a few rows before the stall flag (the way a real stop goes); on a tow, on the
+    /// stall row.
+    pub fn tyres_on_arrival(&mut self, temp_c: f32, wear: f32) -> &mut Self {
+        self.sim.tyres_on_arrival = Some((temp_c, wear));
+        self
+    }
+
+    /// A reset to the pits as the simulator does it: one row with the car out of the world (and
+    /// the readings of `tyres_on_arrival`, if any), then the car in its stall.
+    pub fn reset_to_stall(&mut self) -> &mut Self {
+        {
+            let sim = &mut self.sim;
+            sim.on_track = false;
+            sim.on_pit_road = false;
+            sim.in_stall = false;
+            sim.loc = NOT_IN_WORLD;
+            sim.speed = 0.0;
+            if let Some(new) = sim.tyres_on_arrival.take() {
+                sim.tyres = new;
+            }
+        }
+        self.hold_rows(1);
+        self.to_stall()
     }
 
     /// Drives from where the car is to the pit entry, along the pit road and into the stall.
@@ -435,6 +477,11 @@ impl Scenario {
         self.sim.loc = ON_PIT_ROAD;
         while self.sim.pct < STALL_PCT {
             self.advance(PIT_SPEED, 0.0);
+        }
+        if let Some(new) = self.sim.tyres_on_arrival.take() {
+            self.sim.tyres = new;
+            self.sim.speed = 0.0;
+            self.hold_rows(3);
         }
         self.sim.in_stall = true;
         self.sim.loc = IN_STALL;
@@ -829,8 +876,8 @@ impl Scenario {
         }
         for wheel in ["LF", "RF", "LR", "RR"] {
             for pos in ["L", "M", "R"] {
-                b.set_f32(&format!("{wheel}tempC{pos}"), 75.0)
-                    .set_f32(&format!("{wheel}wear{pos}"), 1.0);
+                b.set_f32(&format!("{wheel}tempC{pos}"), s.tyres.0)
+                    .set_f32(&format!("{wheel}wear{pos}"), s.tyres.1);
             }
         }
         for (i, c) in s.cars.iter().enumerate() {

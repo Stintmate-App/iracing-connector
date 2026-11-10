@@ -33,7 +33,7 @@ use irsdk::defs::session_flags;
 use crate::codes::{self, SessionKind};
 use crate::io::{
     Clock, Conditions, FinishedLap, LapType, SessionKey, SessionOpenInfo, SetupReason, Sink,
-    StallTyres, TimeSource,
+    StallOccasion, StallTyres, TimeSource,
 };
 use crate::lap::{LapBuffer, LapPoint};
 use crate::meta::SessionMeta;
@@ -156,7 +156,6 @@ struct Prev {
     pct: f32,
     on_pit_road: bool,
     in_stall: bool,
-    service: bool,
     tow: bool,
 }
 
@@ -222,7 +221,32 @@ impl LapState {
 #[derive(Clone, Copy, Debug)]
 struct PitVisit {
     was_in_stall: bool,
-    tyres_taken: bool,
+    /// Why the car is in the pits, for the tyre readings taken in this visit.
+    occasion: StallOccasion,
+}
+
+/// The tyre readings last sent in the session, as bits so that a repeated value compares equal.
+type TyreBits = ([u32; 12], [u32; 12]);
+
+fn tyre_bits(temp: &[[f32; 3]; 4], wear: &[[f32; 3]; 4]) -> TyreBits {
+    let mut a = [0u32; 12];
+    let mut b = [0u32; 12];
+    for (i, v) in temp.iter().flatten().enumerate() {
+        a[i] = v.to_bits();
+    }
+    for (i, v) in wear.iter().flatten().enumerate() {
+        b[i] = v.to_bits();
+    }
+    (a, b)
+}
+
+/// How many sets of readings can wait for one lap's time (more in the window replace the last).
+const HELD_TYRES_MAX: usize = 4;
+
+/// Tyre readings taken while the lap that ended before them still waits for its time.
+struct HeldTyres {
+    tyres: StallTyres,
+    at: String,
 }
 
 /// A crossing after the finish that waits to see whether the counter holds.
@@ -274,6 +298,12 @@ pub struct Tracker {
     last_fuel: f32,
     conditions: Conditions,
     stall_tyres: Option<StallTyres>,
+    /// The readings last sent in this session (or the first driving row's, not sent).
+    tyres_sent: Option<TyreBits>,
+    /// The next driving row sets the baseline of `tyres_sent`.
+    tyres_baseline: bool,
+    /// Sets waiting for the pending lap, oldest first; a fixed array, nothing allocates for it.
+    held_tyres: [Option<HeldTyres>; HELD_TYRES_MAX],
     laps_recorded: u32,
     best_s: Option<f32>,
     last_s: Option<f32>,
@@ -304,7 +334,7 @@ impl Tracker {
             late: None,
             visit: PitVisit {
                 was_in_stall: false,
-                tyres_taken: false,
+                occasion: StallOccasion::PitStop,
             },
             prev: None,
             gap_since: None,
@@ -314,6 +344,9 @@ impl Tracker {
             last_fuel: 0.0,
             conditions: Conditions::default(),
             stall_tyres: None,
+            tyres_sent: None,
+            tyres_baseline: true,
+            held_tyres: [const { None }; HELD_TYRES_MAX],
             laps_recorded: 0,
             best_s: None,
             last_s: None,
@@ -522,6 +555,9 @@ impl Tracker {
         self.finished = false;
         self.late = None;
         self.stall_tyres = None;
+        self.tyres_sent = None;
+        self.tyres_baseline = true;
+        self.held_tyres = [const { None }; HELD_TYRES_MAX];
         self.laps_recorded = 0;
         self.best_s = None;
         self.last_s = None;
@@ -598,7 +634,6 @@ impl Tracker {
     ) {
         let now = t.session_time;
         let stall = in_stall(t);
-        let service = t.pit_service_active.unwrap_or(false);
         let tow = t.tow_time.unwrap_or(0.0) > 0.0;
         let prev = self.prev;
         if matches!(before, State::Off | State::Idle | State::Garage) {
@@ -619,12 +654,10 @@ impl Tracker {
             self.start_lap(t, kind, now);
             self.visit = PitVisit {
                 was_in_stall: stall,
-                tyres_taken: false,
+                occasion: StallOccasion::CarEntry,
             };
-            if stall {
-                self.take_tyres(t, sink);
-            }
         } else if let Some(p) = prev {
+            let mut reset_now = false;
             let length = self.open.as_ref().map_or(0.0, |o| o.length_m);
             let mut line = false;
             if let Some(l) = self.late {
@@ -650,8 +683,9 @@ impl Tracker {
                 self.start_lap(t, StartKind::PitStall, now);
                 self.visit = PitVisit {
                     was_in_stall: true,
-                    tyres_taken: false,
+                    occasion: StallOccasion::Reset,
                 };
+                reset_now = true;
             } else {
                 let fell = t.lap < p.lap || t.lap_completed < p.completed;
                 let dt = now - p.time;
@@ -713,17 +747,11 @@ impl Tracker {
                     }
                 }
             }
-            if t.on_pit_road && !p.on_pit_road {
+            if t.on_pit_road && !p.on_pit_road && !reset_now {
                 self.visit = PitVisit {
                     was_in_stall: stall,
-                    tyres_taken: false,
+                    occasion: StallOccasion::PitStop,
                 };
-            }
-            if !stall {
-                self.visit.tyres_taken = false;
-            }
-            if (stall && !p.in_stall) || (service && !p.service) {
-                self.take_tyres(t, sink);
             }
             if stall || matches!(t.pit_sv_status, Some(1 | 2)) {
                 self.visit.was_in_stall = true;
@@ -733,6 +761,7 @@ impl Tracker {
             }
         }
 
+        self.observe_tyres(t, sink, clock);
         self.sample(t, rise);
     }
 
@@ -946,6 +975,7 @@ impl Tracker {
     /// changed yet the measured time is taken.
     fn resolve_pending(&mut self, last: f32, sink: &mut dyn Sink) {
         let Some(mut p) = self.pending.take() else {
+            self.flush_tyres(sink);
             return;
         };
         let changed = last != p.baseline;
@@ -982,24 +1012,66 @@ impl Tracker {
         if let Some(local) = self.open.as_ref().map(|o| o.local) {
             self.send_lap(local, p.lap, sink);
         }
+        self.flush_tyres(sink);
     }
 
     // ---- pits ---------------------------------------------------------------------------
 
-    fn take_tyres(&mut self, t: &Tick, sink: &mut dyn Sink) {
-        if self.visit.tyres_taken {
+    /// Looks at the tyre readings on a row in the pits and sends them when they are a new set.
+    ///
+    /// The simulator changes its live readings only in the pits (a stop, a reset, getting into
+    /// the car), so on track nothing is compared. The first driving row of a session is the
+    /// baseline and is not sent unless the car is in its stall; after that a row on the pit road
+    /// or in the stall whose readings differ from the last ones sent is a new set.
+    fn observe_tyres(&mut self, t: &Tick, sink: &mut dyn Sink, clock: &dyn Clock) {
+        let (Some(temp), Some(wear)) = (t.tyre_temp, t.tyre_wear) else {
+            return;
+        };
+        let stall = in_stall(t);
+        let bits = if self.tyres_baseline {
+            self.tyres_baseline = false;
+            let bits = tyre_bits(&temp, &wear);
+            if !stall {
+                self.tyres_sent = Some(bits);
+                return;
+            }
+            bits
+        } else if t.on_pit_road || stall {
+            tyre_bits(&temp, &wear)
+        } else {
+            return;
+        };
+        if self.tyres_sent == Some(bits) {
             return;
         }
-        self.visit.tyres_taken = true;
-        if let (Some(temp), Some(wear)) = (t.tyre_temp, t.tyre_wear) {
-            let tyres = StallTyres {
-                at_s: t.session_time,
-                temp_c: temp,
-                wear,
-            };
-            self.stall_tyres = Some(tyres);
-            if let Some(local) = self.open.as_ref().map(|o| o.local) {
-                sink.stall_tyres(local, &tyres);
+        self.tyres_sent = Some(bits);
+        let tyres = StallTyres {
+            at_s: t.session_time,
+            occasion: self.visit.occasion,
+            temp_c: temp,
+            wear,
+        };
+        self.stall_tyres = Some(tyres);
+        let at = clock.iso();
+        if self.pending.is_some() {
+            // The lap that ended before the readings goes first.
+            let slot = self
+                .held_tyres
+                .iter()
+                .position(Option::is_none)
+                .unwrap_or(HELD_TYRES_MAX - 1);
+            self.held_tyres[slot] = Some(HeldTyres { tyres, at });
+        } else if let Some(local) = self.open.as_ref().map(|o| o.local) {
+            sink.stall_tyres(local, &at, &tyres);
+        }
+    }
+
+    /// Sends readings that waited for a lap.
+    fn flush_tyres(&mut self, sink: &mut dyn Sink) {
+        let local = self.open.as_ref().map(|o| o.local);
+        for h in self.held_tyres.iter_mut().filter_map(Option::take) {
+            if let Some(local) = local {
+                sink.stall_tyres(local, &h.at, &h.tyres);
             }
         }
     }
@@ -1031,7 +1103,6 @@ impl Tracker {
             pct: t.lap_dist_pct,
             on_pit_road: t.on_pit_road,
             in_stall: in_stall(t),
-            service: t.pit_service_active.unwrap_or(false),
             tow: t.tow_time.unwrap_or(0.0) > 0.0,
         });
         let active = self.lap.active;
@@ -1447,6 +1518,162 @@ mod tests {
             tracker.step(&t, Some(meta), sink, &clock);
         }
         (time, pct)
+    }
+
+    /// An in lap that crossed the line on the pit road and still waits for the simulator's time
+    /// while the tyre readings change: the readings go after the lap, not before it.
+    #[test]
+    fn tracker_tyre_readings_wait_for_the_lap_that_ended_before_them() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let (old, new) = ([[75.0f32; 3]; 4], [[80.0f32; 3]; 4]);
+        let wear = [[1.0f32; 3]; 4];
+        let (mut time, mut pct, mut lap, mut last) = (0.0, 0.9f32, 3, -1.0f32);
+        for i in 0..700 {
+            time += 1.0 / 60.0;
+            pct += 0.0002;
+            if pct >= 1.0 {
+                pct -= 1.0;
+                lap += 1;
+            }
+            let after_line = lap > 3;
+            if i == 640 {
+                last = 30.0;
+            }
+            let mut t = driving(time, pct);
+            t.lap = lap;
+            t.lap_completed = lap - 1;
+            t.lap_last_time = last;
+            t.on_pit_road = i >= 400;
+            t.track_loc = if t.on_pit_road { 2 } else { 3 };
+            t.tyre_temp = Some(if after_line && i > 520 { new } else { old });
+            t.tyre_wear = Some(wear);
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+            if i == 600 {
+                assert!(
+                    sink.calls("lap").is_empty(),
+                    "the lap still waits for its time"
+                );
+                assert!(
+                    sink.calls("stall_tyres").is_empty(),
+                    "the readings wait for the lap"
+                );
+                assert_eq!(tracker.stall_tyres().expect("seen").temp_c, new);
+            }
+        }
+        let kinds: Vec<&str> = sink
+            .kinds()
+            .into_iter()
+            .filter(|k| matches!(*k, "lap" | "stall_tyres"))
+            .collect();
+        assert_eq!(kinds, ["lap", "stall_tyres"]);
+    }
+
+    /// A row of the in lap used by the tyre tests: the car on the pit road from row 400, the
+    /// line crossed near row 500, the simulator's lap time not given until `last` changes.
+    fn in_lap_row(i: usize, last: f32, temp: [[f32; 3]; 4]) -> Box<Tick> {
+        let total = 0.9 + 0.0002 * i as f32;
+        let mut t = driving(1.0 / 60.0 * (i as f64 + 1.0), total.fract());
+        t.lap = if total >= 1.0 { 4 } else { 3 };
+        t.lap_completed = t.lap - 1;
+        t.lap_last_time = last;
+        t.on_pit_road = i >= 400;
+        t.track_loc = if t.on_pit_road { 2 } else { 3 };
+        t.tyre_temp = Some(temp);
+        t.tyre_wear = Some([[1.0f32; 3]; 4]);
+        t
+    }
+
+    /// Two changes of readings while the lap still waits for its time: both are sent, in order,
+    /// after the lap.
+    #[test]
+    fn tracker_two_sets_of_readings_wait_for_one_lap_and_both_go() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let sets = [[[75.0f32; 3]; 4], [[80.0f32; 3]; 4], [[85.0f32; 3]; 4]];
+        for i in 0..700 {
+            let temp = match i {
+                0..=520 => sets[0],
+                521..=560 => sets[1],
+                _ => sets[2],
+            };
+            let last = if i >= 640 { 30.0 } else { -1.0 };
+            let t = in_lap_row(i, last, temp);
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+            if i == 600 {
+                assert!(sink.calls("lap").is_empty(), "the lap still waits");
+                assert!(sink.calls("stall_tyres").is_empty());
+            }
+        }
+        let kinds: Vec<&str> = sink
+            .kinds()
+            .into_iter()
+            .filter(|k| matches!(*k, "lap" | "stall_tyres"))
+            .collect();
+        assert_eq!(kinds, ["lap", "stall_tyres", "stall_tyres"]);
+    }
+
+    /// The stall flag going on and off with the readings unchanged is not a new set.
+    #[test]
+    fn tracker_the_stall_flag_toggling_with_unchanged_readings_sends_nothing() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let temp = [[75.0f32; 3]; 4];
+        for i in 0..400 {
+            let mut t = driving(1.0 / 60.0 * (i as f64 + 1.0), 0.3 + 0.0001 * i as f32);
+            t.on_pit_road = i >= 100;
+            let stall = (150..200).contains(&i) || (250..300).contains(&i);
+            t.in_pit_stall = Some(stall);
+            t.track_loc = if stall {
+                1
+            } else if t.on_pit_road {
+                2
+            } else {
+                3
+            };
+            t.speed = if stall { 0.0 } else { 20.0 };
+            t.tyre_temp = Some(temp);
+            t.tyre_wear = Some([[1.0f32; 3]; 4]);
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+        }
+        assert!(sink.calls("stall_tyres").is_empty());
+    }
+
+    /// The session changes while readings wait for the lap: they go before the old session's
+    /// end, and the new session starts with a fresh baseline.
+    #[test]
+    fn tracker_a_session_end_flushes_held_readings_and_the_next_starts_clean() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let (old, new) = ([[75.0f32; 3]; 4], [[80.0f32; 3]; 4]);
+        for i in 0..600 {
+            let t = in_lap_row(i, -1.0, if i > 520 { new } else { old });
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+        }
+        assert!(sink.calls("stall_tyres").is_empty(), "held for the lap");
+        // A new session: other readings on track are only its baseline.
+        for i in 600..700 {
+            let mut t = in_lap_row(i, -1.0, [[90.0f32; 3]; 4]);
+            t.session_unique_id = 2;
+            t.on_pit_road = false;
+            t.track_loc = 3;
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+        }
+        let kinds: Vec<&str> = sink
+            .kinds()
+            .into_iter()
+            .filter(|k| matches!(*k, "stall_tyres" | "end_session" | "start_session"))
+            .collect();
+        assert_eq!(
+            kinds,
+            [
+                "start_session",
+                "stall_tyres",
+                "end_session",
+                "start_session"
+            ]
+        );
+        assert!(tracker.stall_tyres().is_none(), "nothing carried over");
     }
 
     #[test]

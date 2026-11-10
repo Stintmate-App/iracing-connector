@@ -138,6 +138,7 @@ fn on_track_frame_is_valid_and_complete() {
     let mut s = snapshot(State::Track);
     s.tyres = Some(StallTyres {
         at_s: 10.0,
+        occasion: iracing_core::io::StallOccasion::PitStop,
         temp_c: [[80.0, 85.0, 90.0]; 4],
         wear: [[0.9, 0.9, 0.9]; 4],
     });

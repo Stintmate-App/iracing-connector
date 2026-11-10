@@ -21,7 +21,8 @@ control app by hand.
   "Waiting for iRacing", "iRacing is running: not in a car", "In the garage", "Recording" or
   "Replay: not recording". `live` is true while a session is open and `telemetry` while Pitwall
   is subscribed to the sample stream.
-- It records sessions, laps, setups, pit exits and the other cars' laps (see below). Each lap
+- It records sessions, laps, setups, pit exits, the tyre readings taken at stops and the other
+  cars' laps (see below). Each lap
   carries `x` and `z`, the car's position in metres (east and north, origin at the
   start/finish line) by dead reckoning; Pitwall draws the track outline and the track maps
   from them. The position is approximate: within about 3 m on the laps checked (see
@@ -44,7 +45,7 @@ At every connection it also declares to Pitwall its announcement catalog (`conne
 its guidance for the engineer (at most 16 items) and the two actions. The features it declares
 are `window`, `notices`, `translated_texts`, `remembered_services` and `options` (the five the
 control app provides), then `setups`, `fuel`, `sectors`, `conditions`, `rivals`, `live_frame`,
-`lap_status`, `capture_target`, `brake_cues`, `guidance`, `actions`, `announcements` and `spotter`.
+`lap_status`, `capture_target`, `brake_cues`, `guidance`, `actions`, `announcements`, `spotter` and `tyre_readings`.
 
 While a session is open it announces flags, cautions, penalties, the finish, other cars'
 retirements, incidents and the spotter's calls through `pitwall.announce`. At most 10 messages in
@@ -86,8 +87,8 @@ options. The recorder accepts:
 
 Any other option is exit 2, because only the control app starts the recorder.
 
-The recorder reads the simulator's shared memory and sends sessions, laps, setups, pit exits and
-the other cars' laps to Pitwall through an outbox in `connectors\iracing\outbox\`. When it stops
+The recorder reads the simulator's shared memory and sends sessions, laps, setups, pit exits,
+tyre readings and the other cars' laps to Pitwall through an outbox in `connectors\iracing\outbox\`. When it stops
 while the simulator runs with a session open, it keeps the session open
 (`connectors\iracing\session-resume.json`), and a recorder started later in the same session
 continues it with the same session key.

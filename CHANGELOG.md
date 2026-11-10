@@ -2,6 +2,12 @@
 
 All notable changes to this project are written here.
 
+## 0.1.9 (2026-11-10)
+
+- **Tyre readings at stops.** iRacing gives its tyre temperatures and tread remaining only in the pits (a stop, a reset to the pits, getting into the car), so the connector now sends each new set as a `tyre_readings` message, which needs a Pitwall that implements it (an older Pitwall refuses the message and the connector drops it). A set is new when the readings on a row with the car on the pit road or in its stall differ from the ones last sent in the session; the first driving row of a session only sets the baseline (unless the car is in its stall, which sends it as `car_entry`). The `occasion` is `pit_stop`, `reset` or `car_entry`. Readings that change in the same visit are sent again, and an entry that carries no new values sends nothing. The message comes after the lap that ended before it and before the stop's `pit_exit`. Carcass temperatures and tread remaining are sent per wheel and edge (`in` is the edge towards the car's centreline, 1 is a new tyre); iRacing gives no surface temperature or hot pressure at a stop, so those are left out.
+- The connector declares the feature `tyre_readings`. The connector runtime is now pinned at v0.2.2, which provides the message and lists the feature.
+- Readings that change more than once while a lap waits for its time are all sent, in order; a wheel whose values were all out of range is left out of the message (and none is sent when no wheel is left).
+
 ## 0.1.8 (2026-11-10)
 
 - **The official icon everywhere.** The three programs (`iracing-connector-ui.exe`, `iracing-connector-window.exe`, `iracing-recorder.exe`) carry the official Stintmate iRacing connector icon in their file properties, and the tray and the connector window show it instead of the drawn letter "I" (the tray with the level badge in its corner, the window alone). The installer uses it for the setup and for the entry in Windows' Installed apps. The shared runtime is now pinned at v0.2.0, which provides the artwork support.

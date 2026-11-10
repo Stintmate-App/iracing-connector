@@ -70,6 +70,7 @@ pub static SPEC: ConnectorSpec = ConnectorSpec {
         "actions",
         "announcements",
         "spotter",
+        "tyre_readings",
     ],
     ui_catalog: include_str!("../locales/en.json"),
     glyph: Glyph::I,
@@ -82,7 +83,7 @@ pub static SPEC: ConnectorSpec = ConnectorSpec {
 
 pub use io::{
     Clock, Conditions, FinishedLap, LapType, ParticipantLap, SessionKey, SessionOpenInfo,
-    SetupReason, Sink, Source, SourceEvent, StallTyres, TimeSource,
+    SetupReason, Sink, Source, SourceEvent, StallOccasion, StallTyres, TimeSource,
 };
 
 #[cfg(test)]

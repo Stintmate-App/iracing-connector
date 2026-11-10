@@ -254,10 +254,12 @@ impl Sink for RecordingSink {
         }));
     }
 
-    fn stall_tyres(&mut self, local: u64, tyres: &StallTyres) {
+    fn stall_tyres(&mut self, local: u64, at: &str, tyres: &StallTyres) {
         self.events.push(json!({
             "call": "stall_tyres",
             "local": local,
+            "at": at,
+            "occasion": tyres.occasion.as_str(),
             "at_s": r3(tyres.at_s),
             "temp_c": tyres.temp_c.iter().map(|w| w.iter().map(|v| r3(f64::from(*v))).collect::<Vec<_>>()).collect::<Vec<_>>(),
             "wear": tyres.wear.iter().map(|w| w.iter().map(|v| r3(f64::from(*v))).collect::<Vec<_>>()).collect::<Vec<_>>(),

@@ -246,15 +246,40 @@ pub struct ParticipantLap {
     pub state: Option<String>,
 }
 
-/// The tyre readings taken when the car enters its pit stall: temperatures and wear per wheel
-/// (left front, right front, left rear, right rear) and position (left, middle, right).
+/// Why the car was in the pits when the simulator gave new tyre readings.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StallOccasion {
+    /// The car drove into its pit box.
+    PitStop,
+    /// The simulator put the car back in the pits.
+    Reset,
+    /// The driver got into the car in the pits.
+    CarEntry,
+}
+
+impl StallOccasion {
+    /// The write API's `occasion` value.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            StallOccasion::PitStop => "pit_stop",
+            StallOccasion::Reset => "reset",
+            StallOccasion::CarEntry => "car_entry",
+        }
+    }
+}
+
+/// A new set of tyre readings: temperatures and wear per wheel (left front, right front, left
+/// rear, right rear) and position (left, middle, right).
 ///
-/// The simulator updates its live readings only on entering the stall, so these are the readings
-/// of that moment. They are shown in the live frame; the write API has no place for them.
+/// The simulator updates its live readings only in the pits (a stop, a reset, getting into the
+/// car), so these are the readings of that moment. They are shown in the live frame and sent as
+/// a `tyre_readings` write.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct StallTyres {
-    /// Session time of the entry.
+    /// Session time of the row that carried them.
     pub at_s: f64,
+    /// Why the car was in the pits.
+    pub occasion: StallOccasion,
     /// Temperatures in degrees Celsius.
     pub temp_c: [[f32; 3]; 4],
     /// Wear as the simulator reports it (1 new).
@@ -284,8 +309,9 @@ pub trait Sink {
     fn participants(&mut self, local: u64, rows: Vec<ParticipantLap>);
     /// Cars that joined after the session opened.
     fn catalog(&mut self, meta: Arc<SessionMeta>);
-    /// The car entered its stall; `tyres` are the readings of that moment. Optional.
-    fn stall_tyres(&mut self, _local: u64, _tyres: &StallTyres) {}
+    /// The simulator gave a new set of tyre readings in the pits; `at` is the wall-clock time of
+    /// the row that carried them. Optional.
+    fn stall_tyres(&mut self, _local: u64, _at: &str, _tyres: &StallTyres) {}
     /// A fresh, empty lap buffer for the tracker's pool, made on the sink's own thread so the
     /// tick thread does not allocate it. Called after each lap is handed over. `None` (the
     /// default) makes the tracker allocate one when the next lap ends.

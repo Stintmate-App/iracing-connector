@@ -12,7 +12,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.8"
+version = "0.1.9"
 edition = "2024"
 rust-version = "1.89"
 license = "Apache-2.0"
@@ -27,14 +27,14 @@ iracing-core = { path = "crates/iracing-core" }
 stintmate-ipc = { git = "https://github.com/Stintmate-App/stintmate-ipc", tag = "v0.3.3" }
 stintmate-ipc-check = { git = "https://github.com/Stintmate-App/stintmate-ipc", tag = "v0.3.3" }
 # The shared connector runtime, pinned to a release tag.
-stintmate-connector-platform = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.0" }
-stintmate-connector-resources = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.0" }
-stintmate-connector-i18n = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.0" }
-stintmate-connector-wire = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.0" }
-stintmate-connector-link = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.0" }
-stintmate-connector-control = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.0" }
-stintmate-connector-window = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.0" }
-stintmate-connector-testing = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.0" }
+stintmate-connector-platform = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.2" }
+stintmate-connector-resources = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.2" }
+stintmate-connector-i18n = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.2" }
+stintmate-connector-wire = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.2" }
+stintmate-connector-link = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.2" }
+stintmate-connector-control = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.2" }
+stintmate-connector-window = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.2" }
+stintmate-connector-testing = { git = "https://github.com/Stintmate-App/connector-runtime", tag = "v0.2.2" }
 thiserror = "2"
 proptest = "1"
 tempfile = "3"
