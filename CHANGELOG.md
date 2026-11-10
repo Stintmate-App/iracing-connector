@@ -2,6 +2,10 @@
 
 All notable changes to this project are written here.
 
+## Unreleased
+
+- **CI on pull requests.** The `ci` workflow runs on every pull request to `main` (and by hand). No code change.
+
 ## 0.1.7 (2026-11-10)
 
 No behaviour or protocol change.

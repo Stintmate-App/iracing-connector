@@ -78,7 +78,7 @@ cargo deny check licenses advisories bans sources
 The tests that read recordings from a real machine are ignored; see
 [docs/FINDINGS.md](docs/FINDINGS.md) for how to run them.
 
-CI runs by hand only (Actions, `ci`); run the checks above locally before a merge. The repository's
+CI (`ci`) runs on every pull request to `main` and by hand; run the checks above locally before a merge. The repository's
 hooks run the first two before each commit and push; enable them once per clone with
 `git config core.hooksPath .githooks`.
 
