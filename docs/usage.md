@@ -48,10 +48,13 @@ are `window`, `notices`, `translated_texts`, `remembered_services` and `options`
 control app provides), then `setups`, `fuel`, `sectors`, `conditions`, `rivals`, `live_frame`,
 `lap_status`, `capture_target`, `brake_cues`, `guidance`, `actions`, `announcements`, `spotter` and `sim_data`.
 
-Simulator data: the tyre temperatures and tread remaining iRacing gives only in the pits (a pit stop,
-a reset to the pits, getting into the car) are sent as `sim_data` records of the kind `stall_tyres`, one per
-new set (a set is new when its values differ from the last one sent in the session). A record carries
-`occasion` (`pit_stop`, `reset` or `car_entry`) and `wheels` (`fl`, `fr`, `rl`, `rr`), each with the carcass
+Simulator data: the tyre temperatures and tread remaining iRacing gives only when the car comes into the
+pits (a pit stop, a reset to the pits) are sent as `sim_data` records of the kind `stall_tyres`, one per new
+set (a set is new when its values differ from the last one sent in the session). The readings are of the set
+that came in, just before it was changed: they describe the stint that ended, and the car leaves on new
+tyres. Getting into the car writes a record with occasion `car_entry` every time, with no `wheels`: it marks
+the start of a stint (the readings shown then only repeat the last set that came in). A record carries
+`occasion` (`pit_stop`, `reset` or `car_entry`) and, except for `car_entry`, `wheels` (`fl`, `fr`, `rl`, `rr`), each with the carcass
 temperatures `carcass_in_c`, `carcass_mid_c`, `carcass_out_c` in degrees C and the tread remaining `tread_in`,
 `tread_mid`, `tread_out` as a fraction (1 is new); `in` is the edge towards the car's centreline. A value out
 of range is left out. At every connection the connector also sends a `sim_data_kinds` message that describes

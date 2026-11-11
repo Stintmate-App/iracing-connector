@@ -253,7 +253,8 @@ pub enum StallOccasion {
     PitStop,
     /// The simulator put the car back in the pits.
     Reset,
-    /// The driver got into the car in the pits.
+    /// The driver got into the car in the pits: the start of a stint. Its readings repeat the
+    /// last set that came in, so the record carries none.
     CarEntry,
 }
 
