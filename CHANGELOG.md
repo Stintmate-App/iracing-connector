@@ -2,6 +2,11 @@
 
 All notable changes to this project are written here.
 
+## 0.1.13 (2026-11-11)
+
+- **Getting into the car is recorded every time.** The tyre readings written when you get into the car from the garage or the menu (`stall_tyres`, occasion `car_entry`) were missing: the first row after the entry is not yet in the pit stall, so the connector took its readings as a starting point and the stall row 17 ms later compared equal. Now the entry row writes a `car_entry` record every time, even when the readings equal the last ones, in the first entry of a session and in the later ones. The stall row that follows an entry is no longer read as a reset to the pits, so it does not end a lap as a return to the pits either. A reset to the pits (from the track) is still `reset`, and a recorder that starts while the car is already driving still writes nothing for that first row.
+- Leaving the car gives no new readings, so nothing is written for it. `docs/FINDINGS.md` has the rows of the car entry and of two resets seen in a 60 Hz live recording, and corrects the 0.1.12 note that said a reset and leaving to the menu looked the same: what it took for leaving to the menu was a reset.
+
 ## 0.1.12 (2026-11-11)
 
 - **Works with an older Stintmate without false alarms.** The connector runtime is now pinned at v0.5.0: when the linked Pitwall does not declare `sim_data_kinds`, `sim_data` or `lap_positions` (an older Stintmate), those writes are skipped and logged once, instead of being refused and reported in the connector window as refused writes. With a Pitwall that has them nothing changes.

@@ -20,7 +20,7 @@ pub fn kinds() -> Vec<SimDataKind> {
     fields.insert(
         "occasion".to_owned(),
         field(
-            "Why the car was in the pits: pit_stop (it drove into its pit box), reset (the simulator put it back in the pits) or car_entry (the driver got into the car in the pits).",
+            "Why the car was in the pits: pit_stop (it drove into its pit box), reset (the simulator put it back in the pits) or car_entry (you got into the car, every time, even when the values did not change).",
             None,
         ),
     );
