@@ -34,6 +34,7 @@ writes no file in the simulator's folders.
 | `iracing-meta` | builds the session description (`SessionMeta`) from the parsed text | `crates/iracing-core/src/meta.rs` |
 | `outbox-summary` | reads the outbox's counters every 250 ms, so the sampling thread never takes the outbox lock | `bins/iracing-recorder/src/summary.rs` |
 | `telemetry` | sends the samples of the ring to Pitwall while it is subscribed | `bins/iracing-recorder/src/telemetry.rs` |
+| `positions` | after a session ended and while none is open, finds exact positions for its laps in iRacing's disk telemetry; wakes every 30 s, in the Windows background mode | `bins/iracing-recorder/src/positions.rs` |
 | `announce` | builds the announcement of a fired call and hands it to the runtime's announcer | `bins/iracing-recorder/src/announce.rs` |
 
 The shared connector runtime adds its own threads: the link to Pitwall, the writer of the outbox
@@ -242,7 +243,7 @@ documents.
 
 The simulator publishes no world position, so each lap carries its own `x` (east) and `z`
 (north) channels in metres, computed in `crates/iracing-core/src/position.rs`. The channel `y`
-is not sent.
+is not sent while driving; the exact positions found after the session carry it (see below).
 
 - **Method.** Every row integrates the car's velocity over `SessionTime` (trapezoid, `f64`
   accumulators; the step is the difference of `SessionTime`, never a fixed 1/60 s). The heading
@@ -270,6 +271,38 @@ is not sent.
 
 The accuracy, measured against the `Lat` and `Lon` of recorded `.ibt` files, is in
 [FINDINGS.md](FINDINGS.md#position-by-dead-reckoning).
+
+## Exact positions from disk telemetry
+
+Each lap keeps the address of its samples next to the dead-reckoned channels: the `SessionTick`
+and `LapDistPct` of every row (two more reserved columns of the lap buffer, pushed with the
+others) and the session time of its line crossings. The sink sends laps through the runtime's
+`lap_with_address`; once the lap is stored in the outbox, on the writer thread, a record of
+it (tag 1) is appended to `<data folder>\positions\<session key>.bin`
+(`crates/iracing-core/src/positions/file.rs` has the format). The file starts with a header (the
+session key, `SessionNum`, `SessionUniqueID`, `SubSessionID`, the layout's `TrackID`, the player's
+`CarPath` and the wall-clock time the session opened); the end of the session appends a closed
+time (not when the session is kept open for the next recorder, which continues the same file),
+and a lap that has its positions appends a resolved record. Nothing is added to the sampling path
+beyond the two reserved pushes.
+
+`positions.rs` holds the thread. At each wake it deletes the files that are finished (closed,
+every lap resolved) or older than 7 days, and works on the closed ones that have been quiet for a
+minute and have laps left, only when the sampling loop says no session is open (a shared flag set
+at the status cadence) and with the stop flag checked before every chunk of a file. A disk file
+belongs to a session when it was modified after the session opened, starts inside the session's
+wall-clock span, and names the same track, car and sub-session
+(`positions/select.rs`). **A file may start up to 30 s before the session opened**
+(`START_SLACK_SECS`): this is a tolerance of this connector, because the file's start date has
+one-second resolution and the connector learns of a session a moment after the simulator started
+it. It is complete when its size is `bufOffset + recordCount x bufLen` and has not changed for
+60 s. The job (`positions/job.rs`) matches each recorded sample to a file row by
+`(SessionNum, SessionTick)`, checks `LapDistPct`, projects `Lat`/`Lon`/`Alt` to metres about the
+lap's line crossing and gives the laps that matched fully to the loop, which queues each as a
+`lap_positions` write (the idempotency key makes a repeat harmless). **A lap recorded without
+`SessionTick` has tick 0 on every row and matches nothing, so it keeps its recorded positions.**
+When every file of the session was complete, the laps that did not match are marked resolved
+too, and the thread logs one line for the session.
 
 ## `.ibt` files
 

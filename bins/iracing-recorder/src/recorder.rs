@@ -2,7 +2,7 @@
 //! and reports the status. The session text is parsed on other threads.
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use iracing_core::SPEC;
@@ -35,8 +35,9 @@ use stintmate_ipc::clock::now_ns;
 use crate::announce::{self, Fired, Outlet};
 use crate::cli::{Options, SdkNames};
 use crate::live::LiveBuffer;
+use crate::positions::mark_resolved;
 use crate::serve::{self, SessionKeyCell};
-use crate::sink::{NoteClock, TrackerSink};
+use crate::sink::{NoteClock, TrackerSink, positions_message};
 use crate::status::{self, Facts};
 use crate::summary::OutboxSummary;
 use crate::telemetry::{Ring, Telemetry};
@@ -506,6 +507,19 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
         })
     };
     let mut pipe = Pipeline::new(TrackerSink::new(write), Box::new(WallClock::new()));
+    // After a session ended, the thread looks for the simulator's disk telemetry of it and finds
+    // exact positions for its laps. It works only while no session is open (`driving`).
+    let driving = Arc::new(AtomicBool::new(false));
+    let positions = match crate::positions::Positions::spawn(
+        crate::positions::dir_of(&outbox),
+        driving.clone(),
+    ) {
+        Ok(p) => Some(p),
+        Err(e) => {
+            tracing::warn!("Cannot start the positions thread: {e}");
+            None
+        }
+    };
 
     // What Pitwall can ask for is registered before the link starts: the live frame, the
     // capture target, the actions and the telemetry stream.
@@ -602,10 +616,25 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
         }
         if now >= next_status || first {
             next_status = now + STATUS_EVERY;
-            let sink = &pipe.sink.write;
-            let stats = sink.stats();
             let local = pipe.tracker.session_local();
             let open = local.is_some();
+            driving.store(open, Ordering::Relaxed);
+            if let Some(p) = &positions {
+                // Queued here, on the thread that owns the sink, a moment after they are found.
+                while let Ok(r) = p.ready.try_recv() {
+                    let (file, lap_seq) = (r.file, r.lap_seq);
+                    pipe.sink.write.lap_positions(
+                        &r.session_key,
+                        lap_seq,
+                        Box::new(move || {
+                            mark_resolved(&file, lap_seq);
+                            positions_message(r.positions)
+                        }),
+                    );
+                }
+            }
+            let sink = &pipe.sink.write;
+            let stats = sink.stats();
             let facts = Facts {
                 game_running,
                 pitwall: pitwall_text(booted.pitwall.state().0),
@@ -652,11 +681,15 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
         && reader.as_ref().is_some_and(Reader::connected)
         && pipe.tracker.state() != State::Off
         && pipe.tracker.session_local().is_some();
+    pipe.sink.keep_positions_open = keep;
     if keep && let Some(clock) = pipe.ir_clock() {
         pipe.sink.write.keep_session_open(clock);
         pipe.stop(true);
     } else {
         pipe.stop(false);
+    }
+    if let Some(p) = &positions {
+        p.close();
     }
     pipe.sink.write.close(CLOSE_DRAIN);
     outbox_summary.close();

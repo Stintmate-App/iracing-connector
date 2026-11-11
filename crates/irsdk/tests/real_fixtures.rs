@@ -257,3 +257,33 @@ fn real_tick_rate() {
     println!("tick_rate {}: one row in {every} is kept", h.tick_rate);
     assert!(every >= 1);
 }
+
+#[test]
+#[ignore = "needs recordings from the simulator"]
+fn real_scan_matches_ibt_on_every_file() {
+    let paths = files("", "ibt");
+    if skip(
+        "real_scan_matches_ibt_on_every_file",
+        "at least one *.ibt",
+        !paths.is_empty(),
+    ) {
+        return;
+    }
+    for p in &paths {
+        let ibt = Ibt::open(p).unwrap();
+        let mut scan = irsdk::scan::Scan::open(p).unwrap();
+        assert_eq!(scan.rows(), ibt.len() as u64, "{}", p.display());
+        assert_eq!(scan.disk(), ibt.disk());
+        let pct = scan.field::<f32>("LapDistPct").unwrap();
+        let pct_ibt: irsdk::vars::Var<f32> = ibt.vars().find("LapDistPct").unwrap();
+        let mut i = 0;
+        while let Some(c) = scan.next_chunk().unwrap() {
+            for r in c.rows() {
+                let row = irsdk::row::Row::from_slice(ibt.row(i).unwrap());
+                assert_eq!(pct.get(r), pct_ibt.read(&row));
+                i += 1;
+            }
+        }
+        assert_eq!(i, ibt.len());
+    }
+}

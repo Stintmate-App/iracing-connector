@@ -2,6 +2,15 @@
 
 All notable changes to this project are written here.
 
+## 0.1.11 (2026-11-11)
+
+- **Exact positions from iRacing's disk telemetry.** While you drive, each lap's `x` and `z` are still dead-reckoned (about 2 to 3 m). When iRacing also logged the session to disk (Alt+L, or its option to log automatically; the connector never changes that setting), the recorder finds the matching `.ibt` files after the session, reads the car's latitude, longitude and altitude for each recorded sample, and sends them as `lap_positions` messages that replace the lap's `x` and `z` and add `y`. Laps that iRacing did not log keep their dead-reckoned positions.
+- How it works: for each lap the recorder keeps the `SessionTick` and `LapDistPct` of every sample, and the session time of its line crossings, in a small file per session in `positions\` in the connector's data folder (about 8 bytes a sample, written once per lap on the writer thread; nothing is added to the sampling path beyond two reserved columns). After the session has ended, and only while no session is open, a low-priority thread (wakes every 30 s) matches those samples to file rows by `(SessionNum, SessionTick)`, checks `LapDistPct`, and projects to metres about the lap's line crossing. It waits for each disk file to be complete and unchanged for a minute, stops at once when you get back into a car, only reads under `Documents\iRacing\telemetry` and never writes there. A lap that contains a row with latitude and longitude both 0 (the car out of the world) or whose samples are not all in the files keeps its positions. Files of finished sessions are deleted, and any file after 7 days. One line per session in `recorder.log` says how many laps got exact positions.
+- A file may start up to 30 s before the session opened (the connector learns of a session a moment after iRacing started it and a file's start date has one-second resolution).
+- The connector declares the feature `lap_positions` and tells the engineer, through its guidance, that positions are exact only for laps iRacing logged to disk. The connector runtime is now pinned at v0.4.0, which provides the message and the feature.
+- Needs a Pitwall that implements `lap_positions`: an older one refuses the message and the connector drops the write.
+- `docs/FINDINGS.md` records what was observed of the disk files; `docs/usage.md` has a section on the feature.
+
 ## 0.1.10 (2026-11-11)
 
 - **The readings in the pits are sent as simulator data.** Each new set of tyre readings goes as a `sim_data` record of the kind `stall_tyres`, and the connector describes the kind to Pitwall field by field (`sim_data_kinds`), instead of the `tyre_readings` message of 0.1.9, which was never released. Same moments, same values: the change detection, the occasions and the order (after the lap that ended before it, before the stop's `pit_exit`) are as in 0.1.9.

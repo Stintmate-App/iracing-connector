@@ -71,6 +71,9 @@ macro_rules! variables {
                 track_loc: i32 = "PlayerTrackSurface",
             ],
             opt: [
+                // Observed equal in the live map and in the `.ibt` file for the same row: with
+                // `SessionNum` it names a row in both.
+                session_tick: i32 = "SessionTick",
                 time_remain: f64 = "SessionTimeRemain",
                 laps_remain: i32 = "SessionLapsRemainEx",
                 time_total: f64 = "SessionTimeTotal",

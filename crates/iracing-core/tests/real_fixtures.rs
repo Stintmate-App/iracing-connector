@@ -536,3 +536,131 @@ fn real_ibt_tyre_readings() {
         assert_eq!(tyre_occasions(path), want, "{stem}");
     }
 }
+
+/// The laps the tracker makes of each recorded file, run through the positions job against the
+/// same file: every lap that runs from line to line and never touched the pits is matched, and
+/// its positions stay within 3 m of the dead-reckoned ones the connector sent.
+#[test]
+#[ignore = "needs the probe's recordings"]
+fn real_ibt_positions() {
+    use iracing_core::ibt_source::IbtSource;
+    use iracing_core::io::{Source, SourceEvent};
+    use iracing_core::positions::file::{LapRecord, PositionsFile, PositionsHeader};
+    use iracing_core::positions::job::{Outcome, run};
+    use iracing_core::testing::{FixedClock, RecordingSink};
+    use iracing_core::tracker::Tracker;
+    use std::collections::BTreeSet;
+
+    let ibts = root().map(|r| files(&r, "ibt", ".ibt")).unwrap_or_default();
+    if skip(
+        "real_ibt_positions",
+        "at least one ibt/*.ibt",
+        !ibts.is_empty(),
+    ) {
+        return;
+    }
+    let mut table: Vec<(String, f64, f64)> = Vec::new();
+    for path in ibts {
+        let name = path.file_name().unwrap().to_string_lossy().into_owned();
+        let ibt =
+            irsdk::ibt::Ibt::open(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        let mut src = IbtSource::new(ibt).expect("the recorder's variables are in the file");
+        let meta = std::sync::Arc::clone(src.meta().expect("the file's session text"));
+        let (mut tracker, mut sink, clock) = (
+            Tracker::new(1024),
+            RecordingSink::new(),
+            FixedClock::default(),
+        );
+        let mut tick = Tick::new();
+        while src.next(&mut tick) == SourceEvent::Row {
+            tracker.step(&tick, Some(&meta), &mut sink, &clock);
+        }
+        tracker.finish_open_lap(&mut sink);
+
+        // The positions file the recorder would have kept: one record per lap.
+        let laps = sink.laps();
+        let records: Vec<LapRecord> = laps
+            .iter()
+            .enumerate()
+            .map(|(i, l)| LapRecord {
+                lap_seq: i as u64 + 1,
+                start_crossing: l.buffer.start_crossing(),
+                end_crossing: l.buffer.end_crossing(),
+                ticks: l.buffer.ticks().to_vec(),
+                pct: l.buffer.pct().to_vec(),
+            })
+            .collect();
+        let file = PositionsFile {
+            header: PositionsHeader {
+                session_key: "real".into(),
+                session_num: meta.session_num,
+                session_unique_id: 0,
+                sub_session_id: meta.sub_session_id,
+                track_id: meta.track.layout_id.parse().unwrap_or(0),
+                car_path: String::new(),
+                opened_unix: 0,
+            },
+            laps: records,
+            closed_unix: Some(1),
+            resolved: BTreeSet::new(),
+            truncated: false,
+        };
+        let mut scans = [irsdk::scan::Scan::open(&path).expect("the file opens")];
+        let mut sent = Vec::new();
+        let report = run(&file, &mut scans, &|| false, &mut |p| sent.push(p));
+        assert!(!report.stopped && report.unusable_files == 0, "{name}");
+
+        for (i, l) in laps.iter().enumerate() {
+            let seq = i as u64 + 1;
+            let (_, outcome) = &report.outcomes[i];
+            let full = l.buffer.start_crossing().is_some()
+                && l.buffer.end_crossing().is_some()
+                && !l.touched_pit
+                && !l.partial;
+            match outcome {
+                Outcome::Sent => {
+                    let p = sent.iter().find(|p| p.lap_seq == seq).expect("sent");
+                    assert_eq!(p.x.len(), l.buffer.len(), "{name} lap {seq}");
+                    if l.buffer.present().position {
+                        let c = l.buffer.columns();
+                        let d: Vec<f64> = (0..p.x.len())
+                            .map(|k| f64::from(p.x[k] - c.x[k]).hypot(f64::from(p.z[k] - c.z[k])))
+                            .collect();
+                        let max = d.iter().cloned().fold(0.0, f64::max);
+                        let mean = d.iter().sum::<f64>() / d.len() as f64;
+                        println!("{name} lap {seq}: sent, max {max:.2} m, mean {mean:.2} m");
+                        table.push((format!("{name} lap {seq}"), max, mean));
+                    } else {
+                        println!("{name} lap {seq}: sent (no dead-reckoned position to compare)");
+                    }
+                }
+                Outcome::Left(reason) => {
+                    println!("{name} lap {seq}: left ({reason}), full line-to-line lap: {full}");
+                    assert!(!full, "{name} lap {seq}: a full lap was left: {reason}");
+                }
+            }
+        }
+    }
+    assert!(!table.is_empty(), "no lap with a position in the files");
+    // The five laps of docs/FINDINGS.md ("Position by dead reckoning"): 2.60, 1.57, 1.77, 2.28
+    // and 2.62 m at most. Other laps are printed above; a few of them are further out (the
+    // dead-reckoned trace of a lap with a spin or a long closure is less exact).
+    const FINDINGS_LAPS: [&str; 5] = [
+        "2026-11-06 22-42-08.ibt lap 2",
+        "2026-11-06 22-56-05.ibt lap 1",
+        "2026-11-06 22-56-05.ibt lap 2",
+        "2026-11-06 22-56-05.ibt lap 3",
+        "2026-11-06 22-56-05.ibt lap 4",
+    ];
+    let mut seen = 0;
+    for (lap, max, _) in &table {
+        if FINDINGS_LAPS.iter().any(|k| lap.ends_with(k)) {
+            seen += 1;
+            assert!(*max <= 3.0, "{lap}: {max:.2} m from dead reckoning");
+        }
+    }
+    assert!(
+        seen == 0 || seen == FINDINGS_LAPS.len(),
+        "{seen} of the five laps of the findings were found"
+    );
+}

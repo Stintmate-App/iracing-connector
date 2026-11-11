@@ -17,6 +17,7 @@ pub mod lap;
 pub mod live;
 pub mod meta;
 pub mod position;
+pub mod positions;
 pub mod resume;
 pub mod rivals;
 pub mod sectors;
@@ -72,6 +73,7 @@ pub static SPEC: ConnectorSpec = ConnectorSpec {
         "announcements",
         "spotter",
         "sim_data",
+        "lap_positions",
     ],
     ui_catalog: include_str!("../locales/en.json"),
     glyph: Glyph::I,

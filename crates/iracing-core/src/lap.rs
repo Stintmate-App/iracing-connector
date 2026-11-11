@@ -140,6 +140,25 @@ pub struct LapBuffer {
     length_m: f32,
     last_surface: f32,
     dr: DeadReckoner,
+    // The address of every row, kept outside the channel set: `SessionTick` and `LapDistPct`.
+    ticks: Vec<i32>,
+    pct: Vec<f32>,
+    start_cross: Option<f64>,
+    end_cross: Option<f64>,
+}
+
+/// Where the samples of a lap can be found again in the simulator's disk telemetry: the
+/// `SessionTick` and `LapDistPct` of every row, and the session time of the lap's line crossings.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LapAddress {
+    /// The `SessionTick` of every row.
+    pub ticks: Vec<i32>,
+    /// The `LapDistPct` of every row.
+    pub pct: Vec<f32>,
+    /// The session time at which the lap started at the line on the track, when it did.
+    pub start_crossing: Option<f64>,
+    /// The session time at which the lap ended at the line on the track, when it did.
+    pub end_crossing: Option<f64>,
 }
 
 impl LapBuffer {
@@ -160,6 +179,10 @@ impl LapBuffer {
             length_m: f32::INFINITY,
             last_surface: 0.0,
             dr: DeadReckoner::new(),
+            ticks: Vec::with_capacity(rows),
+            pct: Vec::with_capacity(rows),
+            start_cross: None,
+            end_cross: None,
         }
     }
 
@@ -177,6 +200,10 @@ impl LapBuffer {
         for c in self.cols.all_mut() {
             c.clear();
         }
+        self.ticks.clear();
+        self.pct.clear();
+        self.start_cross = None;
+        self.end_cross = None;
         self.present = Present::ALL;
         self.last_surface = 0.0;
         self.dr.reset();
@@ -186,6 +213,7 @@ impl LapBuffer {
     /// the line on the track.
     pub fn begin_position(&mut self, at_s: f64, anchored_start: bool) {
         self.dr.begin(at_s, anchored_start);
+        self.start_cross = anchored_start.then_some(at_s);
     }
 
     /// Anchors the lap's `x` and `z` (see [`crate::position::finish`]). `crossed`: the session
@@ -193,6 +221,7 @@ impl LapBuffer {
     /// `closure`: whether a lap from the line to the line may be closed (not after a pit visit);
     /// without it such a lap keeps its start anchor only.
     pub fn finish_position(&mut self, crossed: Option<f64>, closure: bool) {
+        self.end_cross = crossed;
         if !self.dr.ok() {
             self.present.position = false;
             return;
@@ -218,6 +247,37 @@ impl LapBuffer {
         if !finish(&mut c.x, &mut c.z, start, end, self.length_m, path_total) {
             self.present.position = false;
         }
+    }
+
+    /// Takes the lap's address (see [`LapAddress`]) out of the buffer, which is consumed anyway:
+    /// nothing is copied or allocated.
+    pub fn take_address(&mut self) -> LapAddress {
+        LapAddress {
+            ticks: std::mem::take(&mut self.ticks),
+            pct: std::mem::take(&mut self.pct),
+            start_crossing: self.start_cross,
+            end_crossing: self.end_cross,
+        }
+    }
+
+    /// The `SessionTick` of every row recorded (0 when the variable is absent).
+    pub fn ticks(&self) -> &[i32] {
+        &self.ticks
+    }
+
+    /// The `LapDistPct` of every row recorded.
+    pub fn pct(&self) -> &[f32] {
+        &self.pct
+    }
+
+    /// The session time at which the lap started at the line on the track, when it did.
+    pub fn start_crossing(&self) -> Option<f64> {
+        self.start_cross
+    }
+
+    /// The session time at which the lap ended at the line on the track, when it did.
+    pub fn end_crossing(&self) -> Option<f64> {
+        self.end_cross
     }
 
     /// Rows recorded.
@@ -253,6 +313,8 @@ impl LapBuffer {
 
     /// Records one row. Allocates nothing while the lap is within the reserved rows.
     pub fn push(&mut self, t: &Tick, lap: &LapPoint, pit_mode: u8) {
+        self.ticks.push(t.session_tick.unwrap_or(0));
+        self.pct.push(t.lap_dist_pct);
         let c = &mut self.cols;
         c.t.push(if lap.timed { lap.lap_clock_s } else { -1.0 });
         c.dist.push(t.lap_dist.clamp(0.0, self.length_m));
@@ -423,6 +485,32 @@ mod tests {
         t.surface = Some(-1);
         b.push(&t, &point(), 0);
         assert_eq!(b.columns().ext_surface, [2.0, 2.0]);
+    }
+
+    #[test]
+    fn rows_keep_their_address_and_the_crossings() {
+        let mut b = LapBuffer::with_capacity(4);
+        let mut t = Tick::new();
+        b.begin_position(10.0, true);
+        for (tick, pct) in [(100, 0.001_f32), (101, 0.002)] {
+            t.session_tick = Some(tick);
+            t.lap_dist_pct = pct;
+            b.push(&t, &point(), 0);
+        }
+        t.session_tick = None;
+        b.push(&t, &point(), 0);
+        assert_eq!(b.ticks(), [100, 101, 0]);
+        assert_eq!(b.pct(), [0.001, 0.002, 0.002]);
+        assert_eq!(b.start_crossing(), Some(10.0));
+        b.finish_position(Some(95.5), true);
+        assert_eq!(b.end_crossing(), Some(95.5));
+        let cap = b.capacity();
+        b.clear();
+        assert!(b.ticks().is_empty() && b.pct().is_empty());
+        assert_eq!((b.start_crossing(), b.end_crossing()), (None, None));
+        b.begin_position(1.0, false);
+        assert_eq!(b.start_crossing(), None);
+        assert_eq!(b.capacity(), cap);
     }
 
     #[test]

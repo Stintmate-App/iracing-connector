@@ -579,6 +579,59 @@ with no pit road and no incident, comparing against the file's `Lat` and `Lon`.
   and the 360 Hz variables. The session text in a file is that of the whole weekend. The
   accuracy of dead reckoning against `Lat` and `Lon` is under "Position by dead reckoning".
 
+
+### The files iRacing writes, observed on nine files
+
+Nine `.ibt` files of one car and one track, from five sessions, read by the connector's own
+reader (`irsdk::scan`) and by a script that joined them to live samples. Nothing about other
+cars, tracks, online sessions or a non-default folder is observed.
+
+- **Where and what name.** The files are in the user's `Documents\iRacing\telemetry` folder
+  (documented in the SDK material, and where all nine were). The name is
+  `<CarPath>_<TrackName> <YYYY-MM-DD HH-MM-SS>.ibt`; the time is local and **equals the disk
+  sub-header's `sessionStartDate`** in all nine. It is the start of the file, not of the session:
+  one session's warmup gave files starting at 22:42:08, 22:46:12 and 22:50:47. The session text's
+  `TelemetryDiskFile` is empty in all nine, so the file is not named by the game. The connector
+  never relies on the name: it reads the headers (start date, `TrackID`, the player's `CarPath`,
+  `SubSessionID`).
+- **When a file exists.** Logging is the user's: Alt+L arms it and each entry into the car writes
+  a new file (documented); `IsDiskLoggingEnabled` and `IsDiskLoggingActive` changed together with
+  Alt+L (observed). With `irsdkAutoLogDisk=0` a test drive wrote no file. With logging off there
+  is simply no file, and the connector cannot tell "off" from "on but not armed".
+- **A session can have several files, and a file can hold part of a lap.** The warmup above gave
+  three files; the second held no full lap (lap 3 from `LapDistPct` 0.98 to 0.22) and a race file
+  starts on lap 2 at 0.14. A lap that began before its file started cannot be matched whole.
+- **One simulator session per file.** `SessionNum` and `SessionUniqueID` were constant over every
+  row of each file. Offline the ids repeat across events (`SubSessionID` 0, `SessionUniqueID` from
+  1 in each), so the wall clock also tells sessions apart: the file's start date must fall inside
+  the connector's session.
+- **A complete file** has a record count above 0 and a size of exactly
+  `bufOffset + recordCount x bufLen` (checked on all nine headers, and by hand on two:
+  8 361 772 = 78 069 + 7 663 x 1 081 and 56 336 899 = 82 740 + 52 039 x 1 081 bytes).
+  What the header holds while a file is being written is not observed.
+- **A file is last written after its last row.** One race file's last row was the finish, and its
+  modification time was about two minutes later, after the cool-down lap and leaving the car; the
+  other files' modification times were within a second of their last row. The connector therefore
+  waits until a file's size and modification time have been unchanged for 60 seconds.
+- **Variables.** 60 Hz rows (`irsdkLog360Hz=0`), 282 variables, 1 081 bytes a row, about 3.9 MB a
+  minute. `Lat` and `Lon` (doubles, degrees) and `Alt` (float, metres) are disk-only.
+  **`Lat` = `Lon` = 0 while the car is out of the world** (the first row of one file, with
+  `PlayerTrackSurface` -1, and one or two reset rows in two others): such rows are not positions,
+  and a lap that contains one keeps its recorded positions. The session text's
+  `TrackLatitude`/`TrackLongitude` is about 30 m from where the cars cross the line, so it is not
+  used as an origin.
+- **Live and disk rows are the same rows.** 741 live samples whose `(SessionNum, SessionTick)`
+  appear in four files had exactly the same `SessionTime`, `LapDistPct` and `Speed` as the file's
+  row with that pair (largest difference 0 in all three). A recorded sample is found in a file by
+  `(SessionNum, SessionTick)`, with no interpolation or time alignment. The connector keeps the
+  tick and `LapDistPct` of every sample for that, and compares `LapDistPct` as a check (within
+  1e-6).
+- **Tolerances of this connector** (not observations). The file's start date has one-second
+  resolution and the connector learns of a session a moment after the simulator started it, so a
+  file may start up to 30 seconds before the session opened (`START_SLACK_SECS`) and still
+  belong to it. A live row without `SessionTick` is recorded with tick 0, which matches no file
+  row, so such a lap is left with its recorded positions.
+
 ## Not observed yet
 
 - A race session, a safety-car period, parade laps, and the flags under caution (yellow, blue,

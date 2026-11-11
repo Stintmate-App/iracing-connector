@@ -45,6 +45,12 @@ pub fn items() -> &'static Value {
                 "text": "Incident points (1x, 2x and 4x) are counted and called, and the event's limit is warned about near the end. A penalty shows as a black flag without its type, so the call is to box.",
             },
             {
+                "id": "exact_positions",
+                "topic": "track",
+                "when": "a track map or a lap's trace looks rough, or you talk about positions on the track",
+                "text": "A lap's positions are first dead-reckoned from speed and yaw while driving, accurate to about 2 to 3 metres. After the session they are replaced by exact ones, but only for laps iRacing also logged to disk telemetry: that is the user's own setting in iRacing (Alt+L, or its option to log automatically), and the connector never changes it. Laps without a disk file keep the dead-reckoned positions. If maps look rough, tell the user about that setting.",
+            },
+            {
                 "id": "rivals_limits",
                 "topic": "strategy",
                 "when": "you compare with other drivers",

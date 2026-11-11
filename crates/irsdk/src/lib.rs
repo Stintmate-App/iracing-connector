@@ -20,6 +20,7 @@ pub mod ibt;
 pub mod live;
 pub mod row;
 pub mod sampler;
+pub mod scan;
 pub mod session;
 pub mod vars;
 pub mod view;
