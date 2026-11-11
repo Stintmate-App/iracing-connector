@@ -18,6 +18,7 @@ use iracing_core::telemetry::sample;
 use iracing_core::tick::Tick;
 use iracing_core::tracker::{State, Tracker};
 use iracing_core::vars::Vars;
+use irsdk::header::LayoutError;
 use irsdk::live::{Live, OpenError};
 use irsdk::sampler::Poll;
 use irsdk::worker::{YamlSource, YamlWorker};
@@ -458,6 +459,15 @@ impl Reader {
     }
 }
 
+/// Whether a refused live layout only means the game has not published its data yet.
+///
+/// Observed in the recorder's logs of nine game starts: the map's header reads layout version 0
+/// (372 refusals, one per second) until the game publishes it, and the next attach succeeded
+/// every time. Any other version is a real mismatch and stays a warning.
+fn still_loading(e: &OpenError) -> bool {
+    matches!(e, OpenError::Layout(LayoutError::UnsupportedVersion(0)))
+}
+
 fn pitwall_text(state: LinkState) -> &'static str {
     match state {
         LinkState::Connected => "connected",
@@ -578,6 +588,7 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
     let mut game_running = opts.sdk.is_some();
     let (mut next_attach, mut next_status) = (Instant::now(), Instant::now());
     let mut first = true;
+    let mut waiting_logged = false;
 
     while !booted.stop.is_set() {
         let now = Instant::now();
@@ -595,9 +606,18 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
                             pipe.sink.write.set_game_token(token);
                             pipe.forget_meta();
                             tracing::info!("Attached to the simulator");
+                            waiting_logged = false;
                             reader = Some(r);
                         }
                         Err(OpenError::NotRunning) => {}
+                        Err(e) if still_loading(&e) => {
+                            // The game is starting: its map exists before it publishes data.
+                            if !waiting_logged {
+                                waiting_logged = true;
+                                tracing::info!("Waiting for iRacing to publish its data");
+                            }
+                            tracing::debug!("Cannot read the simulator yet: {e}");
+                        }
                         Err(e) => tracing::warn!("Cannot read the simulator: {e}"),
                     }
                 }
@@ -705,4 +725,24 @@ pub fn run(booted: Booted, opts: &Options) -> i32 {
         control.close();
     }
     0
+}
+
+#[cfg(test)]
+mod loading_tests {
+    use super::*;
+
+    #[test]
+    fn version_zero_is_a_quiet_wait_and_other_versions_are_not() {
+        assert!(still_loading(&OpenError::Layout(
+            LayoutError::UnsupportedVersion(0)
+        )));
+        assert!(!still_loading(&OpenError::Layout(
+            LayoutError::UnsupportedVersion(1)
+        )));
+        assert!(!still_loading(&OpenError::Layout(
+            LayoutError::UnsupportedVersion(3)
+        )));
+        assert!(!still_loading(&OpenError::Os(5)));
+        assert!(!still_loading(&OpenError::NotRunning));
+    }
 }
