@@ -9,7 +9,7 @@ License 2.0 ([LICENSE](LICENSE)).
 
 ## Status
 
-Version 0.1.10. What works, tested against synthetic sessions replayed into a test memory
+Version 0.1.11. What works, tested against synthetic sessions replayed into a test memory
 mapping and against recorded offline sessions:
 
 - `irsdk` reads the simulator's shared memory (header, variables, rows, the session text) and

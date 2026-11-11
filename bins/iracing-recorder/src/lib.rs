@@ -8,6 +8,7 @@
 pub mod announce;
 pub mod cli;
 pub mod live;
+pub mod positions;
 pub mod recorder;
 pub mod serve;
 pub mod sink;

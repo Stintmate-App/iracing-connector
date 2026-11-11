@@ -25,8 +25,9 @@ control app by hand.
   cars' laps (see below). Each lap
   carries `x` and `z`, the car's position in metres (east and north, origin at the
   start/finish line) by dead reckoning; Pitwall draws the track outline and the track maps
-  from them. The position is approximate: within about 3 m on the laps checked (see
-  [FINDINGS.md](FINDINGS.md#position-by-dead-reckoning)).
+  from them. The position is approximate while driving: within about 3 m on the laps checked
+  (see [FINDINGS.md](FINDINGS.md#position-by-dead-reckoning)); exact positions replace it after
+  the session for the laps iRacing logged to disk (see "Exact positions from disk telemetry").
 - It stops when the control app sets its stop event, and exits 0.
 
 ### What Pitwall can ask of it
@@ -60,6 +61,30 @@ an older one refuses them and the connector drops them.
 While a session is open it announces flags, cautions, penalties, the finish, other cars'
 retirements, incidents and the spotter's calls through `pitwall.announce`. At most 10 messages in
 any 60 seconds go out, and 120 of the spotter's; one over its limit is dropped, not delayed.
+
+## Exact positions from disk telemetry
+
+While you drive, each lap's `x` and `z` are dead-reckoned from speed and yaw, accurate to about
+2 to 3 metres. iRacing can also log its own telemetry to disk (`.ibt` files in
+`Documents\iRacing\telemetry`), which holds the car's latitude and longitude. When it did, the
+connector replaces the lap's positions with exact ones after the session, so track maps and
+traces get smoother.
+
+- **What it needs.** Disk telemetry is your setting in iRacing: Alt+L starts logging (each time
+  you get into the car a new file starts), or its option to log automatically. The connector never
+  changes that setting. Laps that iRacing did not log, including the part of a lap before a file
+  started, keep their dead-reckoned positions. With logging off there is nothing to do.
+- **What it needs from Pitwall.** A Pitwall that implements `lap_positions`; an older one refuses
+  the message and the connector drops the write.
+- **When it runs.** After a session has ended and while no session is open, on a low-priority
+  thread of the recorder that wakes every 30 seconds. It waits until the files of the session are
+  complete and have not changed for a minute, and stops at once if you get back into a car. It
+  never runs while you drive.
+- **What it does to your files.** It only reads: it never writes, moves or deletes anything in
+  the iRacing folder.
+- **What it logs.** One line per session in `recorder.log`, for example
+  `Exact positions from disk telemetry: 12 of 14 laps of session <key> (2 left with their recorded positions)`;
+  the reason for each lap that was left is in the log at debug level.
 
 ## Options
 
@@ -109,6 +134,9 @@ Everything the connector writes is under `<workspace>\connectors\iracing\`:
 
 - `recorder.log` and `ui.log`: the logs of the recorder and the control app; the Logs page of
   the window shows them.
+- `positions`: one small file per session with the address of every recorded sample (about 8
+  bytes a sample), kept until the session's exact positions are found and for at most 7 days
+  (see below).
 - `ui_config.json`: the options of the control app (the recorder rate and
   starting minimized). Starting with Windows is a value in the current user's `Run` registry key.
 

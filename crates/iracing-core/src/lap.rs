@@ -147,6 +147,20 @@ pub struct LapBuffer {
     end_cross: Option<f64>,
 }
 
+/// Where the samples of a lap can be found again in the simulator's disk telemetry: the
+/// `SessionTick` and `LapDistPct` of every row, and the session time of the lap's line crossings.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LapAddress {
+    /// The `SessionTick` of every row.
+    pub ticks: Vec<i32>,
+    /// The `LapDistPct` of every row.
+    pub pct: Vec<f32>,
+    /// The session time at which the lap started at the line on the track, when it did.
+    pub start_crossing: Option<f64>,
+    /// The session time at which the lap ended at the line on the track, when it did.
+    pub end_crossing: Option<f64>,
+}
+
 impl LapBuffer {
     /// A buffer with [`RESERVE_ROWS`] rows reserved in each column.
     pub fn new() -> LapBuffer {
@@ -232,6 +246,17 @@ impl LapBuffer {
         let c = &mut self.cols;
         if !finish(&mut c.x, &mut c.z, start, end, self.length_m, path_total) {
             self.present.position = false;
+        }
+    }
+
+    /// Takes the lap's address (see [`LapAddress`]) out of the buffer, which is consumed anyway:
+    /// nothing is copied or allocated.
+    pub fn take_address(&mut self) -> LapAddress {
+        LapAddress {
+            ticks: std::mem::take(&mut self.ticks),
+            pct: std::mem::take(&mut self.pct),
+            start_crossing: self.start_cross,
+            end_crossing: self.end_cross,
         }
     }
 

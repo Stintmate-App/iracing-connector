@@ -4,6 +4,8 @@
 //! `WriteSink` own the lap's channel columns and the setup snapshot.
 
 use std::borrow::Cow;
+use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use iracing_core::catalog::{cars_only, session_catalog};
@@ -12,11 +14,14 @@ use iracing_core::io::{
 };
 use iracing_core::lap::{Columns, Present};
 use iracing_core::meta::SessionMeta;
+use iracing_core::positions::file::{LapRecord, PositionsHeader, encode_closed, encode_lap};
 use iracing_core::resume::{IrClock, identity_of};
 use iracing_core::sim_data::STALL_TYRES;
 use serde_json::{Map, Value, json};
 use stintmate_connector_link::sink::{SessionOpen, WriteSink};
 use stintmate_connector_wire::messages as wire;
+
+use crate::positions;
 
 /// Receives the session clock before a session may open (for resuming it after a restart).
 pub trait NoteClock {
@@ -28,12 +33,66 @@ pub trait NoteClock {
 pub struct TrackerSink {
     /// The runtime's sink (status, resume and closing go through it).
     pub write: WriteSink<IrClock>,
+    /// The positions file of each open session, by local session number.
+    positions: HashMap<u64, PathBuf>,
+    /// The folder of the positions files, next to the outbox.
+    positions_dir: PathBuf,
+    /// Set while the session may be resumed by the next recorder: its end is not written to the
+    /// positions file then, because the session goes on.
+    pub keep_positions_open: bool,
 }
 
 impl TrackerSink {
     /// Wraps the runtime's sink.
     pub fn new(write: WriteSink<IrClock>) -> TrackerSink {
-        TrackerSink { write }
+        let positions_dir = positions::dir_of(&write.outbox_dir());
+        TrackerSink {
+            write,
+            positions: HashMap::new(),
+            positions_dir,
+            keep_positions_open: false,
+        }
+    }
+
+    /// Opens the positions file of the session just started, when the session names its track and
+    /// car (the disk files are matched by them).
+    fn open_positions(&mut self, local: u64, info: &SessionOpenInfo) {
+        let Some(session_key) = self.write.session_key(Some(local)) else {
+            return;
+        };
+        let meta = &info.meta;
+        let track_id = meta.track.layout_id.parse::<i64>().ok().filter(|t| *t > 0);
+        let car_path = meta
+            .player
+            .as_ref()
+            .map(|p| p.car_id.clone())
+            .filter(|c| !c.is_empty());
+        let (Some(track_id), Some(car_path)) = (track_id, car_path) else {
+            return;
+        };
+        let header = PositionsHeader {
+            session_key,
+            session_num: info.key.session_num,
+            session_unique_id: info.key.unique_id,
+            sub_session_id: meta.sub_session_id,
+            track_id,
+            car_path,
+            opened_unix: positions::unix_now(),
+        };
+        if let Some(path) = positions::open_file(&self.positions_dir, &header) {
+            self.positions.insert(local, path);
+        }
+    }
+}
+
+/// The `lap_positions` message of a lap's exact positions.
+pub fn positions_message(p: iracing_core::positions::job::LapPositions) -> wire::LapPositions {
+    wire::LapPositions {
+        channels: wire::LapChannels(vec![
+            (Cow::Borrowed("x"), p.x),
+            (Cow::Borrowed("z"), p.z),
+            (Cow::Borrowed("y"), p.y),
+        ]),
     }
 }
 
@@ -217,19 +276,49 @@ fn participant(p: ParticipantLap) -> wire::ParticipantLap {
 impl CoreSink for TrackerSink {
     fn start_session(&mut self, info: &SessionOpenInfo) -> u64 {
         let identity = identity_of(&info.meta, info.key.unique_id, info.key.session_num);
-        self.write.start_session(SessionOpen {
+        let local = self.write.start_session(SessionOpen {
             identity,
             catalog: Some(session_catalog(&info.meta)),
             start: session_start(info),
-        })
+        });
+        self.open_positions(local, info);
+        local
     }
 
     fn end_session(&mut self, local: u64, ended_at: &str) {
+        if let Some(path) = self.positions.remove(&local)
+            && !self.keep_positions_open
+        {
+            positions::append(&path, &encode_closed(positions::unix_now()));
+        }
         self.write.end_session(local, ended_at);
     }
 
-    fn lap(&mut self, local: u64, lap: FinishedLap) {
-        self.write.lap(local, Box::new(move || lap_message(lap)));
+    fn lap(&mut self, local: u64, mut lap: FinishedLap) {
+        let Some(path) = self.positions.get(&local).cloned() else {
+            self.write.lap(local, Box::new(move || lap_message(lap)));
+            return;
+        };
+        // The address of the lap's samples moves out of the buffer here; the writer thread
+        // appends it to the positions file once the lap is stored, with the lap's number.
+        let address = lap.buffer.take_address();
+        self.write.lap_with_address(
+            local,
+            Box::new(move || lap_message(lap)),
+            Box::new(move |_key, lap_seq| {
+                if address.ticks.is_empty() {
+                    return;
+                }
+                let record = LapRecord {
+                    lap_seq,
+                    start_crossing: address.start_crossing,
+                    end_crossing: address.end_crossing,
+                    ticks: address.ticks,
+                    pct: address.pct,
+                };
+                positions::append(&path, &encode_lap(&record));
+            }),
+        );
     }
 
     fn setup(
