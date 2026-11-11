@@ -302,6 +302,12 @@ pub struct Tracker {
     tyres_sent: Option<TyreBits>,
     /// The next driving row sets the baseline of `tyres_sent`.
     tyres_baseline: bool,
+    /// The driver just got into the car from the garage: this row's readings are sent as a
+    /// `car_entry` whether or not they changed.
+    tyres_entry: bool,
+    /// The previous row was that entry row: a stall row right after it is the car appearing in
+    /// its stall, not a reset to the pits.
+    entry_row: bool,
     /// Sets waiting for the pending lap, oldest first; a fixed array, nothing allocates for it.
     held_tyres: [Option<HeldTyres>; HELD_TYRES_MAX],
     laps_recorded: u32,
@@ -346,6 +352,8 @@ impl Tracker {
             stall_tyres: None,
             tyres_sent: None,
             tyres_baseline: true,
+            tyres_entry: false,
+            entry_row: false,
             held_tyres: [const { None }; HELD_TYRES_MAX],
             laps_recorded: 0,
             best_s: None,
@@ -557,6 +565,8 @@ impl Tracker {
         self.stall_tyres = None;
         self.tyres_sent = None;
         self.tyres_baseline = true;
+        self.tyres_entry = false;
+        self.entry_row = false;
         self.held_tyres = [const { None }; HELD_TYRES_MAX];
         self.laps_recorded = 0;
         self.best_s = None;
@@ -639,10 +649,17 @@ impl Tracker {
         if matches!(before, State::Off | State::Idle | State::Garage) {
             self.drive_since = now;
         }
+        let after_entry = std::mem::take(&mut self.entry_row);
 
         if !self.lap.active {
             if tow {
                 return;
+            }
+            if before == State::Garage {
+                // Getting into the car from the garage: the readings go out on this row, and
+                // the stall row that follows is not a reset.
+                self.tyres_entry = true;
+                self.entry_row = true;
             }
             let kind = if stall {
                 StartKind::PitStall
@@ -676,14 +693,19 @@ impl Tracker {
                 return;
             } else if t.on_pit_road && !p.on_pit_road && stall && !p.in_stall {
                 // A reset to the pits: the car reappears in the stall. The lap it ends is a
-                // return to the pits, so `in`.
+                // return to the pits, so `in`. Right after getting into the car the same
+                // sequence is the car appearing in its stall: nothing was driving, so no reset.
                 self.validity
                     .mark_tow(t.lap_dist, (now - self.lap.started_at_s) as f32);
-                self.end_partial(now, true, false, sink);
+                self.end_partial(now, !after_entry, false, sink);
                 self.start_lap(t, StartKind::PitStall, now);
                 self.visit = PitVisit {
                     was_in_stall: true,
-                    occasion: StallOccasion::Reset,
+                    occasion: if after_entry {
+                        StallOccasion::CarEntry
+                    } else {
+                        StallOccasion::Reset
+                    },
                 };
                 reset_now = true;
             } else {
@@ -1028,7 +1050,11 @@ impl Tracker {
             return;
         };
         let stall = in_stall(t);
-        let bits = if self.tyres_baseline {
+        let entry = std::mem::take(&mut self.tyres_entry);
+        let bits = if entry {
+            self.tyres_baseline = false;
+            tyre_bits(&temp, &wear)
+        } else if self.tyres_baseline {
             self.tyres_baseline = false;
             let bits = tyre_bits(&temp, &wear);
             if !stall {
@@ -1041,7 +1067,7 @@ impl Tracker {
         } else {
             return;
         };
-        if self.tyres_sent == Some(bits) {
+        if !entry && self.tyres_sent == Some(bits) {
             return;
         }
         self.tyres_sent = Some(bits);
@@ -1634,6 +1660,164 @@ mod tests {
             t.speed = if stall { 0.0 } else { 20.0 };
             t.tyre_temp = Some(temp);
             t.tyre_wear = Some([[1.0f32; 3]; 4]);
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+        }
+        assert!(sink.calls("stall_tyres").is_empty());
+    }
+
+    /// A row of the live probe `probe-20261111T180035Z` (60 Hz, offline Test Drive): the
+    /// readings of `LFtempCM` and `LFwearM` on all wheels, the flags as recorded.
+    fn probe_row(time: f64, state: &str, pct: f32, temp: f32, wear: f32) -> Box<Tick> {
+        let mut t = driving(time, pct);
+        t.lap = 1;
+        t.lap_completed = 0;
+        t.speed = 0.0;
+        t.tyre_temp = Some([[temp; 3]; 4]);
+        t.tyre_wear = Some([[wear; 3]; 4]);
+        match state {
+            // Out of the car in the garage (SessionTime 107.7 to 178.68).
+            "garage" => {
+                t.is_on_track = false;
+                t.is_on_track_car = false;
+                t.on_pit_road = false;
+                t.in_pit_stall = Some(false);
+                t.track_loc = -1;
+                t.lap = 0;
+            }
+            // The entry row (178.6833) and the row out of the world of a reset (334.95,
+            // 369.3166): on track, off the pit road, out of the stall, surface -1, lap 0.
+            "world" => {
+                t.on_pit_road = false;
+                t.in_pit_stall = Some(false);
+                t.track_loc = -1;
+                t.lap = 0;
+            }
+            // The stall row 17 ms later (178.7, 334.9833, 369.3333).
+            "stall" => {
+                t.on_pit_road = true;
+                t.in_pit_stall = Some(true);
+                t.track_loc = 1;
+            }
+            // Driving on the track.
+            _ => {
+                t.on_pit_road = false;
+                t.in_pit_stall = Some(false);
+                t.track_loc = 3;
+                t.speed = 5.0;
+            }
+        }
+        t
+    }
+
+    fn occasions(sink: &RecordingSink) -> Vec<(String, f64)> {
+        sink.calls("stall_tyres")
+            .iter()
+            .map(|c| {
+                (
+                    c["occasion"].as_str().expect("occasion").to_owned(),
+                    c["temp_c"][0][0].as_f64().expect("temp"),
+                )
+            })
+            .collect()
+    }
+
+    /// The car entry, the two resets and leaving the car, from the rows of
+    /// `probe-20261111T180035Z`, then a second entry with the readings unchanged.
+    #[test]
+    fn tracker_car_entry_is_sent_every_time_and_resets_stay_resets() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let mut step = |t: Box<Tick>, sink: &mut RecordingSink| {
+            tracker.step(&t, Some(&meta), sink, &clock);
+        };
+        let mut time = 107.7;
+        // Out of the car, then the entry (178.6833) and its stall row (178.7).
+        while time < 178.66 {
+            time += 1.0 / 60.0;
+            step(probe_row(time, "garage", 0.0, 42.052, 1.0), &mut sink);
+        }
+        step(probe_row(178.683, "world", 0.0, 42.052, 1.0), &mut sink);
+        assert_eq!(occasions(&sink), [("car_entry".to_owned(), 42.052)]);
+        step(probe_row(178.700, "stall", 0.0313, 42.052, 1.0), &mut sink);
+        assert_eq!(occasions(&sink).len(), 1, "the stall row sends nothing");
+        // Leaves the stall and drives (204.8 to 334.93).
+        let mut pct = 0.0313;
+        time = 178.7;
+        while time < 204.8 {
+            time += 1.0 / 60.0;
+            step(probe_row(time, "stall", 0.0313, 42.052, 1.0), &mut sink);
+        }
+        while time < 334.93 {
+            time += 1.0 / 60.0;
+            pct += 0.00002;
+            step(probe_row(time, "track", pct, 42.052, 1.0), &mut sink);
+        }
+        // Reset from the track (334.95, stall row 334.9833): `reset`.
+        step(probe_row(334.95, "world", 0.0, 57.04, 0.996), &mut sink);
+        step(probe_row(334.983, "stall", 0.0313, 57.04, 0.996), &mut sink);
+        // Out lap, then a reset during it (369.3166, 369.3333): `reset`.
+        pct = 0.0313;
+        time = 334.99;
+        while time < 351.18 {
+            time += 1.0 / 60.0;
+            step(probe_row(time, "stall", 0.0313, 57.04, 0.996), &mut sink);
+        }
+        while time < 369.30 {
+            time += 1.0 / 60.0;
+            pct += 0.00002;
+            step(probe_row(time, "track", pct, 57.04, 0.996), &mut sink);
+        }
+        step(probe_row(369.317, "world", 0.0, 43.08, 0.9998), &mut sink);
+        step(
+            probe_row(369.333, "stall", 0.0313, 43.08, 0.9998),
+            &mut sink,
+        );
+        // Out of the car to the menu (385.5333): no new readings, nothing written.
+        time = 369.34;
+        while time < 385.52 {
+            time += 1.0 / 60.0;
+            step(probe_row(time, "stall", 0.0313, 43.08, 0.9998), &mut sink);
+        }
+        while time < 399.98 {
+            time += 1.0 / 60.0;
+            let mut t = probe_row(time, "stall", 0.0313, 43.08, 0.9998);
+            t.is_on_track = false;
+            step(t, &mut sink);
+        }
+        let seen = occasions(&sink);
+        assert_eq!(
+            seen,
+            [
+                ("car_entry".to_owned(), 42.052),
+                ("reset".to_owned(), 57.04),
+                ("reset".to_owned(), 43.08),
+            ]
+        );
+        // A second entry in the same session, readings equal to the last ones.
+        step(probe_row(400.0, "world", 0.0, 43.08, 0.9998), &mut sink);
+        step(
+            probe_row(400.017, "stall", 0.0313, 43.08, 0.9998),
+            &mut sink,
+        );
+        let seen = occasions(&sink);
+        assert_eq!(seen.len(), 4);
+        assert_eq!(seen[3], ("car_entry".to_owned(), 43.08));
+    }
+
+    /// A recorder that starts while the car is already driving takes its first row as the
+    /// baseline and records nothing for it.
+    #[test]
+    fn tracker_a_recorder_started_on_track_sends_no_car_entry() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        for i in 0..120 {
+            let t = probe_row(
+                100.0 + f64::from(i) / 60.0,
+                "track",
+                0.3 + 0.0002 * i as f32,
+                42.052,
+                1.0,
+            );
             tracker.step(&t, Some(&meta), &mut sink, &clock);
         }
         assert!(sink.calls("stall_tyres").is_empty());
