@@ -146,6 +146,18 @@ fn a_wheel_with_every_value_dropped_is_left_out() {
 }
 
 #[test]
+fn a_car_entry_carries_only_its_occasion() {
+    let v = data(&tyres(StallOccasion::CarEntry));
+    assert_eq!(validate(&v), Ok(()), "{v}");
+    assert_eq!(v, serde_json::json!({"occasion": "car_entry"}));
+    // Even with no reading in range it is still written: the entry itself is the record.
+    let mut t = tyres(StallOccasion::CarEntry);
+    t.temp_c = [[900.0; 3]; 4];
+    t.wear = [[f32::NAN; 3]; 4];
+    assert!(stall_tyres_data(&t).is_some());
+}
+
+#[test]
 fn no_message_when_no_wheel_is_left() {
     let mut t = tyres(StallOccasion::PitStop);
     t.temp_c = [[900.0; 3]; 4];

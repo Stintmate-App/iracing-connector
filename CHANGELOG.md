@@ -2,6 +2,11 @@
 
 All notable changes to this project are written here.
 
+## 0.1.14 (2026-11-11)
+
+- **A car entry is a stint marker, with no tyre values.** A 60 Hz live recording of one offline session (a full lap, then two resets during the out lap) shows that iRacing's tyre readings describe the set that came into the pits, as it was just before it was changed: the tread remaining went up from one reset to the next (0.9957, 0.9973, 0.9977 on the right rear), so a new set was fitted each time, and the car left on it. The readings shown when you get into the car only repeat the last set that came in (or the defaults, about 42 °C and tread 1.0, before any). A `stall_tyres` record with occasion `car_entry` is still written at every entry, but now carries only `occasion`, no `wheels`. `pit_stop` and `reset` records are unchanged.
+- The kind's description that the connector sends to Pitwall (`sim_data_kinds`) now says that the readings are of the set that came in and describe the stint that just ended, and that `car_entry` carries no wheels. `docs/FINDINGS.md` and `docs/usage.md` say the same.
+
 ## 0.1.13 (2026-11-11)
 
 - **Getting into the car is recorded every time.** The tyre readings written when you get into the car from the garage or the menu (`stall_tyres`, occasion `car_entry`) were missing: the first row after the entry is not yet in the pit stall, so the connector took its readings as a starting point and the stall row 17 ms later compared equal. Now the entry row writes a `car_entry` record every time, even when the readings equal the last ones, in the first entry of a session and in the later ones. The stall row that follows an entry is no longer read as a reset to the pits, so it does not end a lap as a return to the pits either. A reset to the pits (from the track) is still `reset`, and a recorder that starts while the car is already driving still writes nothing for that first row.

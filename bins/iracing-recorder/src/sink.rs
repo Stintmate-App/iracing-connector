@@ -10,7 +10,8 @@ use std::sync::Arc;
 
 use iracing_core::catalog::{cars_only, session_catalog};
 use iracing_core::io::{
-    FinishedLap, ParticipantLap, SessionOpenInfo, SetupReason, Sink as CoreSink, StallTyres,
+    FinishedLap, ParticipantLap, SessionOpenInfo, SetupReason, Sink as CoreSink, StallOccasion,
+    StallTyres,
 };
 use iracing_core::lap::{Columns, Present};
 use iracing_core::meta::SessionMeta;
@@ -182,7 +183,16 @@ fn reading(value: f32, places: i32, min: f64, max: f64) -> Option<f64> {
 /// readings are the tyre's own, so on a left wheel left is the car's outside; `in` is the edge
 /// towards the car's centreline. iRacing gives no surface temperature or hot pressure at a stop.
 /// Fields are described by [`iracing_core::sim_data::kinds`]. None when no wheel has a value.
+///
+/// A `car_entry` carries only its occasion: the simulator's readings at an entry repeat the last
+/// set that came into the pits (or its defaults), not the tyres on the car, so it marks the start
+/// of a stint and nothing more.
 pub fn stall_tyres_data(t: &StallTyres) -> Option<Map<String, Value>> {
+    if t.occasion == StallOccasion::CarEntry {
+        let mut data = Map::new();
+        data.insert("occasion".to_owned(), json!(t.occasion.as_str()));
+        return Some(data);
+    }
     let wheel = |i: usize| {
         let [l, m, r] = t.temp_c[i];
         let [wl, wm, wr] = t.wear[i];

@@ -20,14 +20,14 @@ pub fn kinds() -> Vec<SimDataKind> {
     fields.insert(
         "occasion".to_owned(),
         field(
-            "Why the car was in the pits: pit_stop (it drove into its pit box), reset (the simulator put it back in the pits) or car_entry (you got into the car, every time, even when the values did not change).",
+            "Why the record was written: pit_stop (the car drove into its pit box), reset (the simulator put it back in the pits) or car_entry (you got into the car: written at every entry, it marks the start of a stint and carries no wheels).",
             None,
         ),
     );
     fields.insert(
         "wheels".to_owned(),
         field(
-            "One object per wheel: fl, fr, rl, rr (front left, front right, rear left, rear right); a wheel with no value in range is left out.",
+            "One object per wheel: fl, fr, rl, rr (front left, front right, rear left, rear right); a wheel with no value in range is left out. Not in a car_entry record.",
             None,
         ),
     );
@@ -65,7 +65,7 @@ pub fn kinds() -> Vec<SimDataKind> {
     }
     vec![SimDataKind {
         kind: STALL_TYRES.to_owned(),
-        description: "Tyre temperatures and tread remaining iRacing gives only in the pits: a pit stop, a reset to the pits or getting into the car. One record per new set: sent when the values differ from the last set sent in the session, so an entry with unchanged values sends none. Not live, and not reset by a tyre change.".to_owned(),
+        description: "Tyre temperatures and tread remaining iRacing gives only when the car comes into the pits (a pit stop or a reset). They are of the set that came in, just before it was changed: they describe the stint that ended, and the car leaves on new tyres. pit_stop and reset records are sent when the values differ from the last set sent. A car_entry record is written at every entry into the car, with no wheels: the start of a stint. Not live.".to_owned(),
         topic: Some("tyres".to_owned()),
         fields,
     }]
