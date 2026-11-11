@@ -26,6 +26,7 @@ const SCALARS: &[(&str, VarType, &str)] = &[
     ("SessionTime", Double, "s"),
     ("SessionNum", Int, ""),
     ("SessionUniqueID", Int, ""),
+    ("SessionTick", Int, ""),
     ("SessionState", Int, "irsdk_SessionState"),
     ("SessionFlags", BitField, "irsdk_Flags"),
     ("SessionTimeRemain", Double, "s"),
