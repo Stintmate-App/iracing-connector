@@ -447,6 +447,15 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
   second per second (141.6 s in one offline race). The pit stop service starts on the row it
   reaches 0 (`PitstopActive` 1, the repair flag in `SessionFlags` cleared, `PitSvFlags` clearing
   step by step, `PlayerFastRepairsUsed` 0 to 1 on the next row).
+- **observed** (offline MX-5, 60 Hz): the `REPAIR` bit of `SessionFlags` (0x00100000) is set a few
+  seconds after a hit (10 s in a test drive; 5 s after the last incident point in a race) and cleared
+  when the repair is done (in a test drive at the reset in the stall; in the race on the row after
+  `PitstopActive` went 1 with a fast repair). It was seen in the global `SessionFlags` word; the
+  per-car `CarIdxSessionFlags` was not recorded. `PlayerCarTowTime` is 0 normally, jumps to 141.6 s at
+  a tow (150.0 s at a second one) and counts down in the stall. `FastRepairAvailable` is 255
+  (unlimited) from the start of the offline race and 0 in a test drive; `PlayerFastRepairsUsed` (and
+  `FastRepairUsed`) goes from 0 to 1 at the fast repair. `PitRepairLeft` and `PitOptRepairLeft` stayed
+  0 throughout, so nothing reads them.
 
 ## Tyres
 

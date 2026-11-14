@@ -21,7 +21,7 @@ control app by hand.
   "Waiting for iRacing", "iRacing is running: not in a car", "In the garage", "Recording" or
   "Replay: not recording". `live` is true while a session is open and `telemetry` while Pitwall
   is subscribed to the sample stream.
-- It records sessions, laps, setups, pit exits, the tyre readings taken at stops (simulator data, kind `stall_tyres`) and the other
+- It records sessions, laps, setups, pit exits, the tyre readings taken at stops (simulator data, kind `stall_tyres`), the tow and fast-repair state (simulator data, kind `repair`) and the other
   cars' laps (see below). Each lap
   carries `x` and `z`, the car's position in metres (east and north, origin at the
   start/finish line) by dead reckoning; Pitwall draws the track outline and the track maps
@@ -47,6 +47,8 @@ its guidance for the engineer (at most 16 items) and the two actions. The featur
 are `window`, `notices`, `translated_texts`, `remembered_services` and `options` (the five the
 control app provides), then `setups`, `fuel`, `sectors`, `conditions`, `rivals`, `live_frame`,
 `lap_status`, `capture_target`, `brake_cues`, `guidance`, `actions`, `announcements`, `spotter` and `sim_data`.
+
+The live frame's `car.repair_needed` is true while the simulator's own repair flag (`REPAIR` in the session flags) is set, and false when it is not; it is left out outside a session. Simulator data of the kind `repair` has one record when a tow starts (`tow_time_s`, `fast_repairs_available`, `fast_repairs_used`) and one when the count of fast repairs used changes (`fast_repairs_available`, `fast_repairs_used`); the first row of a session is only the baseline.
 
 Simulator data: the tyre temperatures and tread remaining iRacing gives only when the car comes into the
 pits (a pit stop, a reset to the pits) are sent as `sim_data` records of the kind `stall_tyres`, one per new

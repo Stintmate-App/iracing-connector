@@ -32,8 +32,8 @@ use irsdk::defs::session_flags;
 
 use crate::codes::{self, SessionKind};
 use crate::io::{
-    Clock, Conditions, FinishedLap, LapType, SessionKey, SessionOpenInfo, SetupReason, Sink,
-    StallOccasion, StallTyres, TimeSource,
+    Clock, Conditions, FinishedLap, LapType, RepairEvent, SessionKey, SessionOpenInfo, SetupReason,
+    Sink, StallOccasion, StallTyres, TimeSource,
 };
 use crate::lap::{LapBuffer, LapPoint};
 use crate::meta::SessionMeta;
@@ -298,6 +298,10 @@ pub struct Tracker {
     last_fuel: f32,
     conditions: Conditions,
     stall_tyres: Option<StallTyres>,
+    /// The tow time of the previous row of the open session (the baseline of a tow starting).
+    repair_tow: Option<f32>,
+    /// Fast repairs used on the previous row of the open session.
+    repair_used: Option<i32>,
     /// The readings last sent in this session (or the first driving row's, not sent).
     tyres_sent: Option<TyreBits>,
     /// The next driving row sets the baseline of `tyres_sent`.
@@ -351,6 +355,8 @@ impl Tracker {
             last_seen_last: -1.0,
             last_fuel: 0.0,
             conditions: Conditions::default(),
+            repair_tow: None,
+            repair_used: None,
             stall_tyres: None,
             tyres_sent: None,
             tyres_baseline: true,
@@ -506,6 +512,7 @@ impl Tracker {
         } else {
             State::Track
         };
+        self.repair(t, sink, clock);
         let rise = self.incidents.step(t);
         self.poll_pending(t, sink);
 
@@ -565,6 +572,8 @@ impl Tracker {
         self.pending = None;
         self.finished = false;
         self.late = None;
+        self.repair_tow = None;
+        self.repair_used = None;
         self.stall_tyres = None;
         self.tyres_sent = None;
         self.tyres_baseline = true;
@@ -1102,6 +1111,38 @@ impl Tracker {
         } else if let Some(local) = self.open.as_ref().map(|o| o.local) {
             sink.stall_tyres(local, &at, &tyres);
         }
+    }
+
+    /// Writes a `repair` record when a tow starts (the tow time rises from 0) and when the count
+    /// of fast repairs used changes; the first row of a session only sets the baseline.
+    fn repair(&mut self, t: &Tick, sink: &mut dyn Sink, clock: &dyn Clock) {
+        let towed = match (self.repair_tow, t.tow_time) {
+            (Some(p), Some(n)) => p <= 0.0 && n > 0.0,
+            _ => false,
+        };
+        let used = match (self.repair_used, t.fast_repairs_used) {
+            (Some(p), Some(n)) => p != n,
+            _ => false,
+        };
+        if t.tow_time.is_some() {
+            self.repair_tow = t.tow_time;
+        }
+        if t.fast_repairs_used.is_some() {
+            self.repair_used = t.fast_repairs_used;
+        }
+        if !(towed || used) {
+            return;
+        }
+        let Some(local) = self.open.as_ref().map(|o| o.local) else {
+            return;
+        };
+        let event = RepairEvent {
+            at_s: t.session_time,
+            tow_time_s: if towed { t.tow_time } else { None },
+            fast_repairs_available: t.fast_repairs_available,
+            fast_repairs_used: t.fast_repairs_used,
+        };
+        sink.repair(local, &clock.iso(), &event);
     }
 
     /// Sends readings that waited for a lap.
@@ -2137,5 +2178,61 @@ mod tests {
         );
         assert_eq!(tracker.session_local(), None);
         assert!(!sink.kinds().contains(&"end_session"));
+    }
+
+    /// A tow starts when the tow time rises from 0 (141.6 s in the recording); the countdown
+    /// in the stall writes no more.
+    #[test]
+    fn tracker_a_tow_writes_one_repair_record() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let mut time = 100.0;
+        let mut step = |mut t: Box<Tick>, tow: f32, sink: &mut RecordingSink| {
+            t.tow_time = Some(tow);
+            t.fast_repairs_available = Some(255);
+            t.fast_repairs_used = Some(0);
+            tracker.step(&t, Some(&meta), sink, &clock);
+        };
+        for _ in 0..120 {
+            time += 1.0 / 60.0;
+            step(probe_row(time, "track", 0.3, 42.052, 1.0), 0.0, &mut sink);
+        }
+        assert!(
+            sink.calls("repair").is_empty(),
+            "the first row is a baseline"
+        );
+        let mut tow = 141.6f32;
+        for i in 0..240 {
+            time += 1.0 / 60.0;
+            let state = if i < 60 { "track" } else { "stall" };
+            step(probe_row(time, state, 0.3, 42.052, 1.0), tow, &mut sink);
+            tow = (tow - 1.0 / 60.0).max(0.1);
+        }
+        let calls = sink.calls("repair");
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0]["tow_time_s"], 141.6);
+        assert_eq!(calls[0]["fast_repairs_available"], 255);
+        assert_eq!(calls[0]["fast_repairs_used"], 0);
+    }
+
+    /// The count of fast repairs used goes from 0 to 1 (18:06:05.3 in the recording): one
+    /// record, with no tow time. A first row with a count already above 0 writes none.
+    #[test]
+    fn tracker_a_fast_repair_writes_one_repair_record() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let mut time = 100.0;
+        for i in 0..240 {
+            time += 1.0 / 60.0;
+            let mut t = probe_row(time, "stall", 0.3, 42.052, 1.0);
+            t.tow_time = Some(0.0);
+            t.fast_repairs_available = Some(255);
+            t.fast_repairs_used = Some(if i < 120 { 0 } else { 1 });
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+        }
+        let calls = sink.calls("repair");
+        assert_eq!(calls.len(), 1);
+        assert!(calls[0]["tow_time_s"].is_null());
+        assert_eq!(calls[0]["fast_repairs_used"], 1);
     }
 }
