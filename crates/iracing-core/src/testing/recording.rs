@@ -262,6 +262,10 @@ impl Sink for RecordingSink {
             "at": at,
             "at_s": r3(event.at_s),
             "tow_time_s": event.tow_time_s.map(|v| r3(f64::from(v))),
+            "mandatory_repair_needed": event.mandatory_repair_needed,
+            "optional_repair_needed": event.optional_repair_needed,
+            "repair_left_s": event.repair_left_s.map(|v| r3(f64::from(v))),
+            "optional_repair_left_s": event.optional_repair_left_s.map(|v| r3(f64::from(v))),
             "fast_repairs_available": event.fast_repairs_available,
             "fast_repairs_used": event.fast_repairs_used,
         }));

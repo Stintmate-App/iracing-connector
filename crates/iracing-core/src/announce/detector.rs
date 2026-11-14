@@ -24,6 +24,7 @@ use std::borrow::Cow;
 
 use irsdk::defs::session_flags as flag;
 
+use super::countdown::{Schedule, Step};
 use super::{Call, Calls, Gate, GateState};
 use crate::codes::SessionKind;
 use crate::meta::SessionMeta;
@@ -210,6 +211,16 @@ pub struct Detector {
     check_armed: bool,
     // Session time at which the chequered call is made, once the player crossed.
     check_at: Option<f64>,
+    // the pit countdowns: the tow, and the mandatory and optional repairs
+    tow_count: Schedule,
+    repair_count: Schedule,
+    opt_repair_count: Schedule,
+    repair_done_said: bool,
+    // the pit service
+    service_done_said: bool,
+    cant_fix_said: bool,
+    prev_service: bool,
+    prev_sv_status: i32,
     // the incident count
     incidents: IncidentTracker,
     // once per session
@@ -273,6 +284,14 @@ impl Detector {
             white_armed: false,
             check_armed: false,
             check_at: None,
+            tow_count: Schedule::new(),
+            repair_count: Schedule::new(),
+            opt_repair_count: Schedule::new(),
+            repair_done_said: false,
+            service_done_said: false,
+            cant_fix_said: false,
+            prev_service: false,
+            prev_sv_status: 0,
             incidents: IncidentTracker::new(),
             once: [false; ONCE],
             ident_session: i32::MIN,
@@ -343,6 +362,14 @@ impl Detector {
         self.white_armed = false;
         self.check_armed = false;
         self.check_at = None;
+        self.tow_count.reset();
+        self.repair_count.reset();
+        self.opt_repair_count.reset();
+        self.repair_done_said = false;
+        self.service_done_said = false;
+        self.cant_fix_said = false;
+        self.prev_service = false;
+        self.prev_sv_status = 0;
         self.incidents.reset();
     }
 
@@ -423,6 +450,7 @@ impl Detector {
                 self.fire(now, out, Call::new("flag_black_orange"));
             }
         }
+        self.pit_step(t, live && g.in_car, now, out);
         if self.caution.stable && race {
             self.caution_seen = true;
         }
@@ -443,6 +471,98 @@ impl Detector {
             self.clear_step(now, out);
         }
         self.blue_step(t, meta, &g, race, e_blue, now, out);
+    }
+
+    /// The tow and repair countdowns and the end of the pit service. The values are followed
+    /// while nothing may be announced (`speak` false), so a countdown seen from the middle
+    /// calls only the steps still ahead.
+    fn pit_step(&mut self, t: &Tick, speak: bool, now: f64, out: &mut Calls) {
+        // Documented (SDK header, Sporting Code 6.9.6): the tow time counts down in the stall
+        // and the repairs start after it.
+        if let Some(step) = self.tow_count.feed(t.tow_time).filter(|_| speak) {
+            let call = match step {
+                Step::Minutes(m) => Call::new("tow_minutes_left").int("minutes", m),
+                Step::Seconds(s) => Call::new("tow_seconds_left").int("seconds", s),
+                Step::Done => Call::new("tow_done"),
+            };
+            self.fire(now, out, call);
+        }
+        if let Some(step) = self.repair_count.feed(t.pit_repair_left)
+            && speak
+        {
+            let call = match step {
+                Step::Minutes(m) => Call::new("repair_minutes_left")
+                    .text("kind", "mandatory")
+                    .int("minutes", m),
+                Step::Seconds(s) => Call::new("repair_seconds_left")
+                    .text("kind", "mandatory")
+                    .int("seconds", s),
+                Step::Done if self.opt_repair_count.running() => {
+                    self.repair_done_said = false;
+                    Call::new("repair_mandatory_done")
+                }
+                Step::Done => {
+                    self.repair_done_said = true;
+                    Call::new("repair_done")
+                }
+            };
+            self.fire(now, out, call);
+        }
+        if let Some(step) = self.opt_repair_count.feed(t.pit_opt_repair_left)
+            && speak
+        {
+            let call = match step {
+                Step::Minutes(m) => Some(
+                    Call::new("repair_minutes_left")
+                        .text("kind", "optional")
+                        .int("minutes", m),
+                ),
+                Step::Seconds(s) => Some(
+                    Call::new("repair_seconds_left")
+                        .text("kind", "optional")
+                        .int("seconds", s),
+                ),
+                Step::Done => (!std::mem::replace(&mut self.repair_done_said, true))
+                    .then(|| Call::new("repair_done")),
+            };
+            if let Some(call) = call {
+                self.fire(now, out, call);
+            }
+        }
+        if self.repair_count.running() || self.opt_repair_count.running() {
+            self.repair_done_said = false;
+        }
+
+        // Documented: `PlayerCarPitSvStatus` 2 is complete, 105 is `PitSvCantFixThat`;
+        // `PitstopActive` is "Is the player getting pit stop service". Observed: the status
+        // goes to 2 about 0.03 s before `PitstopActive` falls.
+        let service = t.pit_service_active.unwrap_or(false);
+        let status = t.pit_sv_status.unwrap_or(0);
+        if (service && !self.prev_service) || status == 1 {
+            self.service_done_said = false;
+        }
+        let complete = status == 2 && self.prev_sv_status != 2;
+        let ended = !service
+            && self.prev_service
+            && status != 105
+            && !self.cant_fix_said
+            && !self.repair_count.running()
+            && !self.opt_repair_count.running();
+        if (complete || ended) && !std::mem::replace(&mut self.service_done_said, true) && speak {
+            self.fire(now, out, Call::new("pit_service_done"));
+        }
+        if !t.on_pit_road && !service {
+            self.cant_fix_said = false;
+        }
+        if status == 105
+            && self.prev_sv_status != 105
+            && !std::mem::replace(&mut self.cant_fix_said, true)
+            && speak
+        {
+            self.fire(now, out, Call::new("pit_service_cant_fix"));
+        }
+        self.prev_service = service;
+        self.prev_sv_status = status;
     }
 
     /// The penalty flags, the finish and the player's disqualification.

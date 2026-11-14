@@ -103,7 +103,15 @@ macro_rules! variables {
                 incidents: i32 = "PlayerCarMyIncidentCount",
                 // That this word names the cause of an incident is not observed yet.
                 incident_flags: u32 = "PlayerIncidents",
+                // Documented: "Players car is being towed if time is greater than zero".
                 tow_time: f32 = "PlayerCarTowTime",
+                // Documented bitfield `irsdk_EngineWarnings`; bits 0x0080 (mandatory repairs
+                // needed) and 0x0100 (optional repairs needed) are read.
+                engine_warnings: u32 = "EngineWarnings",
+                // Documented: seconds left for the mandatory / optional pit repairs "if repairs
+                // are active". Only 0 is observed (fast repairs only), never above.
+                pit_repair_left: f32 = "PitRepairLeft",
+                pit_opt_repair_left: f32 = "PitOptRepairLeft",
                 // Observed: 255 (unlimited) in an offline race, 0 in a test drive.
                 fast_repairs_available: i32 = "FastRepairAvailable",
                 // Observed: rises from 0 to 1 on the row a fast repair is done.

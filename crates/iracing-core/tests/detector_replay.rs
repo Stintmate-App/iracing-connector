@@ -6,7 +6,7 @@ use iracing_core::announce::spotter::Spotter;
 use iracing_core::announce::{Call, Calls, ParamValue};
 use iracing_core::codes::SessionKind;
 use iracing_core::meta::{DriverEntry, SessionMeta};
-use iracing_core::testing::{LapProfile, Scenario, YamlBuilder, table_of};
+use iracing_core::testing::{Countdown, LapProfile, Scenario, YamlBuilder, table_of};
 use iracing_core::tick::Tick;
 use iracing_core::vars::Vars;
 use irsdk::defs::session_flags as flag;
@@ -871,4 +871,192 @@ fn spotter_race_waits_twenty_seconds_after_the_green() {
     assert!(early.is_empty(), "inside the delay");
     let none = spot(SessionKind::Race, None, 3.0, |_| 2, |_| {});
     assert!(none.is_empty(), "no green yet");
+}
+
+fn int_of(call: &Call, name: &str) -> i64 {
+    match param(call, name) {
+        ParamValue::Int(v) => *v,
+        other => panic!("{name} is {other:?}"),
+    }
+}
+
+fn text_of(call: &Call, name: &str) -> String {
+    match param(call, name) {
+        ParamValue::Str(v) => v.to_string(),
+        other => panic!("{name} is {other:?}"),
+    }
+}
+
+/// What the calls said, as "code:param:param".
+fn said(fired: &[(f64, Call)]) -> Vec<String> {
+    fired
+        .iter()
+        .map(|(_, c)| {
+            let mut s = c.code.to_owned();
+            for (_, v) in c.set_params() {
+                match v {
+                    ParamValue::Int(i) => s.push_str(&format!(":{i}")),
+                    ParamValue::Str(t) => s.push_str(&format!(":{t}")),
+                }
+            }
+            s
+        })
+        .collect()
+}
+
+/// Recorded offline race: the tow started at 141.6 s and counted down one second per second.
+#[test]
+fn detector_a_tow_counts_down_from_the_recorded_start() {
+    let mut s = race();
+    s.countdown(Countdown::Tow, 141.6, 145.0);
+    let fired = run(&s, &meta(SessionKind::Race));
+    assert_eq!(
+        said(&fired),
+        [
+            "tow_minutes_left:2",
+            "tow_seconds_left:60",
+            "tow_seconds_left:30",
+            "tow_seconds_left:10",
+            "tow_done"
+        ]
+    );
+    assert_eq!(int_of(&fired[0].1, "minutes"), 2);
+    // 141.6 s of tow: the calls come 21.6, 81.6, 111.6, 131.6 and 141.6 s after it started.
+    let t0 = fired[0].0 - 21.6;
+    for ((at, _), want) in fired.iter().zip([21.6, 81.6, 111.6, 131.6, 141.6]) {
+        assert!((at - t0 - want).abs() < 0.05, "{at} vs {want}");
+    }
+}
+
+/// The second tow of the recording started at 150.0 s when the player left the car; a caution
+/// that lengthens a tow in progress restarts the schedule from the new value.
+#[test]
+fn detector_a_longer_tow_restarts_the_schedule() {
+    let mut s = race();
+    s.countdown(Countdown::Tow, 150.0, 152.0);
+    let fired = run(&s, &meta(SessionKind::Race));
+    assert_eq!(
+        said(&fired),
+        [
+            "tow_minutes_left:2",
+            "tow_seconds_left:60",
+            "tow_seconds_left:30",
+            "tow_seconds_left:10",
+            "tow_done"
+        ]
+    );
+
+    let mut s = race();
+    s.countdown(Countdown::Tow, 100.0, 50.0);
+    s.countdown(Countdown::Tow, 200.0, 201.0);
+    let fired = run(&s, &meta(SessionKind::Race));
+    assert_eq!(
+        said(&fired),
+        [
+            "tow_seconds_left:60",
+            "tow_minutes_left:3",
+            "tow_minutes_left:2",
+            "tow_seconds_left:60",
+            "tow_seconds_left:30",
+            "tow_seconds_left:10",
+            "tow_done"
+        ]
+    );
+}
+
+#[test]
+fn detector_a_short_tow_calls_only_the_steps_ahead() {
+    let mut s = race();
+    s.countdown(Countdown::Tow, 25.0, 26.0);
+    let fired = run(&s, &meta(SessionKind::Race));
+    assert_eq!(said(&fired), ["tow_seconds_left:10", "tow_done"]);
+}
+
+/// Built from the SDK's definition of `PitRepairLeft` and `PitOptRepairLeft` (time left
+/// "if repairs are active"): a value above 0 was never recorded.
+#[test]
+fn detector_the_repair_countdown_names_its_kind_synthetic_from_the_sdk_definition() {
+    let mut s = race();
+    s.countdown(Countdown::Repair, 70.0, 71.0);
+    let fired = run(&s, &meta(SessionKind::Race));
+    assert_eq!(
+        said(&fired),
+        [
+            "repair_seconds_left:mandatory:60",
+            "repair_seconds_left:mandatory:30",
+            "repair_seconds_left:mandatory:10",
+            "repair_done"
+        ]
+    );
+    assert_eq!(text_of(&fired[0].1, "kind"), "mandatory");
+
+    let mut s = race();
+    s.countdown(Countdown::OptionalRepair, 130.0, 131.0);
+    let fired = run(&s, &meta(SessionKind::Race));
+    assert_eq!(
+        said(&fired),
+        [
+            "repair_minutes_left:optional:2",
+            "repair_seconds_left:optional:60",
+            "repair_seconds_left:optional:30",
+            "repair_seconds_left:optional:10",
+            "repair_done"
+        ]
+    );
+}
+
+/// The mandatory repair ends while the optional one runs on (synthetic, as above).
+#[test]
+fn detector_mandatory_repairs_done_while_optional_ones_run_synthetic() {
+    let mut s = race();
+    s.countdowns(
+        &[(Countdown::Repair, 15.0), (Countdown::OptionalRepair, 40.0)],
+        41.0,
+    );
+    let fired = run(&s, &meta(SessionKind::Race));
+    assert_eq!(
+        said(&fired),
+        [
+            "repair_seconds_left:mandatory:10",
+            "repair_seconds_left:optional:30",
+            "repair_mandatory_done",
+            "repair_seconds_left:optional:10",
+            "repair_done"
+        ]
+    );
+}
+
+/// Recorded offline race: `PlayerCarPitSvStatus` went 1 (service running) to 2 (complete) and `PitstopActive`
+/// fell 0.03 s later: one call. Without the status, the fall alone ends the service.
+#[test]
+fn detector_the_pit_service_is_done_once() {
+    let mut s = race();
+    s.pit_service(true, 0).flags(0, 1.0);
+    s.pit_service(true, 1).flags(0, 2.0);
+    s.pit_service(true, 2).flags(0, 0.03);
+    s.pit_service(false, 2).flags(0, 2.0);
+    s.pit_service(false, 0).flags(0, 1.0);
+    assert_eq!(
+        codes(&run(&s, &meta(SessionKind::Race))),
+        ["pit_service_done"]
+    );
+
+    let mut s = race();
+    s.pit_service(true, 0).flags(0, 2.0);
+    s.pit_service(false, 0).flags(0, 2.0);
+    assert_eq!(
+        codes(&run(&s, &meta(SessionKind::Race))),
+        ["pit_service_done"]
+    );
+}
+
+/// `PlayerCarPitSvStatus` 105 is `PitSvCantFixThat` in the SDK header (not recorded).
+#[test]
+fn detector_the_pit_crew_that_cannot_fix_it_is_told_once_per_stop_synthetic() {
+    let mut s = race();
+    s.pit_service(true, 105).flags(0, 2.0);
+    s.pit_service(true, 105).flags(0, 2.0);
+    s.pit_service(false, 0).flags(0, 1.0);
+    let fired = run(&s, &meta(SessionKind::Race));
+    assert_eq!(codes(&fired), ["pit_service_cant_fix"]);
 }
