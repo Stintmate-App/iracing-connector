@@ -2,6 +2,10 @@
 
 All notable changes to this project are written here.
 
+## 0.1.15 (2026-11-14)
+
+- **The pit stop after a tow is a pit stop, not a car entry.** After a tow the car waits in its stall while the tow time counts down, and the service starts on the row it reaches 0. The connector took the lap that restarts there as getting into the car, so the tyre readings of that stop were written with occasion `car_entry`. They are now written as `pit_stop`, under the same rule as any stop (only when the readings differ from the last ones sent). Getting into the car from the garage is still `car_entry`. Behaviour change; the protocol is unchanged.
+
 ## 0.1.14 (2026-11-11)
 
 - **A car entry is a stint marker, with no tyre values.** A 60 Hz live recording of one offline session (a full lap, then two resets during the out lap) shows that iRacing's tyre readings describe the set that came into the pits, as it was just before it was changed: the tread remaining went up from one reset to the next (0.9957, 0.9973, 0.9977 on the right rear), so a new set was fitted each time, and the car left on it. The readings shown when you get into the car only repeat the last set that came in (or the defaults, about 42 °C and tread 1.0, before any). A `stall_tyres` record with occasion `car_entry` is still written at every entry, but now carries only `occasion`, no `wheels`. `pit_stop` and `reset` records are unchanged.
