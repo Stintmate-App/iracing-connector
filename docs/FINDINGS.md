@@ -442,6 +442,11 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
   also set `PitstopActive` for 8 s while fuel rose from 22.8 to 27.4 L.
 - **observed**: the tyre-set counters (`LFTiresUsed`, `TireSetsUsed`) did not move, as Test Drive
   has unlimited sets. `<wheel>odometer` going to 0 is the reliable sign that a tyre was changed.
+- **observed**: after a tow (asked for through the menu) the car waits in its stall with
+  `PlayerCarInPitStall` and `OnPitRoad` 1 and speed 0 while `PlayerCarTowTime` counts down one
+  second per second (141.6 s in one offline race). The pit stop service starts on the row it
+  reaches 0 (`PitstopActive` 1, the repair flag in `SessionFlags` cleared, `PitSvFlags` clearing
+  step by step, `PlayerFastRepairsUsed` 0 to 1 on the next row).
 
 ## Tyres
 

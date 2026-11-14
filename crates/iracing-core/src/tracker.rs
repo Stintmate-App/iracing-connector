@@ -308,6 +308,8 @@ pub struct Tracker {
     /// The previous row was that entry row: a stall row right after it is the car appearing in
     /// its stall, not a reset to the pits.
     entry_row: bool,
+    /// The inactive lap was ended by a tow: the car comes back in its stall to be serviced there.
+    towed: bool,
     /// Sets waiting for the pending lap, oldest first; a fixed array, nothing allocates for it.
     held_tyres: [Option<HeldTyres>; HELD_TYRES_MAX],
     laps_recorded: u32,
@@ -354,6 +356,7 @@ impl Tracker {
             tyres_baseline: true,
             tyres_entry: false,
             entry_row: false,
+            towed: false,
             held_tyres: [const { None }; HELD_TYRES_MAX],
             laps_recorded: 0,
             best_s: None,
@@ -567,6 +570,7 @@ impl Tracker {
         self.tyres_baseline = true;
         self.tyres_entry = false;
         self.entry_row = false;
+        self.towed = false;
         self.held_tyres = [const { None }; HELD_TYRES_MAX];
         self.laps_recorded = 0;
         self.best_s = None;
@@ -669,9 +673,16 @@ impl Tracker {
                 StartKind::Resume
             };
             self.start_lap(t, kind, now);
+            // After a tow the car waits in its stall and is serviced there (the readings are of
+            // the set that came in, like any stop); only a real entry is a car entry.
+            let towed = std::mem::take(&mut self.towed) && before != State::Garage;
             self.visit = PitVisit {
                 was_in_stall: stall,
-                occasion: StallOccasion::CarEntry,
+                occasion: if towed {
+                    StallOccasion::PitStop
+                } else {
+                    StallOccasion::CarEntry
+                },
             };
         } else if let Some(p) = prev {
             let mut reset_now = false;
@@ -690,6 +701,7 @@ impl Tracker {
                 self.validity
                     .mark_tow(t.lap_dist, (now - self.lap.started_at_s) as f32);
                 self.end_partial(now, false, false, sink);
+                self.towed = true;
                 return;
             } else if t.on_pit_road && !p.on_pit_road && stall && !p.in_stall {
                 // A reset to the pits: the car reappears in the stall. The lap it ends is a
@@ -1802,6 +1814,51 @@ mod tests {
         let seen = occasions(&sink);
         assert_eq!(seen.len(), 4);
         assert_eq!(seen[3], ("car_entry".to_owned(), 43.08));
+    }
+
+    /// After a tow the car waits in its stall while the tow time counts down; the stop that
+    /// follows is a pit stop, not a car entry.
+    #[test]
+    fn tracker_the_stop_after_a_tow_is_a_pit_stop() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let mut time = 100.0;
+        let mut pct = 0.3f32;
+        let mut step = |t: Box<Tick>, sink: &mut RecordingSink| {
+            tracker.step(&t, Some(&meta), sink, &clock);
+        };
+        // Driving; the first row is the baseline.
+        for _ in 0..120 {
+            time += 1.0 / 60.0;
+            pct += 0.0002;
+            step(probe_row(time, "track", pct, 42.052, 1.0), &mut sink);
+        }
+        // The tow is asked for: the tow time is up while on track, then the car is in its stall.
+        let mut tow = 141.62f32;
+        for i in 0..240 {
+            time += 1.0 / 60.0;
+            let state = if i < 60 { "track" } else { "stall" };
+            let mut t = probe_row(time, state, pct, 42.052, 1.0);
+            t.tow_time = Some(tow);
+            step(t, &mut sink);
+        }
+        // The wait in the stall, the tow time counting down to 0.
+        while tow > 0.0 {
+            time += 1.0 / 60.0;
+            tow = (tow - 1.0 / 60.0).max(0.0);
+            let mut t = probe_row(time, "stall", pct, 42.052, 1.0);
+            t.tow_time = Some(tow);
+            step(t, &mut sink);
+        }
+        assert!(sink.calls("stall_tyres").is_empty());
+        // The service starts on the row the tow time reaches 0; the readings change.
+        for _ in 0..60 {
+            time += 1.0 / 60.0;
+            let mut t = probe_row(time, "stall", pct, 55.0, 0.99);
+            t.tow_time = Some(0.0);
+            step(t, &mut sink);
+        }
+        assert_eq!(occasions(&sink), [("pit_stop".to_owned(), 55.0)]);
     }
 
     /// A recorder that starts while the car is already driving takes its first row as the
