@@ -287,6 +287,20 @@ pub struct StallTyres {
     pub wear: [[f32; 3]; 4],
 }
 
+/// The tow and fast-repair state at the moment it changed, sent as a `repair` simulator data
+/// record. A field the simulator did not publish is `None`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RepairEvent {
+    /// Session time of the row that carried it.
+    pub at_s: f64,
+    /// The tow time the game set, only in the record written when a tow starts.
+    pub tow_time_s: Option<f32>,
+    /// Fast repairs left (255 = unlimited).
+    pub fast_repairs_available: Option<i32>,
+    /// Fast repairs the player used.
+    pub fast_repairs_used: Option<i32>,
+}
+
 /// Where the tracker's records go.
 pub trait Sink {
     /// A session opened (the sink sends the catalog first). Returns the session's local id.
@@ -313,6 +327,9 @@ pub trait Sink {
     /// The simulator gave a new set of tyre readings in the pits; `at` is the wall-clock time of
     /// the row that carried them. Optional.
     fn stall_tyres(&mut self, _local: u64, _at: &str, _tyres: &StallTyres) {}
+    /// The player was towed or used a fast repair; `at` is the wall-clock time of the row.
+    /// Optional.
+    fn repair(&mut self, _local: u64, _at: &str, _event: &RepairEvent) {}
     /// A fresh, empty lap buffer for the tracker's pool, made on the sink's own thread so the
     /// tick thread does not allocate it. Called after each lap is handed over. `None` (the
     /// default) makes the tracker allocate one when the next lap ends.

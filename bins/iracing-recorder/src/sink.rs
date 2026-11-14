@@ -10,14 +10,14 @@ use std::sync::Arc;
 
 use iracing_core::catalog::{cars_only, session_catalog};
 use iracing_core::io::{
-    FinishedLap, ParticipantLap, SessionOpenInfo, SetupReason, Sink as CoreSink, StallOccasion,
-    StallTyres,
+    FinishedLap, ParticipantLap, RepairEvent, SessionOpenInfo, SetupReason, Sink as CoreSink,
+    StallOccasion, StallTyres,
 };
 use iracing_core::lap::{Columns, Present};
 use iracing_core::meta::SessionMeta;
 use iracing_core::positions::file::{LapRecord, PositionsHeader, encode_closed, encode_lap};
 use iracing_core::resume::{IrClock, identity_of};
-use iracing_core::sim_data::STALL_TYRES;
+use iracing_core::sim_data::{REPAIR, STALL_TYRES};
 use serde_json::{Map, Value, json};
 use stintmate_connector_link::sink::{SessionOpen, WriteSink};
 use stintmate_connector_wire::messages as wire;
@@ -177,6 +177,22 @@ fn reading(value: f32, places: i32, min: f64, max: f64) -> Option<f64> {
     let scale = 10f64.powi(places);
     let v = (f64::from(value) * scale).round() / scale;
     (v.is_finite() && (min..=max).contains(&v)).then_some(v)
+}
+
+/// The `data` of a `repair` record: the fields the simulator published. Described by
+/// [`iracing_core::sim_data::kinds`].
+pub fn repair_data(e: &RepairEvent) -> Map<String, Value> {
+    let mut data = Map::new();
+    if let Some(v) = e.tow_time_s.and_then(|v| reading(v, 1, 0.0, 100_000.0)) {
+        data.insert("tow_time_s".to_owned(), json!(v));
+    }
+    if let Some(v) = e.fast_repairs_available {
+        data.insert("fast_repairs_available".to_owned(), json!(v));
+    }
+    if let Some(v) = e.fast_repairs_used {
+        data.insert("fast_repairs_used".to_owned(), json!(v));
+    }
+    data
 }
 
 /// The `data` of a `stall_tyres` record for a new set of readings. The simulator's left and right
@@ -355,6 +371,10 @@ impl CoreSink for TrackerSink {
 
     fn pit_exit(&mut self, local: u64, at: &str, fuel_l: Option<f64>) {
         self.write.pit_exit(local, at, fuel_l);
+    }
+
+    fn repair(&mut self, local: u64, at: &str, event: &RepairEvent) {
+        self.write.sim_data(local, REPAIR, at, repair_data(event));
     }
 
     fn stall_tyres(&mut self, local: u64, at: &str, tyres: &StallTyres) {

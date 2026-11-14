@@ -4,6 +4,7 @@ All notable changes to this project are written here.
 
 ## 0.1.15 (2026-11-14)
 
+- **The live frame says when the car needs repairs, and tows and fast repairs are recorded.** `car.repair_needed` in the live frame is true while the simulator's own repair flag is set (it comes a few seconds after a hit and clears when the repair is done) and false otherwise; it is left out outside a session. A reader of connector kit 0.8.0 can use the field; older readers ignore it. A new simulator data kind, `repair`, has one record when a tow starts (`tow_time_s`, the seconds the game set, plus `fast_repairs_available`, 255 meaning unlimited, and `fast_repairs_used`) and one when the number of fast repairs used changes. The descriptor declares the feature `repair` (connector-runtime 0.6.0, whose features vocabulary has it). The live-frame schema used by the tests is the one of kit 0.8.0.
 - **The pit stop after a tow is a pit stop, not a car entry.** After a tow the car waits in its stall while the tow time counts down, and the service starts on the row it reaches 0. The connector took the lap that restarts there as getting into the car, so the tyre readings of that stop were written with occasion `car_entry`. They are now written as `pit_stop`, under the same rule as any stop (only when the readings differ from the last ones sent). Getting into the car from the garage is still `car_entry`. Behaviour change; the protocol is unchanged.
 
 ## 0.1.14 (2026-11-11)

@@ -77,6 +77,8 @@ const SCALARS: &[(&str, VarType, &str)] = &[
     ("PlayerCarMyIncidentCount", Int, ""),
     ("PlayerIncidents", BitField, "irsdk_IncidentFlags"),
     ("PlayerCarTowTime", Float, "s"),
+    ("FastRepairAvailable", Int, ""),
+    ("PlayerFastRepairsUsed", Int, ""),
     ("PlayerCarPosition", Int, ""),
     ("PlayerCarClassPosition", Int, ""),
     ("PitsOpen", Bool, ""),
