@@ -74,6 +74,7 @@ pub static SPEC: ConnectorSpec = ConnectorSpec {
         "spotter",
         "sim_data",
         "lap_positions",
+        "repair",
     ],
     ui_catalog: include_str!("../locales/en.json"),
     glyph: Glyph::I,
