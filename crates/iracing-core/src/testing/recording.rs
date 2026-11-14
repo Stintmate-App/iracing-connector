@@ -6,7 +6,8 @@ use serde_json::{Value, json};
 
 use crate::catalog;
 use crate::io::{
-    Clock, Conditions, FinishedLap, ParticipantLap, SessionOpenInfo, SetupReason, Sink, StallTyres,
+    Clock, Conditions, FinishedLap, ParticipantLap, RepairEvent, SessionOpenInfo, SetupReason,
+    Sink, StallTyres,
 };
 use crate::lap::Columns;
 use crate::meta::SessionMeta;
@@ -251,6 +252,18 @@ impl Sink for RecordingSink {
         self.events.push(json!({
             "call": "catalog",
             "catalog": serde_json::to_value(&cat).unwrap_or(Value::Null),
+        }));
+    }
+
+    fn repair(&mut self, local: u64, at: &str, event: &RepairEvent) {
+        self.events.push(json!({
+            "call": "repair",
+            "local": local,
+            "at": at,
+            "at_s": r3(event.at_s),
+            "tow_time_s": event.tow_time_s.map(|v| r3(f64::from(v))),
+            "fast_repairs_available": event.fast_repairs_available,
+            "fast_repairs_used": event.fast_repairs_used,
         }));
     }
 

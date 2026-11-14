@@ -7,6 +7,9 @@ use stintmate_connector_wire::messages::{SimDataField, SimDataKind};
 /// The kind of the tyre readings iRacing gives only in the pits.
 pub const STALL_TYRES: &str = "stall_tyres";
 
+/// The kind of the tow and fast-repair state.
+pub const REPAIR: &str = "repair";
+
 fn field(meaning: &str, unit: Option<&str>) -> SimDataField {
     SimDataField {
         meaning: meaning.to_owned(),
@@ -63,10 +66,33 @@ pub fn kinds() -> Vec<SimDataKind> {
     ] {
         fields.insert(format!("wheels.*.{name}"), field(meaning, Some("fraction")));
     }
-    vec![SimDataKind {
+    let mut repair_fields = BTreeMap::new();
+    repair_fields.insert(
+        "tow_time_s".to_owned(),
+        field(
+            "Seconds of tow the game set at the start of a tow; it counts down in the stall. Only in the record written when a tow starts.",
+            Some("s"),
+        ),
+    );
+    repair_fields.insert(
+        "fast_repairs_available".to_owned(),
+        field("Fast repairs left; 255 = unlimited.", None),
+    );
+    repair_fields.insert(
+        "fast_repairs_used".to_owned(),
+        field("Fast repairs used by the player.", None),
+    );
+    let repair = SimDataKind {
+        kind: REPAIR.to_owned(),
+        description: "iRacing's tow and fast-repair state. A record is written when a tow starts and when the count of fast repairs used changes.".to_owned(),
+        topic: None,
+        fields: repair_fields,
+    };
+    let stall_tyres = SimDataKind {
         kind: STALL_TYRES.to_owned(),
         description: "Tyre temperatures and tread remaining iRacing gives only when the car comes into the pits (a pit stop or a reset). They are of the set that came in, just before it was changed: they describe the stint that ended, and the car leaves on new tyres. pit_stop and reset records are sent when the values differ from the last set sent. A car_entry record is written at every entry into the car, with no wheels: the start of a stint. Not live.".to_owned(),
         topic: Some("tyres".to_owned()),
         fields,
-    }]
+    };
+    vec![stall_tyres, repair]
 }

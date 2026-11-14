@@ -286,3 +286,29 @@ fn race_position_and_gaps_follow_the_road_after_a_stop() {
     let f = frame_json(&s, Some(&m), 100.2, "2026-01-02T18:00:00.123+00:00");
     assert_eq!(pos(&f, 3), 1);
 }
+
+#[test]
+fn repair_needed_follows_the_repair_session_flag_inside_a_session() {
+    let v = validator();
+    let mut s = snapshot(State::Track);
+    s.tick.session_flags = irsdk::defs::session_flags::REPAIR;
+    let f = frame_json(&s, Some(&meta()), 100.2, "2026-01-02T18:00:00.123+00:00");
+    assert_valid(&v, &f);
+    assert_eq!(f["car"]["repair_needed"], true);
+    // Cleared when the repair is done.
+    s.tick.session_flags = 0;
+    let f = frame_json(&s, Some(&meta()), 100.3, "2026-01-02T18:00:00.123+00:00");
+    assert_valid(&v, &f);
+    assert_eq!(f["car"]["repair_needed"], false);
+    // Out of a session there is no car, so no field.
+    let f = frame_json(
+        &snapshot(State::Idle),
+        Some(&meta()),
+        100.4,
+        "2026-01-02T18:00:00.123+00:00",
+    );
+    assert!(
+        f.get("car")
+            .is_none_or(|c| c.get("repair_needed").is_none())
+    );
+}

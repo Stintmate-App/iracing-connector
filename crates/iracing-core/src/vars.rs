@@ -104,6 +104,10 @@ macro_rules! variables {
                 // That this word names the cause of an incident is not observed yet.
                 incident_flags: u32 = "PlayerIncidents",
                 tow_time: f32 = "PlayerCarTowTime",
+                // Observed: 255 (unlimited) in an offline race, 0 in a test drive.
+                fast_repairs_available: i32 = "FastRepairAvailable",
+                // Observed: rises from 0 to 1 on the row a fast repair is done.
+                fast_repairs_used: i32 = "PlayerFastRepairsUsed",
                 position: i32 = "PlayerCarPosition",
                 class_position: i32 = "PlayerCarClassPosition",
                 // Whether the pits are reported closed under a caution is not observed yet.

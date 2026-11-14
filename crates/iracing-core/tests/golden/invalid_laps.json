@@ -1057,6 +1057,15 @@
     "valid": true
   },
   {
+    "at": "2026-01-01T00:00:00Z",
+    "at_s": 201.833,
+    "call": "repair",
+    "fast_repairs_available": 0,
+    "fast_repairs_used": 0,
+    "local": 1,
+    "tow_time_s": 5.0
+  },
+  {
     "call": "lap",
     "cause": "unknown",
     "cause_certain": false,
