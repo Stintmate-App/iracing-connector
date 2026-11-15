@@ -2,7 +2,11 @@
 
 All notable changes to this project are written here.
 
-## 0.1.16 (2026-11-15)
+## 0.2.0 (2026-11-15)
+
+This release follows 0.1.7 and holds everything in the sections below down to 0.1.8. Those versions were development
+tags and were never released; they added new functions, so this release is 0.2.0, not a patch. The changes since
+0.1.15 are:
 
 - **The repair need comes from `EngineWarnings`, and the repair record has the detail.** `car.repair_needed` in the live frame now follows bit 0x0080 of `EngineWarnings` ("car needs mandatory repairs" in the SDK header). In a recorded offline session the bit is set about 10 s before the repair flag of the session flags, so the frame says it earlier; it is left out when the simulator does not publish the variable. The `repair` simulator data kind gains `mandatory_repair_needed` and `optional_repair_needed` (bits 0x0080 and 0x0100), `repair_left_s` and `optional_repair_left_s` (`PitRepairLeft` and `PitOptRepairLeft`, documented as the time left "if repairs are active"; only 0 has been observed because only fast repairs were recorded). A record is written when a tow starts, when either bit changes, when a normal repair starts in the stall and when the fast repairs used change, and every record carries every field (`tow_time_s` is now the tow time at that row, 0 when not towed). The meatball announcement still follows the repair flag of the session flags.
 - **Countdown announcements for the tow and the repairs.** New messages in the catalog (group `car`): `tow_minutes_left`, `tow_seconds_left`, `tow_done`, `repair_minutes_left`, `repair_seconds_left` (with `kind` mandatory or optional), `repair_mandatory_done`, `repair_done`, `pit_service_done` and `pit_service_cant_fix`. A countdown is called at each whole minute below its starting value (2 minutes and more), at 60, 30 and 10 seconds and at the end, each step once; steps already passed when it is first seen are skipped, and a value that rises (a caution lengthening a tow in progress) restarts the schedule. `pit_service_done` follows `PlayerCarPitSvStatus` 2 or the end of `PitstopActive` with no repair left; `pit_service_cant_fix` follows status 105, once per stop. The repair countdown and `pit_service_cant_fix` are built from the SDK's definitions, not from a recording. The announcement catalog has 48 messages.
