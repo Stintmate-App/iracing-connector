@@ -70,7 +70,7 @@ pub fn kinds() -> Vec<SimDataKind> {
     repair_fields.insert(
         "tow_time_s".to_owned(),
         field(
-            "PlayerCarTowTime: \"Players car is being towed if time is greater than zero\". The seconds left of the tow at the moment of the record: it is the full tow time in the record written when a tow starts, and it counts down in the stall. Per iRacing's sporting code the tow time is the distance to the stall plus a base penalty and the repairs start after it; a caution lengthens or shortens a tow in progress; exiting the car while driving is equivalent to requesting a tow, so a tow also starts when the player leaves the car while driving.",
+            "Seconds of tow left (PlayerCarTowTime): the full tow in the record of a tow start, counting down in the stall. It is the distance to the stall plus a base penalty; repairs start after it. Leaving the car while driving also starts a tow.",
             Some("s"),
         ),
     );
