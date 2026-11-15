@@ -11,6 +11,7 @@ use crate::codes::SessionKind;
 use crate::meta::SessionMeta;
 use crate::tick::Tick;
 
+pub mod countdown;
 pub mod detector;
 pub mod spotter;
 
@@ -257,7 +258,7 @@ mod tests {
     #[test]
     fn catalog_validates_with_the_runtime() {
         let cat = AnnounceCatalog::parse(CATALOG, CATALOG_ID).expect("catalog");
-        assert_eq!(cat.codes().len(), 39);
+        assert_eq!(cat.codes().len(), 48);
     }
 
     #[test]
@@ -304,6 +305,15 @@ mod tests {
             "spotter_all_clear",
             "radio_check",
             "engineer_test",
+            "tow_minutes_left",
+            "tow_seconds_left",
+            "tow_done",
+            "repair_minutes_left",
+            "repair_seconds_left",
+            "repair_mandatory_done",
+            "repair_done",
+            "pit_service_done",
+            "pit_service_cant_fix",
         ] {
             assert!(codes.contains(&code), "missing {code}");
         }

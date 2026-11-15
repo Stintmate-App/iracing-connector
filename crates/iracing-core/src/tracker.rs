@@ -302,6 +302,11 @@ pub struct Tracker {
     repair_tow: Option<f32>,
     /// Fast repairs used on the previous row of the open session.
     repair_used: Option<i32>,
+    /// The repair bits and times of the previous row (the baselines of the repair record).
+    repair_mand: Option<bool>,
+    repair_opt: Option<bool>,
+    repair_left: Option<f32>,
+    repair_opt_left: Option<f32>,
     /// The readings last sent in this session (or the first driving row's, not sent).
     tyres_sent: Option<TyreBits>,
     /// The next driving row sets the baseline of `tyres_sent`.
@@ -357,6 +362,10 @@ impl Tracker {
             conditions: Conditions::default(),
             repair_tow: None,
             repair_used: None,
+            repair_mand: None,
+            repair_opt: None,
+            repair_left: None,
+            repair_opt_left: None,
             stall_tyres: None,
             tyres_sent: None,
             tyres_baseline: true,
@@ -574,6 +583,10 @@ impl Tracker {
         self.late = None;
         self.repair_tow = None;
         self.repair_used = None;
+        self.repair_mand = None;
+        self.repair_opt = None;
+        self.repair_left = None;
+        self.repair_opt_left = None;
         self.stall_tyres = None;
         self.tyres_sent = None;
         self.tyres_baseline = true;
@@ -1113,24 +1126,52 @@ impl Tracker {
         }
     }
 
-    /// Writes a `repair` record when a tow starts (the tow time rises from 0) and when the count
-    /// of fast repairs used changes; the first row of a session only sets the baseline.
+    /// Writes a `repair` record when a tow starts (the tow time rises from 0), when either
+    /// repair-needed bit changes, when a normal repair starts in the stall (`PitRepairLeft` or
+    /// `PitOptRepairLeft` rising from 0) and when the count of fast repairs used changes; the
+    /// first row of a session only sets the baseline. Every record carries every field.
     fn repair(&mut self, t: &Tick, sink: &mut dyn Sink, clock: &dyn Clock) {
-        let towed = match (self.repair_tow, t.tow_time) {
+        use irsdk::defs::engine_warnings as ew;
+        let mand = t
+            .engine_warnings
+            .map(|w| w & ew::MANDATORY_REPAIR_NEEDED != 0);
+        let opt = t
+            .engine_warnings
+            .map(|w| w & ew::OPTIONAL_REPAIR_NEEDED != 0);
+        let rose = |prev: Option<f32>, now: Option<f32>| match (prev, now) {
             (Some(p), Some(n)) => p <= 0.0 && n > 0.0,
             _ => false,
         };
-        let used = match (self.repair_used, t.fast_repairs_used) {
+        let changed = |prev: Option<bool>, now: Option<bool>| match (prev, now) {
             (Some(p), Some(n)) => p != n,
             _ => false,
         };
+        let trigger = rose(self.repair_tow, t.tow_time)
+            || changed(self.repair_mand, mand)
+            || changed(self.repair_opt, opt)
+            || rose(self.repair_left, t.pit_repair_left)
+            || rose(self.repair_opt_left, t.pit_opt_repair_left)
+            || match (self.repair_used, t.fast_repairs_used) {
+                (Some(p), Some(n)) => p != n,
+                _ => false,
+            };
         if t.tow_time.is_some() {
             self.repair_tow = t.tow_time;
         }
         if t.fast_repairs_used.is_some() {
             self.repair_used = t.fast_repairs_used;
         }
-        if !(towed || used) {
+        if mand.is_some() {
+            self.repair_mand = mand;
+            self.repair_opt = opt;
+        }
+        if t.pit_repair_left.is_some() {
+            self.repair_left = t.pit_repair_left;
+        }
+        if t.pit_opt_repair_left.is_some() {
+            self.repair_opt_left = t.pit_opt_repair_left;
+        }
+        if !trigger {
             return;
         }
         let Some(local) = self.open.as_ref().map(|o| o.local) else {
@@ -1138,7 +1179,11 @@ impl Tracker {
         };
         let event = RepairEvent {
             at_s: t.session_time,
-            tow_time_s: if towed { t.tow_time } else { None },
+            tow_time_s: t.tow_time,
+            mandatory_repair_needed: mand,
+            optional_repair_needed: opt,
+            repair_left_s: t.pit_repair_left,
+            optional_repair_left_s: t.pit_opt_repair_left,
             fast_repairs_available: t.fast_repairs_available,
             fast_repairs_used: t.fast_repairs_used,
         };
@@ -2232,7 +2277,87 @@ mod tests {
         }
         let calls = sink.calls("repair");
         assert_eq!(calls.len(), 1);
-        assert!(calls[0]["tow_time_s"].is_null());
+        assert_eq!(calls[0]["tow_time_s"], 0.0);
         assert_eq!(calls[0]["fast_repairs_used"], 1);
+    }
+
+    /// A hit sets the optional bit (16:57:37.702 in a recorded offline test drive), then the mandatory
+    /// bit 17 ms later; both clear at the fast repair (16:58:58.4). Each change writes one
+    /// record that carries every field; the first row is a baseline.
+    #[test]
+    fn tracker_the_repair_needed_bits_write_a_record_at_each_change() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let mut time = 100.0;
+        // EngineWarnings 0x0100 (optional), 0x0180 (both), 0 again; the first row 0x10.
+        for (rows, bits) in [(120, 0x10u32), (60, 0x110), (60, 0x190), (120, 0x10)] {
+            for _ in 0..rows {
+                time += 1.0 / 60.0;
+                let mut t = probe_row(time, "track", 0.3, 42.052, 1.0);
+                t.engine_warnings = Some(bits);
+                t.pit_repair_left = Some(0.0);
+                t.pit_opt_repair_left = Some(0.0);
+                t.tow_time = Some(0.0);
+                t.fast_repairs_available = Some(255);
+                t.fast_repairs_used = Some(0);
+                tracker.step(&t, Some(&meta), &mut sink, &clock);
+            }
+        }
+        let calls = sink.calls("repair");
+        assert_eq!(calls.len(), 3, "{calls:?}");
+        let got: Vec<_> = calls
+            .iter()
+            .map(|c| {
+                (
+                    c["optional_repair_needed"].clone(),
+                    c["mandatory_repair_needed"].clone(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            got,
+            [
+                (true.into(), false.into()),
+                (true.into(), true.into()),
+                (false.into(), false.into())
+            ]
+        );
+        for c in &calls {
+            assert_eq!(c["repair_left_s"], 0.0);
+            assert_eq!(c["optional_repair_left_s"], 0.0);
+            assert_eq!(c["tow_time_s"], 0.0);
+            assert_eq!(c["fast_repairs_available"], 255);
+        }
+    }
+
+    /// Documented (`PitRepairLeft`, `PitOptRepairLeft`: time left "if repairs are active"); a
+    /// value above 0 was never recorded, so this row series is built from the SDK's
+    /// definition: a normal repair starting in the stall writes one record, the countdown no
+    /// more, and an optional repair starting later writes another.
+    #[test]
+    fn tracker_a_normal_repair_starting_writes_a_record() {
+        let (meta, mut sink, clock) = (meta(), RecordingSink::new(), FixedClock::default());
+        let mut tracker = Tracker::new(64);
+        let mut time = 100.0;
+        let mut left = 0.0f32;
+        for i in 0..600 {
+            time += 1.0 / 60.0;
+            let mut t = probe_row(time, "stall", 0.3, 42.052, 1.0);
+            t.engine_warnings = Some(0x180);
+            t.tow_time = Some(0.0);
+            if i == 120 {
+                left = 90.0;
+            }
+            t.pit_repair_left = Some(left);
+            t.pit_opt_repair_left = Some(if i < 300 { 0.0 } else { 40.0 });
+            left = (left - 1.0 / 60.0).max(0.0);
+            tracker.step(&t, Some(&meta), &mut sink, &clock);
+        }
+        let calls = sink.calls("repair");
+        assert_eq!(calls.len(), 2, "{calls:?}");
+        assert_eq!(calls[0]["repair_left_s"], 90.0);
+        assert_eq!(calls[0]["optional_repair_left_s"], 0.0);
+        assert_eq!(calls[1]["optional_repair_left_s"], 40.0);
+        assert_eq!(calls[1]["mandatory_repair_needed"], true);
     }
 }

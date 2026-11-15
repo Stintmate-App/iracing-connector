@@ -11,7 +11,7 @@ use crate::meta::{DriverEntry, SessionMeta};
 use crate::tick::Tick;
 use crate::tracker::{LapView, State};
 use crate::vars::CARS;
-use irsdk::defs::{UNLIMITED_LAPS, UNLIMITED_TIME, session_flags};
+use irsdk::defs::{UNLIMITED_LAPS, UNLIMITED_TIME, engine_warnings, session_flags};
 
 /// Seconds without a new row after which a driving or garage state shows as `paused`.
 pub const FROZEN_S: f64 = 1.0;
@@ -177,10 +177,13 @@ fn car(s: &LiveSnapshot, meta: &SessionMeta, player: &DriverEntry) -> Value {
         "fuel_capacity_l": meta.fuel_capacity_l.filter(|c| *c > 0.0),
         "penalty": (flags & session_flags::BLACK != 0).then_some("other"),
     });
-    // Observed: the `REPAIR` bit of the session flags is set a few seconds after a hit and
-    // cleared when the repair is done. Only known inside a session.
-    if !matches!(s.view.state, State::Off | State::Idle) {
-        car["repair_needed"] = json!(t.session_flags & session_flags::REPAIR != 0);
+    // Documented: the `EngineWarnings` bit 0x0080 means the car needs mandatory repairs.
+    // Observed: it is set about 10 s before the `REPAIR` session flag and clears with it. Only
+    // known inside a session.
+    if !matches!(s.view.state, State::Off | State::Idle)
+        && let Some(w) = t.engine_warnings
+    {
+        car["repair_needed"] = json!(w & engine_warnings::MANDATORY_REPAIR_NEEDED != 0);
     }
     if let Some(w) = wheels(s, meta) {
         car["wheels"] = w;

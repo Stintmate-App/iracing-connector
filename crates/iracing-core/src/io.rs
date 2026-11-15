@@ -287,14 +287,22 @@ pub struct StallTyres {
     pub wear: [[f32; 3]; 4],
 }
 
-/// The tow and fast-repair state at the moment it changed, sent as a `repair` simulator data
+/// The tow and repair state at the moment it changed, sent as a `repair` simulator data
 /// record. A field the simulator did not publish is `None`.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RepairEvent {
     /// Session time of the row that carried it.
     pub at_s: f64,
-    /// The tow time the game set, only in the record written when a tow starts.
+    /// The tow time at that row (counts down; above 0 while towed).
     pub tow_time_s: Option<f32>,
+    /// The car needs mandatory repairs (`EngineWarnings` bit 0x0080).
+    pub mandatory_repair_needed: Option<bool>,
+    /// The car needs optional repairs (`EngineWarnings` bit 0x0100).
+    pub optional_repair_needed: Option<bool>,
+    /// Seconds left for the mandatory pit repairs (`PitRepairLeft`).
+    pub repair_left_s: Option<f32>,
+    /// Seconds left for the optional pit repairs (`PitOptRepairLeft`).
+    pub optional_repair_left_s: Option<f32>,
     /// Fast repairs left (255 = unlimited).
     pub fast_repairs_available: Option<i32>,
     /// Fast repairs the player used.
@@ -327,7 +335,8 @@ pub trait Sink {
     /// The simulator gave a new set of tyre readings in the pits; `at` is the wall-clock time of
     /// the row that carried them. Optional.
     fn stall_tyres(&mut self, _local: u64, _at: &str, _tyres: &StallTyres) {}
-    /// The player was towed or used a fast repair; `at` is the wall-clock time of the row.
+    /// A repair record: a tow started, a repair need appeared or went, a repair started or a
+    /// fast repair was used; `at` is the wall-clock time of the row.
     /// Optional.
     fn repair(&mut self, _local: u64, _at: &str, _event: &RepairEvent) {}
     /// A fresh, empty lap buffer for the tracker's pool, made on the sink's own thread so the

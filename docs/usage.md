@@ -21,7 +21,7 @@ control app by hand.
   "Waiting for iRacing", "iRacing is running: not in a car", "In the garage", "Recording" or
   "Replay: not recording". `live` is true while a session is open and `telemetry` while Pitwall
   is subscribed to the sample stream.
-- It records sessions, laps, setups, pit exits, the tyre readings taken at stops (simulator data, kind `stall_tyres`), the tow and fast-repair state (simulator data, kind `repair`) and the other
+- It records sessions, laps, setups, pit exits, the tyre readings taken at stops (simulator data, kind `stall_tyres`), the tow and repair state (simulator data, kind `repair`) and the other
   cars' laps (see below). Each lap
   carries `x` and `z`, the car's position in metres (east and north, origin at the
   start/finish line) by dead reckoning; Pitwall draws the track outline and the track maps
@@ -48,7 +48,9 @@ are `window`, `notices`, `translated_texts`, `remembered_services` and `options`
 control app provides), then `setups`, `fuel`, `sectors`, `conditions`, `rivals`, `live_frame`,
 `lap_status`, `capture_target`, `brake_cues`, `guidance`, `actions`, `announcements`, `spotter` and `sim_data`.
 
-The live frame's `car.repair_needed` is true while the simulator's own repair flag (`REPAIR` in the session flags) is set, and false when it is not; it is left out outside a session. Simulator data of the kind `repair` has one record when a tow starts (`tow_time_s`, `fast_repairs_available`, `fast_repairs_used`) and one when the count of fast repairs used changes (`fast_repairs_available`, `fast_repairs_used`); the first row of a session is only the baseline.
+The live frame's `car.repair_needed` is true while the car needs mandatory repairs (bit 0x0080 of `EngineWarnings`, which comes about 10 s before the repair flag of the session flags), and false when it does not; it is left out outside a session or when the simulator does not publish `EngineWarnings`. Simulator data of the kind `repair` has one record when a tow starts, when the car starts or stops needing mandatory or optional repairs, when a normal repair starts in the stall (`PitRepairLeft` or `PitOptRepairLeft` rising from 0) and when the count of fast repairs used changes; every record carries `tow_time_s`, `mandatory_repair_needed`, `optional_repair_needed`, `repair_left_s`, `optional_repair_left_s`, `fast_repairs_available` and `fast_repairs_used`. The first row of a session is only the baseline. A tow also starts when the player leaves the car while driving. The repair times above 0 are documented by the SDK but have not been observed yet (only fast repairs were recorded).
+
+Countdown announcements (group `car`): the tow time and the pit repair times are called at each whole minute below the value they started at (2 minutes and more), then at 60, 30 and 10 seconds and at the end (`tow_minutes_left`, `tow_seconds_left`, `tow_done`, `repair_minutes_left`, `repair_seconds_left`, `repair_mandatory_done`, `repair_done`; the repair ones say whether the repair is mandatory or optional). Steps already passed when a countdown is first seen are not called, and a value that rises (a caution lengthening a tow) starts the schedule again. `pit_service_done` is said once when the pit service completes and `pit_service_cant_fix` once per stop when iRacing reports that the crew cannot fix the damage.
 
 Simulator data: the tyre temperatures and tread remaining iRacing gives only when the car comes into the
 pits (a pit stop, a reset to the pits) are sent as `sim_data` records of the kind `stall_tyres`, one per new

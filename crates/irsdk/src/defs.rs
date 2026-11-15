@@ -297,6 +297,14 @@ impl PitSvStatus {
     }
 }
 
+/// Bits of the `EngineWarnings` variable that the connector reads (`irsdk_EngineWarnings`).
+pub mod engine_warnings {
+    /// "Car needs mandatory repairs" (`irsdk_mandRepNeeded`).
+    pub const MANDATORY_REPAIR_NEEDED: u32 = 0x0080;
+    /// "Car needs optional repairs" (`irsdk_optRepNeeded`).
+    pub const OPTIONAL_REPAIR_NEEDED: u32 = 0x0100;
+}
+
 /// The `PlayerCarMyIncidentCount`-style incident word: report in the low byte, penalty in the
 /// high byte.
 pub mod incident_flags {

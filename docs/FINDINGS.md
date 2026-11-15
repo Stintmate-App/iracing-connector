@@ -455,7 +455,28 @@ named; a doc comment that says "Not observed on the simulator yet" points to tha
   a tow (150.0 s at a second one) and counts down in the stall. `FastRepairAvailable` is 255
   (unlimited) from the start of the offline race and 0 in a test drive; `PlayerFastRepairsUsed` (and
   `FastRepairUsed`) goes from 0 to 1 at the fast repair. `PitRepairLeft` and `PitOptRepairLeft` stayed
-  0 throughout, so nothing reads them.
+  0 throughout (only fast repairs were recorded), so a value above 0 is not observed.
+- **documented** (SDK header, `irsdk_EngineWarnings`): bit 0x0080 `irsdk_mandRepNeeded` is "car needs
+  mandatory repairs" and bit 0x0100 `irsdk_optRepNeeded` is "car needs optional repairs".
+  `PitRepairLeft` is the "time left for mandatory pit repairs if repairs are active" and
+  `PitOptRepairLeft` the "time left for optional repairs if repairs are active", in seconds.
+  `PlayerCarTowTime` is "players car is being towed if time is greater than zero". The sporting
+  code (6.9.6) makes the tow time the distance to the stall plus a base penalty, with the repairs
+  starting after it; 6.9.7: a caution lengthens or shortens a tow in progress; 6.9.8: exiting the
+  car while driving is equivalent to requesting a tow. `PlayerCarPitSvStatus` is the enum
+  `irsdk_PitSvStatus`: 0 none, 1 in progress, 2 complete, 100 to 104 positioning errors, 105
+  `PitSvCantFixThat`; `PitstopActive` is "is the player getting pit stop service". There is no
+  variable for the time left of a service.
+- **observed** (same offline MX-5 at 60 Hz, a test drive and a race): `EngineWarnings` gets bit
+  0x0100 and then, 17 ms later, bit 0x0080 about 10 s before the `REPAIR` bit of `SessionFlags`
+  (test drive: bits at 16:57:37.702 and .719, flag at 16:57:47.984; race: 17:02:49.376 and .427,
+  flag at 17:02:59.743). In the test drive both bits and the flag clear together at the fast
+  repair (16:58:58.417 and .651). In the race the tow starts at 17:03:43.393 (141.6 s), reaches 0 at
+  17:06:05.026, and the bits clear 0.05 s later (.077) with the flag 0.3 s after that (.361); a second
+  tow (150.0 s) starts at 17:07:20.811 when the player left the car. `PlayerCarPitSvStatus` goes to 1
+  one second after `PitstopActive` rises and to 2 about 0.03 s before `PitstopActive` falls. The
+  connector reads `car.repair_needed` from bit 0x0080, which comes 10 s before the session flag
+  that the meatball announcement still uses.
 
 ## Tyres
 

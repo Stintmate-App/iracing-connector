@@ -8,7 +8,7 @@ mod scenario;
 mod yaml;
 
 pub use recording::{FixedClock, RecordingSink};
-pub use scenario::{LapProfile, Scenario, Side, YamlUpdate};
+pub use scenario::{Countdown, LapProfile, Scenario, Side, YamlUpdate};
 pub use yaml::{ResultSpec, SessionSpec, TyreReadings, YamlBuilder};
 
 use irsdk::defs::VarType::{self, BitField, Bool, Double, Float, Int};
@@ -77,6 +77,9 @@ const SCALARS: &[(&str, VarType, &str)] = &[
     ("PlayerCarMyIncidentCount", Int, ""),
     ("PlayerIncidents", BitField, "irsdk_IncidentFlags"),
     ("PlayerCarTowTime", Float, "s"),
+    ("EngineWarnings", BitField, "irsdk_EngineWarnings"),
+    ("PitRepairLeft", Float, "s"),
+    ("PitOptRepairLeft", Float, "s"),
     ("FastRepairAvailable", Int, ""),
     ("PlayerFastRepairsUsed", Int, ""),
     ("PlayerCarPosition", Int, ""),

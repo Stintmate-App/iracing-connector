@@ -70,7 +70,35 @@ pub fn kinds() -> Vec<SimDataKind> {
     repair_fields.insert(
         "tow_time_s".to_owned(),
         field(
-            "Seconds of tow the game set at the start of a tow; it counts down in the stall. Only in the record written when a tow starts.",
+            "Seconds of tow left (PlayerCarTowTime): the full tow in the record of a tow start, counting down in the stall. It is the distance to the stall plus a base penalty; repairs start after it. Leaving the car while driving also starts a tow.",
+            Some("s"),
+        ),
+    );
+    repair_fields.insert(
+        "mandatory_repair_needed".to_owned(),
+        field(
+            "EngineWarnings bit irsdk_mandRepNeeded: \"car needs mandatory repairs\".",
+            None,
+        ),
+    );
+    repair_fields.insert(
+        "optional_repair_needed".to_owned(),
+        field(
+            "EngineWarnings bit irsdk_optRepNeeded: \"car needs optional repairs\".",
+            None,
+        ),
+    );
+    repair_fields.insert(
+        "repair_left_s".to_owned(),
+        field(
+            "PitRepairLeft: \"Time left for mandatory pit repairs if repairs are active\". Only fast repairs have been recorded, so a value above 0 is documented but not yet observed.",
+            Some("s"),
+        ),
+    );
+    repair_fields.insert(
+        "optional_repair_left_s".to_owned(),
+        field(
+            "PitOptRepairLeft: \"Time left for optional repairs if repairs are active\". Only fast repairs have been recorded, so a value above 0 is documented but not yet observed.",
             Some("s"),
         ),
     );
@@ -84,7 +112,7 @@ pub fn kinds() -> Vec<SimDataKind> {
     );
     let repair = SimDataKind {
         kind: REPAIR.to_owned(),
-        description: "iRacing's tow and fast-repair state. A record is written when a tow starts and when the count of fast repairs used changes.".to_owned(),
+        description: "iRacing's tow and repair state. A record is written when a tow starts, when the car starts or stops needing mandatory or optional repairs, when a repair starts in the stall and when the count of fast repairs used changes. Every record carries every field the simulator published.".to_owned(),
         topic: None,
         fields: repair_fields,
     };

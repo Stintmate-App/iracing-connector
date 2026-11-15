@@ -435,6 +435,125 @@
    "kind": "announcement",
    "note": "The incident count is near the event's limit. total: the count; limit: the event's limit.",
    "group": "penalties"
+  },
+  "tow_minutes_left": {
+   "text": "Tow: {minutes} minutes left.",
+   "params": {
+    "minutes": "int"
+   },
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 3,
+   "kind": "announcement",
+   "note": "The tow time (PlayerCarTowTime) is at a whole number of minutes, 2 or more; called once per minute below the value the tow started at. minutes: the minutes left. A tow also starts when the player leaves the car while driving.",
+   "group": "car"
+  },
+  "tow_seconds_left": {
+   "text": "Tow: {seconds} seconds left.",
+   "params": {
+    "seconds": "int"
+   },
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 3,
+   "kind": "announcement",
+   "note": "The tow time is at 60, 30 or 10 seconds. seconds: the seconds left.",
+   "group": "car"
+  },
+  "tow_done": {
+   "text": "Tow complete.",
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 3,
+   "kind": "announcement",
+   "note": "The tow time reached 0; the repairs and the pit service start after it.",
+   "group": "car"
+  },
+  "repair_minutes_left": {
+   "text": "{kind} repairs: {minutes} minutes left.",
+   "params": {
+    "kind": {
+     "kind": "enum",
+     "values": [
+      "mandatory",
+      "optional"
+     ]
+    },
+    "minutes": "int"
+   },
+   "values": {
+    "kind": {
+     "mandatory": "Mandatory",
+     "optional": "Optional"
+    }
+   },
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 3,
+   "kind": "announcement",
+   "note": "The time left for the pit repairs (PitRepairLeft or PitOptRepairLeft, documented as the time left if repairs are active) is at a whole number of minutes, 2 or more. kind: mandatory or optional; minutes: the minutes left.",
+   "group": "car"
+  },
+  "repair_seconds_left": {
+   "text": "{kind} repairs: {seconds} seconds left.",
+   "params": {
+    "kind": {
+     "kind": "enum",
+     "values": [
+      "mandatory",
+      "optional"
+     ]
+    },
+    "seconds": "int"
+   },
+   "values": {
+    "kind": {
+     "mandatory": "Mandatory",
+     "optional": "Optional"
+    }
+   },
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 3,
+   "kind": "announcement",
+   "note": "The time left for the pit repairs is at 60, 30 or 10 seconds. kind: mandatory or optional; seconds: the seconds left.",
+   "group": "car"
+  },
+  "repair_mandatory_done": {
+   "text": "Mandatory repairs done; optional repairs left, you can go.",
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 3,
+   "kind": "announcement",
+   "note": "The mandatory repair time reached 0 while the optional repair time is still running.",
+   "group": "car"
+  },
+  "repair_done": {
+   "text": "Repairs done.",
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 3,
+   "kind": "announcement",
+   "note": "The last repair time reached 0: no repair is left.",
+   "group": "car"
+  },
+  "pit_service_done": {
+   "text": "Pit service done.",
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 3,
+   "kind": "announcement",
+   "note": "The pit service finished (PlayerCarPitSvStatus 2, complete, or PitstopActive fell with no repair left). Once per stop.",
+   "group": "car"
+  },
+  "pit_service_cant_fix": {
+   "text": "The pit crew cannot fix that.",
+   "audience": "driver",
+   "priority": "normal",
+   "max_wait_s": 3,
+   "kind": "announcement",
+   "note": "PlayerCarPitSvStatus 105, the pit crew cannot fix that. Once per stop.",
+   "group": "car"
   }
  }
 }

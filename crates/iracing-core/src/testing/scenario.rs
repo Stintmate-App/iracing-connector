@@ -160,6 +160,11 @@ struct Sim {
     incidents: i32,
     incident_word: u32,
     tow: f32,
+    engine_warnings: u32,
+    repair_left: f32,
+    opt_repair_left: f32,
+    service: bool,
+    sv_status: i32,
     position: i32,
     pits_open: bool,
     car_lr: i32,
@@ -200,6 +205,11 @@ impl Sim {
             incidents: 0,
             incident_word: 0,
             tow: 0.0,
+            engine_warnings: 0,
+            repair_left: 0.0,
+            opt_repair_left: 0.0,
+            service: false,
+            sv_status: 0,
             position: 1,
             pits_open: true,
             car_lr: 1,
@@ -212,6 +222,17 @@ impl Sim {
             cars: [Car::OFF; CARS],
         }
     }
+}
+
+/// A variable that counts down in the pits: the tow time and the two repair times.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Countdown {
+    /// `PlayerCarTowTime`.
+    Tow,
+    /// `PitRepairLeft`.
+    Repair,
+    /// `PitOptRepairLeft`.
+    OptionalRepair,
 }
 
 /// A script of steps that produces the rows and session texts of a drive.
@@ -434,6 +455,51 @@ impl Scenario {
         sim.loc = IN_STALL;
         sim.speed = 0.0;
         self.hold(0.5)
+    }
+
+    /// Sets `EngineWarnings` from the next row on (no time passes).
+    pub fn engine_warnings(&mut self, bits: u32) -> &mut Self {
+        self.sim.engine_warnings = bits;
+        self
+    }
+
+    /// Sets `PitstopActive` and `PlayerCarPitSvStatus` from the next row on (no time passes).
+    pub fn pit_service(&mut self, active: bool, status: i32) -> &mut Self {
+        self.sim.service = active;
+        self.sim.sv_status = status;
+        self
+    }
+
+    /// Countdown variables that start at the given seconds and fall one second per second for
+    /// `s` seconds of rows, stopping at 0 (they read 0 afterwards). The car keeps where it is.
+    pub fn countdowns(&mut self, set: &[(Countdown, f32)], s: f64) -> &mut Self {
+        let mut left: Vec<f32> = set.iter().map(|(_, v)| *v).collect();
+        for _ in 0..(s * HZ).ceil() as u32 {
+            for ((which, _), v) in set.iter().zip(&left) {
+                self.set_countdown(*which, *v);
+            }
+            self.hold_rows(1);
+            for v in &mut left {
+                *v = (*v - DT as f32).max(0.0);
+            }
+        }
+        for ((which, _), v) in set.iter().zip(&left) {
+            self.set_countdown(*which, *v);
+        }
+        self
+    }
+
+    /// One countdown variable; see [`Scenario::countdowns`].
+    pub fn countdown(&mut self, which: Countdown, from: f32, s: f64) -> &mut Self {
+        self.countdowns(&[(which, from)], s)
+    }
+
+    fn set_countdown(&mut self, which: Countdown, v: f32) {
+        match which {
+            Countdown::Tow => self.sim.tow = v,
+            Countdown::Repair => self.sim.repair_left = v,
+            Countdown::OptionalRepair => self.sim.opt_repair_left = v,
+        }
     }
 
     /// Sets the live tyre readings from the next row on (carcass temperature, tread remaining).
@@ -859,6 +925,11 @@ impl Scenario {
             .set_i32("PlayerCarMyIncidentCount", s.incidents)
             .set_u32("PlayerIncidents", s.incident_word)
             .set_f32("PlayerCarTowTime", s.tow)
+            .set_u32("EngineWarnings", s.engine_warnings)
+            .set_f32("PitRepairLeft", s.repair_left)
+            .set_f32("PitOptRepairLeft", s.opt_repair_left)
+            .set_bool("PitstopActive", s.service)
+            .set_i32("PlayerCarPitSvStatus", s.sv_status)
             .set_i32("PlayerCarPosition", s.position)
             .set_i32("PlayerCarClassPosition", s.position)
             .set_bool("PitsOpen", s.pits_open)

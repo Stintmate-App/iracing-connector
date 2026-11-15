@@ -186,6 +186,21 @@ pub fn repair_data(e: &RepairEvent) -> Map<String, Value> {
     if let Some(v) = e.tow_time_s.and_then(|v| reading(v, 1, 0.0, 100_000.0)) {
         data.insert("tow_time_s".to_owned(), json!(v));
     }
+    if let Some(v) = e.mandatory_repair_needed {
+        data.insert("mandatory_repair_needed".to_owned(), json!(v));
+    }
+    if let Some(v) = e.optional_repair_needed {
+        data.insert("optional_repair_needed".to_owned(), json!(v));
+    }
+    if let Some(v) = e.repair_left_s.and_then(|v| reading(v, 1, 0.0, 100_000.0)) {
+        data.insert("repair_left_s".to_owned(), json!(v));
+    }
+    if let Some(v) = e
+        .optional_repair_left_s
+        .and_then(|v| reading(v, 1, 0.0, 100_000.0))
+    {
+        data.insert("optional_repair_left_s".to_owned(), json!(v));
+    }
     if let Some(v) = e.fast_repairs_available {
         data.insert("fast_repairs_available".to_owned(), json!(v));
     }
