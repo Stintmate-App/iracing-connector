@@ -37,6 +37,18 @@ fn announced(rig: &Rig) -> Vec<(String, serde_json::Value)> {
         .collect()
 }
 
+/// Waits, at most 15 s, until the recorder has linked to the fake Pitwall: it declares its
+/// catalog at connect, and an announcement made before that is refused, not queued.
+fn wait_linked(rig: &Rig) {
+    assert!(
+        rig.fake.wait_for(
+            |c| c.iter().any(|x| x.method == "pitwall.catalog.declare"),
+            15
+        ),
+        "the recorder did not link"
+    );
+}
+
 /// Two quiet laps, then `f`, then a lap more.
 fn drive(f: impl FnOnce(&mut Scenario)) -> Scenario {
     let mut s = Scenario::new(YamlBuilder::new());
@@ -89,8 +101,9 @@ fn a_yellow_flag_and_an_incident_arrive_as_announcements() {
         s.incident(2, 0);
         s.flags(0, 3.0);
     });
-    let _replay = Replay::start_at(&rig, s, 120.0);
     let mut child = rig.spawn();
+    wait_linked(&rig);
+    let _replay = Replay::start_at(&rig, s, 120.0);
     assert!(
         wait_for(60, || {
             let got = announced(&rig);
@@ -113,6 +126,7 @@ fn a_yellow_flag_and_an_incident_arrive_as_announcements() {
 fn the_eleventh_general_announcement_in_a_minute_is_dropped() {
     let rig = rig();
     let mut child = rig.spawn();
+    wait_linked(&rig);
     let mut said = 0;
     for _ in 0..11 {
         let r = call(
