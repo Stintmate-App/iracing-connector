@@ -2,6 +2,13 @@
 
 All notable changes to this project are written here.
 
+## 0.2.1 (2026-11-16)
+
+A patch release: no behaviour of the connector changed.
+
+- **Clearer descriptions of `repair_left_s` and `optional_repair_left_s`.** The `repair` simulator data descriptions keep the SDK's wording and now say that the value counts down during a normal repair. A recording has both above 0 at the start of a normal repair, and they match the game's pit screen to within about 30 s. The descriptions no longer say that a value above 0 was not yet observed.
+- **A test no longer fails at random on a slow machine.** The announcement tests sent announcements right after starting the recorder, before it had linked to Pitwall; an announcement made while not linked is refused, so some were not counted. The tests now wait until the recorder has linked. Only the tests changed.
+
 ## 0.2.0 (2026-11-15)
 
 This release follows 0.1.7 and holds everything in the sections below down to 0.1.8. Those versions were development

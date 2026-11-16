@@ -91,14 +91,14 @@ pub fn kinds() -> Vec<SimDataKind> {
     repair_fields.insert(
         "repair_left_s".to_owned(),
         field(
-            "PitRepairLeft: \"Time left for mandatory pit repairs if repairs are active\". Only fast repairs have been recorded, so a value above 0 is documented but not yet observed.",
+            "PitRepairLeft: \"Time left for mandatory pit repairs if repairs are active\". It counts down during a normal repair: in a recording it starts well above 0 when the repair begins and matches the game's pit screen to within about 30 s.",
             Some("s"),
         ),
     );
     repair_fields.insert(
         "optional_repair_left_s".to_owned(),
         field(
-            "PitOptRepairLeft: \"Time left for optional repairs if repairs are active\". Only fast repairs have been recorded, so a value above 0 is documented but not yet observed.",
+            "PitOptRepairLeft: \"Time left for optional repairs if repairs are active\". It counts down during a normal repair: in a recording it starts well above 0 when the repair begins and matches the game's pit screen to within about 30 s.",
             Some("s"),
         ),
     );
